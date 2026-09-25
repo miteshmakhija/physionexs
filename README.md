@@ -71,6 +71,22 @@ Migrations use `DATABASE_URL_DIRECT` (Neon host without `-pooler`); the app uses
 
 ## Deploying to Vercel
 
+**Live now** (Vercel team *Mitesh*, Hobby plan):
+
+| Project | URL | Root directory |
+|---|---|---|
+| `physionexs-api` | https://physionexs-api.vercel.app | `backend` (functions in `sin1`) |
+| `physionexs-web` | https://physionexs-web.vercel.app | `frontend/web` (`/api/*` → the API) |
+
+Deploy from the repo root (the root `.vercelignore` keeps `.env`, `.venv` and `node_modules` out of uploads):
+
+```sh
+VERCEL_ORG_ID=team_Vih2RymeoDoFRbXTwluKU6iA VERCEL_PROJECT_ID=prj_bmJ7UY8G3ZgRaNJFDSbyXFCQmYgD npx vercel deploy --prod --yes   # API
+VERCEL_ORG_ID=team_Vih2RymeoDoFRbXTwluKU6iA VERCEL_PROJECT_ID=prj_gqBYiozXtOoOfYCAMV7FG1Xrc5sr npx vercel deploy --prod --yes   # web
+```
+
+When `api.physionexs.com` is attached to the API project, change the `/api/:path*` destination in `frontend/web/vercel.json` back to it and redeploy the web project.
+
 Create **two Vercel projects** from this repo:
 
 1. **physionexs-api**: Root Directory `backend`. Framework preset: Other.
@@ -90,7 +106,7 @@ The API project pins its functions to Vercel's Singapore region (`sin1`, in `bac
 
 | Job | Schedule | Does |
 |---|---|---|
-| `/cron/hourly` | every hour at :05 | expires unpaid booking holds; 24 h and 2 h appointment reminders |
+| `/cron/hourly` | daily 08:00 IST on Hobby (hourly on Pro: `5 * * * *`) | expires unpaid booking holds; 24 h and 2 h appointment reminders |
 | `/cron/daily` | 09:00 IST | marks lapsed PMS subscriptions overdue; reminders 3 days before due |
 
 The Hobby plan runs cron jobs at most once a day — the hourly job needs Vercel Pro.
