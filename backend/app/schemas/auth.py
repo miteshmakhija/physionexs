@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, EmailStr, Field, model_validator
 
@@ -43,13 +43,21 @@ class PhysioRegisterIn(BaseModel):
     full_name: Name
     email: EmailStr
     phone: Phone
-    password: Password
+    # Either a password, or the token from Google sign-in (Google then signs them in).
+    password: Password | None = None
+    google_signup_token: str | None = None
     registration_no: Annotated[str, Field(min_length=3, max_length=60)]
     council: str | None = Field(default=None, max_length=80)
     qualification: str | None = Field(default=None, max_length=120)
     clinic_name: Annotated[str, Field(min_length=2, max_length=160)]
     city: Annotated[str, Field(min_length=2, max_length=80)]
     plan: SubscriptionPlan = SubscriptionPlan.MONTHLY
+
+    @model_validator(mode="after")
+    def credential(self):
+        if not self.password and not self.google_signup_token:
+            raise ValueError("Choose a password or continue with Google")
+        return self
 
 
 class LoginIn(BaseModel):
@@ -96,4 +104,30 @@ class TotpSetupOut(BaseModel):
 
 
 class TotpCodeIn(BaseModel):
+    code: Annotated[str, Field(pattern=r"^\d{6}$")]
+
+
+class ForgotPasswordIn(BaseModel):
+    identifier: Annotated[str, Field(min_length=3, max_length=254)]  # email or phone
+
+
+class ForgotPasswordOut(BaseModel):
+    channel: str  # "email" | "sms" — where the code goes if the account exists
+    expires_in: int
+
+
+class ResetPasswordIn(BaseModel):
+    identifier: Annotated[str, Field(min_length=3, max_length=254)]
+    code: Annotated[str, Field(pattern=r"^\d{6}$")]
+    new_password: Password
+
+
+class GoogleIn(BaseModel):
+    code: Annotated[str, Field(min_length=10, max_length=2048)]
+    redirect_uri: Annotated[str, Field(max_length=300)]
+    intent: Literal["patient", "physio"]
+
+
+class GoogleTotpIn(BaseModel):
+    pending_token: str
     code: Annotated[str, Field(pattern=r"^\d{6}$")]

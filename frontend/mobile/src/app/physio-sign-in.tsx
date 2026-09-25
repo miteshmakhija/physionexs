@@ -67,6 +67,7 @@ export default function PhysioSignIn() {
             />
           )}
           <Button title="Sign in" onPress={submit} loading={busy} />
+          <Button variant="ghost" title="Forgot password?" onPress={() => router.push('/forgot-password')} />
           <Text variant="caption" style={{ textAlign: 'center' }}>
             New clinic? Register at physionexs.com
           </Text>

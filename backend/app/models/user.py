@@ -28,6 +28,9 @@ class User(UUIDPk, Timestamps, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
 
+    # Google account id ("sub" claim) when the user signs in with Google.
+    google_sub: Mapped[str | None] = mapped_column(String(64), unique=True)
+
     totp_secret: Mapped[str | None] = mapped_column(String(64))
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -47,12 +50,14 @@ class RefreshToken(UUIDPk, Base):
 
 class OtpPurpose(StrEnum):
     LOGIN = "login"
+    PASSWORD_RESET = "password_reset"
 
 
 class OtpRequest(UUIDPk, Base):
     __tablename__ = "otp_requests"
 
-    phone: Mapped[str] = mapped_column(String(20), index=True)
+    # E.164 phone number or lower-cased email address the code was sent to.
+    destination: Mapped[str] = mapped_column(String(254), index=True)
     purpose: Mapped[OtpPurpose] = mapped_column(str_enum(OtpPurpose), default=OtpPurpose.LOGIN)
     code_hash: Mapped[str] = mapped_column(String(64))
     attempts: Mapped[int] = mapped_column(Integer, default=0)

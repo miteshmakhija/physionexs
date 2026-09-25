@@ -10,6 +10,7 @@ interface Session {
   requestOtp: (phone: string) => Promise<void>
   verifyOtp: (phone: string, code: string, fullName?: string) => Promise<Me>
   login: (identifier: string, password: string, totpCode?: string) => Promise<Me>
+  registerPatient: (body: { full_name: string; email: string; phone?: string | null; password: string }) => Promise<Me>
   logout: () => Promise<void>
 }
 
@@ -43,6 +44,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       verifyOtp: (phone, code, fullName) => signIn('/auth/otp/verify', { phone, code, full_name: fullName || undefined }),
       login: (identifier, password, totpCode) =>
         signIn('/auth/login', { identifier, password, totp_code: totpCode || undefined }),
+      registerPatient: (body) => signIn('/auth/register/patient', body),
       logout: async () => {
         await logoutRequest()
         await applyTokens(null)

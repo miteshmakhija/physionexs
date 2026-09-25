@@ -153,7 +153,7 @@ def purge_users(db: Session, user_ids: list, phones: list[str] = ()) -> None:
     db.execute(delete(Notification).where(Notification.user_id.in_(user_ids)))
     db.execute(delete(RefreshToken).where(RefreshToken.user_id.in_(user_ids)))
     db.execute(delete(AuditLog).where(or_(AuditLog.actor_user_id.in_(user_ids), AuditLog.clinic_id.in_(clinic_ids))))
-    db.execute(delete(OtpRequest).where(OtpRequest.phone.in_(list(phones))))
+    db.execute(delete(OtpRequest).where(OtpRequest.destination.in_(list(phones))))
     db.execute(delete(User).where(User.id.in_(user_ids)))
     db.commit()
 

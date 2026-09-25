@@ -25,3 +25,14 @@ def support(db: DB) -> SupportOut:
         address=value.get("address", ""),
         hours=value.get("hours", ""),
     )
+
+
+class AuthConfigOut(BaseModel):
+    google_client_id: str | None  # public OAuth client id; null when Google sign-in is off
+
+
+@router.get("/auth-config", response_model=AuthConfigOut)
+def auth_config() -> AuthConfigOut:
+    from app.services import google
+
+    return AuthConfigOut(google_client_id=google.settings.google_client_id if google.is_configured() else None)

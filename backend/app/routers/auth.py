@@ -1,4 +1,7 @@
+import uuid
 from datetime import UTC, datetime, timedelta
+
+import jwt
 
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
 from sqlalchemy import func, or_, select
@@ -7,6 +10,8 @@ from app.core.config import get_settings
 from app.core.deps import DB, CurrentUser
 from app.core.phone import normalize_phone
 from app.core.security import (
+    create_purpose_token,
+    decode_purpose_token,
     generate_otp,
     hash_otp,
     hash_password,
@@ -27,8 +32,12 @@ from app.models.clinic import (
     SubscriptionStatus,
 )
 from app.models.patient import Patient
-from app.models.user import OtpRequest, RefreshToken, User, UserRole
+from app.models.user import OtpPurpose, OtpRequest, RefreshToken, User, UserRole
 from app.schemas.auth import (
+    ForgotPasswordIn,
+    ForgotPasswordOut,
+    GoogleIn,
+    GoogleTotpIn,
     LoginIn,
     MeOut,
     OtpRequestIn,
@@ -37,11 +46,13 @@ from app.schemas.auth import (
     PatientRegisterIn,
     PhysioRegisterIn,
     RefreshIn,
+    ResetPasswordIn,
     TokenOut,
     TotpCodeIn,
     TotpSetupOut,
 )
-from app.services import audit, msg91
+from app.services import audit, google, msg91
+from app.services import email as mailer
 from app.services.settings import get_setting
 from app.services.auth import REFRESH_COOKIE, build_me, clear_refresh_cookie, issue_tokens, unique_slug
 
@@ -63,7 +74,7 @@ def request_otp(body: OtpRequestIn, db: DB) -> OtpRequestOut:
     now = datetime.now(UTC)
     recent = db.scalar(
         select(func.count()).select_from(OtpRequest).where(
-            OtpRequest.phone == body.phone, OtpRequest.created_at > now - OTP_WINDOW
+            OtpRequest.destination == body.phone, OtpRequest.purpose == OtpPurpose.LOGIN, OtpRequest.created_at > now - OTP_WINDOW
         )
     )
     if recent >= OTP_MAX_PER_WINDOW:
@@ -72,7 +83,7 @@ def request_otp(body: OtpRequestIn, db: DB) -> OtpRequestOut:
     code = generate_otp(settings.otp_length)
     db.add(
         OtpRequest(
-            phone=body.phone,
+            destination=body.phone,
             code_hash=hash_otp(body.phone, code),
             expires_at=now + timedelta(seconds=settings.otp_ttl_seconds),
         )
@@ -90,7 +101,7 @@ def verify_otp(body: OtpVerifyIn, db: DB, request: Request, response: Response) 
     now = datetime.now(UTC)
     otp = db.scalar(
         select(OtpRequest)
-        .where(OtpRequest.phone == body.phone, OtpRequest.consumed_at.is_(None), OtpRequest.expires_at > now)
+        .where(OtpRequest.destination == body.phone, OtpRequest.purpose == OtpPurpose.LOGIN, OtpRequest.consumed_at.is_(None), OtpRequest.expires_at > now)
         .order_by(OtpRequest.created_at.desc())
         .limit(1)
         .with_for_update()
@@ -138,12 +149,23 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
 
     The public profile stays hidden until a Super Admin verifies the council registration.
     """
-    _ensure_unique(db, phone=body.phone, email=body.email)
+    google_sub = None
+    email = body.email.lower()
+    if body.google_signup_token:
+        try:
+            claims = decode_purpose_token(body.google_signup_token, "google_signup")
+        except jwt.PyJWTError:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google sign-up expired — continue with Google again")
+        google_sub, email = claims["sub"], claims["email"]  # the verified Google email wins
+    _ensure_unique(db, phone=body.phone, email=email)
+    if google_sub and db.scalar(select(User.id).where(User.google_sub == google_sub)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This Google account is already registered")
     user = User(
         full_name=body.full_name,
         phone=body.phone,
-        email=body.email.lower(),
-        password_hash=hash_password(body.password),
+        email=email,
+        password_hash=hash_password(body.password) if body.password else None,
+        google_sub=google_sub,
         role=UserRole.PHYSIO,
     )
     db.add(user)
@@ -269,6 +291,142 @@ def totp_enable(body: TotpCodeIn, user: CurrentUser, db: DB, request: Request) -
     audit.record(db, action="enable_2fa", entity="user", entity_id=user.id, actor_user_id=user.id, request=request)
     db.commit()
     return build_me(db, user)
+
+
+# ── Forgot password ─────────────────────────────────────────────────────────
+
+RESET_TTL = timedelta(minutes=15)
+
+
+def _reset_destination(identifier: str) -> tuple[str, str]:
+    """(normalised destination, channel) for an email or phone identifier."""
+    identifier = identifier.strip()
+    if "@" in identifier:
+        return identifier.lower(), "email"
+    try:
+        return normalize_phone(identifier), "sms"
+    except ValueError:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Enter your email or mobile number")
+
+
+@router.post("/password/forgot", response_model=ForgotPasswordOut)
+def forgot_password(body: ForgotPasswordIn, db: DB, request: Request) -> ForgotPasswordOut:
+    """Send a 6-digit reset code. The response is the same whether or not the account exists."""
+    destination, channel = _reset_destination(body.identifier)
+    now = datetime.now(UTC)
+    recent = db.scalar(
+        select(func.count()).select_from(OtpRequest).where(
+            OtpRequest.destination == destination, OtpRequest.purpose == OtpPurpose.PASSWORD_RESET, OtpRequest.created_at > now - OTP_WINDOW
+        )
+    )
+    if recent >= OTP_MAX_PER_WINDOW:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests. Try again in a few minutes.")
+    out = ForgotPasswordOut(channel=channel, expires_in=int(RESET_TTL.total_seconds()))
+    user = _find_by_identifier(db, destination)
+    if user is None or not user.is_active or user.role == UserRole.SUPER_ADMIN:
+        return out  # same answer either way, so this can't be used to discover accounts
+
+    code = generate_otp(6)
+    db.add(OtpRequest(destination=destination, purpose=OtpPurpose.PASSWORD_RESET, code_hash=hash_otp(destination, code), expires_at=now + RESET_TTL))
+    audit.record(db, action="password_reset_requested", entity="user", entity_id=user.id, actor_user_id=user.id, request=request)
+    db.commit()
+    try:
+        if channel == "email":
+            first = user.full_name.split()[0]
+            mailer.send_email(
+                destination,
+                "Your Physionexs password reset code",
+                f"Hi {first},\n\nYour Physionexs password reset code is {code}. It expires in 15 minutes.\n\n"
+                "If you did not ask to reset your password, you can ignore this email.",
+            )
+        else:
+            msg91.send_otp(destination, code)
+    except (mailer.EmailError, msg91.SmsError):
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not send the code. Please try again.")
+    return out
+
+
+@router.post("/password/reset", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(body: ResetPasswordIn, db: DB, request: Request) -> Response:
+    destination, _ = _reset_destination(body.identifier)
+    now = datetime.now(UTC)
+    otp = db.scalar(
+        select(OtpRequest)
+        .where(OtpRequest.destination == destination, OtpRequest.purpose == OtpPurpose.PASSWORD_RESET,
+               OtpRequest.consumed_at.is_(None), OtpRequest.expires_at > now)
+        .order_by(OtpRequest.created_at.desc())
+        .limit(1)
+        .with_for_update()
+    )
+    if otp is None or otp.attempts >= settings.otp_max_attempts:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Code expired. Request a new one.")
+    if otp.code_hash != hash_otp(destination, body.code):
+        otp.attempts += 1
+        db.commit()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect code")
+    user = _find_by_identifier(db, destination)
+    if user is None or not user.is_active:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Code expired. Request a new one.")
+    otp.consumed_at = now
+    user.password_hash = hash_password(body.new_password)
+    for token in db.scalars(select(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))):
+        token.revoked_at = now  # sign out every existing session
+    audit.record(db, action="password_reset", entity="user", entity_id=user.id, actor_user_id=user.id, request=request)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ── Google sign-in ──────────────────────────────────────────────────────────
+
+
+@router.post("/google", response_model=TokenOut)
+def google_sign_in(body: GoogleIn, db: DB, request: Request, response: Response) -> TokenOut:
+    """Exchange a Google authorization code. Patients are created on first sign-in; a new physio gets a
+    `physio_signup_required` response with a token to finish clinic registration."""
+    try:
+        who = google.identity_from_code(body.code, body.redirect_uri)
+    except google.GoogleAuthError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+
+    user = db.scalar(select(User).where(User.google_sub == who.sub)) or db.scalar(select(User).where(func.lower(User.email) == who.email))
+    if user is None:
+        if body.intent == "physio":
+            token = create_purpose_token("google_signup", {"sub": who.sub, "email": who.email, "name": who.name}, minutes=30)
+            raise HTTPException(status.HTTP_409_CONFLICT, {"code": "physio_signup_required", "signup_token": token, "email": who.email, "full_name": who.name})
+        user = _create_patient_user(db, full_name=who.name, email=who.email)
+        user.google_sub = who.sub
+        user.avatar_url = who.picture
+        audit.record(db, action="register", entity="user", entity_id=user.id, actor_user_id=user.id, summary="Patient signed up with Google", request=request)
+    else:
+        if user.role == UserRole.SUPER_ADMIN:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Super Admin signs in with a password")
+        if not user.is_active:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
+        if body.intent == "patient" and user.role != UserRole.PATIENT:
+            raise HTTPException(status.HTTP_409_CONFLICT, "This Google account belongs to a clinic account — use the physiotherapist sign-in")
+        if body.intent == "physio" and user.role == UserRole.PATIENT:
+            raise HTTPException(status.HTTP_409_CONFLICT, "This Google account is registered as a patient — use the patient sign-in")
+        if user.google_sub is None:
+            user.google_sub = who.sub  # link on first Google sign-in (Google has verified the email)
+        if user.totp_enabled:
+            db.commit()
+            token = create_purpose_token("totp_pending", {"uid": str(user.id)}, minutes=5)
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, {"code": "totp_required", "pending_token": token})
+    audit.record(db, action="login", entity="user", entity_id=user.id, actor_user_id=user.id, summary="Google sign-in", request=request)
+    return issue_tokens(db, user, request, response)
+
+
+@router.post("/google/totp", response_model=TokenOut)
+def google_totp(body: GoogleTotpIn, db: DB, request: Request, response: Response) -> TokenOut:
+    try:
+        claims = decode_purpose_token(body.pending_token, "totp_pending")
+    except jwt.PyJWTError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-in expired — continue with Google again")
+    user = db.get(User, uuid.UUID(claims["uid"]))
+    if user is None or not user.is_active or not verify_totp(user.totp_secret, body.code):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect authentication code")
+    audit.record(db, action="login", entity="user", entity_id=user.id, actor_user_id=user.id, summary="Google sign-in + 2FA", request=request)
+    return issue_tokens(db, user, request, response)
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────

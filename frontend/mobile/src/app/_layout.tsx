@@ -56,6 +56,7 @@ function RootNavigator() {
       <Stack.Protected guard={!me}>
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="physio-sign-in" />
+        <Stack.Screen name="forgot-password" />
       </Stack.Protected>
       <Stack.Protected guard={role === 'patient'}>
         <Stack.Screen name="patient" />

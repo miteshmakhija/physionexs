@@ -57,3 +57,23 @@ def test_totp():
     assert verify_totp(secret, pyotp.TOTP(secret).now())
     assert not verify_totp(secret, "000000") or pyotp.TOTP(secret).now() == "000000"
     assert not verify_totp(None, "123456")
+
+
+def test_google_redirect_allowlist(monkeypatch):
+    from app.services import google
+
+    monkeypatch.setattr(google.settings, "google_client_id", "client-id")
+    monkeypatch.setattr(google.settings, "google_client_secret", "client-secret")
+    with pytest.raises(google.GoogleAuthError, match="Redirect URI"):
+        google.identity_from_code("some-code", "https://evil.example.com/auth/google/callback")
+
+
+def test_purpose_tokens_are_not_interchangeable():
+    import jwt as pyjwt
+
+    from app.core.security import create_purpose_token, decode_purpose_token
+
+    t = create_purpose_token("google_signup", {"sub": "x"}, minutes=5)
+    assert decode_purpose_token(t, "google_signup")["sub"] == "x"
+    with pytest.raises(pyjwt.InvalidTokenError):
+        decode_purpose_token(t, "totp_pending")

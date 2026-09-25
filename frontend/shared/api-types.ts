@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/auth-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Auth Config */
+        get: operations["auth_config_platform_auth_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/otp/request": {
         parameters: {
             query?: never;
@@ -207,6 +224,81 @@ export interface paths {
         put?: never;
         /** Totp Enable */
         post: operations["totp_enable_auth_totp_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot Password
+         * @description Send a 6-digit reset code. The response is the same whether or not the account exists.
+         */
+        post: operations["forgot_password_auth_password_forgot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Password */
+        post: operations["reset_password_auth_password_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Google Sign In
+         * @description Exchange a Google authorization code. Patients are created on first sign-in; a new physio gets a
+         *     `physio_signup_required` response with a token to finish clinic registration.
+         */
+        post: operations["google_sign_in_auth_google_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/google/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Google Totp */
+        post: operations["google_totp_auth_google_totp_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1950,6 +2042,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** AuthConfigOut */
+        AuthConfigOut: {
+            /** Google Client Id */
+            google_client_id: string | null;
+        };
         /** AvailabilityIn */
         AvailabilityIn: {
             /** Items */
@@ -2636,11 +2733,42 @@ export interface components {
          * @enum {string}
          */
         Feel: "easy" | "ok" | "hard";
+        /** ForgotPasswordIn */
+        ForgotPasswordIn: {
+            /** Identifier */
+            identifier: string;
+        };
+        /** ForgotPasswordOut */
+        ForgotPasswordOut: {
+            /** Channel */
+            channel: string;
+            /** Expires In */
+            expires_in: number;
+        };
         /**
          * Frequency
          * @enum {string}
          */
         Frequency: "daily" | "alternate_days" | "weekly_3x" | "weekly";
+        /** GoogleIn */
+        GoogleIn: {
+            /** Code */
+            code: string;
+            /** Redirect Uri */
+            redirect_uri: string;
+            /**
+             * Intent
+             * @enum {string}
+             */
+            intent: "patient" | "physio";
+        };
+        /** GoogleTotpIn */
+        GoogleTotpIn: {
+            /** Pending Token */
+            pending_token: string;
+            /** Code */
+            code: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -3345,7 +3473,9 @@ export interface components {
             /** Phone */
             phone: string;
             /** Password */
-            password: string;
+            password?: string | null;
+            /** Google Signup Token */
+            google_signup_token?: string | null;
             /** Registration No */
             registration_no: string;
             /** Council */
@@ -3600,6 +3730,15 @@ export interface components {
         RejectIn: {
             /** Reason */
             reason: string;
+        };
+        /** ResetPasswordIn */
+        ResetPasswordIn: {
+            /** Identifier */
+            identifier: string;
+            /** Code */
+            code: string;
+            /** New Password */
+            new_password: string;
         };
         /** RevenueSplit */
         RevenueSplit: {
@@ -4187,6 +4326,26 @@ export interface operations {
             };
         };
     };
+    auth_config_platform_auth_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthConfigOut"];
+                };
+            };
+        };
+    };
     request_otp_auth_otp_request_post: {
         parameters: {
             query?: never;
@@ -4480,6 +4639,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forgot_password_auth_password_forgot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgotPasswordOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_auth_password_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    google_sign_in_auth_google_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    google_totp_auth_google_totp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleTotpIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenOut"];
                 };
             };
             /** @description Validation Error */

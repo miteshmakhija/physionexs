@@ -49,6 +49,27 @@
         }
       }
     },
+    "/platform/auth-config": {
+      "get": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Auth Config",
+        "operationId": "auth_config_platform_auth_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthConfigOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/otp/request": {
       "post": {
         "tags": [
@@ -476,6 +497,165 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/auth/password/forgot": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Forgot Password",
+        "description": "Send a 6-digit reset code. The response is the same whether or not the account exists.",
+        "operationId": "forgot_password_auth_password_forgot_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password/reset": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Reset Password",
+        "operationId": "reset_password_auth_password_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/google": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Google Sign In",
+        "description": "Exchange a Google authorization code. Patients are created on first sign-in; a new physio gets a\n`physio_signup_required` response with a token to finish clinic registration.",
+        "operationId": "google_sign_in_auth_google_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/google/totp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Google Totp",
+        "operationId": "google_totp_auth_google_totp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleTotpIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/physios": {
@@ -7116,6 +7296,26 @@
         ],
         "title": "AuditRow"
       },
+      "AuthConfigOut": {
+        "properties": {
+          "google_client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Client Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "google_client_id"
+        ],
+        "title": "AuthConfigOut"
+      },
       "AvailabilityIn": {
         "properties": {
           "items": {
@@ -9335,6 +9535,39 @@
         ],
         "title": "Feel"
       },
+      "ForgotPasswordIn": {
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Identifier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "identifier"
+        ],
+        "title": "ForgotPasswordIn"
+      },
+      "ForgotPasswordOut": {
+        "properties": {
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channel",
+          "expires_in"
+        ],
+        "title": "ForgotPasswordOut"
+      },
       "Frequency": {
         "type": "string",
         "enum": [
@@ -9344,6 +9577,55 @@
           "weekly"
         ],
         "title": "Frequency"
+      },
+      "GoogleIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 10,
+            "title": "Code"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Redirect Uri"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "physio"
+            ],
+            "title": "Intent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "redirect_uri",
+          "intent"
+        ],
+        "title": "GoogleIn"
+      },
+      "GoogleTotpIn": {
+        "properties": {
+          "pending_token": {
+            "type": "string",
+            "title": "Pending Token"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pending_token",
+          "code"
+        ],
+        "title": "GoogleTotpIn"
       },
       "HTTPValidationError": {
         "properties": {
@@ -11618,10 +11900,28 @@
             "title": "Phone"
           },
           "password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 8,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Password"
+          },
+          "google_signup_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Google Signup Token"
           },
           "registration_no": {
             "type": "string",
@@ -11675,7 +11975,6 @@
           "full_name",
           "email",
           "phone",
-          "password",
           "registration_no",
           "clinic_name",
           "city"
@@ -12350,6 +12649,34 @@
           "reason"
         ],
         "title": "RejectIn"
+      },
+      "ResetPasswordIn": {
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Identifier"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "title": "Code"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "identifier",
+          "code",
+          "new_password"
+        ],
+        "title": "ResetPasswordIn"
       },
       "RevenueSplit": {
         "properties": {

@@ -77,3 +77,16 @@ def verify_totp(secret: str | None, code: str | None) -> bool:
     if not secret or not code:
         return False
     return pyotp.TOTP(secret).verify(code.strip(), valid_window=1)
+
+
+def create_purpose_token(purpose: str, claims: dict, minutes: int) -> str:
+    """Short-lived signed token for a single step (e.g. finishing Google sign-up)."""
+    now = datetime.now(UTC)
+    return jwt.encode({**claims, "typ": purpose, "iat": now, "exp": now + timedelta(minutes=minutes)}, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_purpose_token(token: str, purpose: str) -> dict:
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    if payload.get("typ") != purpose:
+        raise jwt.InvalidTokenError("wrong token type")
+    return payload

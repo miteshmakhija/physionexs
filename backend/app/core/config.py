@@ -41,6 +41,21 @@ class Settings(BaseSettings):
     razorpay_key_secret: str | None = None
     razorpay_webhook_secret: str | None = None
 
+    # Google sign-in (OAuth 2.0 web client)
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    # Redirect URIs the web app may use; each must also be listed in Google Cloud Console.
+    google_redirect_uris: list[str] = [
+        "https://physionexs.com/auth/google/callback",
+        "https://www.physionexs.com/auth/google/callback",
+        "https://physionexs-web.vercel.app/auth/google/callback",
+        "http://localhost:5173/auth/google/callback",
+    ]
+
+    # Transactional email via Resend (password reset codes). Without a key, dev logs the code.
+    resend_api_key: str | None = None
+    email_from: str = "Physionexs <no-reply@physionexs.com>"
+
     # Vercel Cron authenticates with "Authorization: Bearer <CRON_SECRET>".
     cron_secret: str | None = None
 
