@@ -47,7 +47,12 @@ export default function SignIn() {
             <Text style={{ fontFamily: font.extrabold, fontSize: 30, color: colors.brand }}>Physio</Text>
             <Text style={{ fontFamily: font.extrabold, fontSize: 30, color: colors.leaf }}>nexs</Text>
           </Text>
-          <Text style={{ marginTop: 6, textAlign: 'center' }}>Recover with a plan. Track. Heal. Thrive.</Text>
+          <Text style={{ marginTop: 6, textAlign: 'center', fontFamily: font.bold, fontSize: 15, color: '#0F2A33' }}>
+            Recover with a plan.{' '}
+            <Text style={{ fontFamily: font.bold, fontSize: 15, color: colors.brand }}>Track.</Text>{' '}
+            <Text style={{ fontFamily: font.bold, fontSize: 15, color: colors.leaf }}>Heal.</Text>{' '}
+            <Text style={{ fontFamily: font.bold, fontSize: 15, color: colors.sun }}>Thrive.</Text>
+          </Text>
         </View>
 
         <Card style={{ gap: 16 }}>

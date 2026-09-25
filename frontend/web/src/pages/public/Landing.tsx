@@ -15,8 +15,10 @@ export default function Landing() {
 
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 sm:pt-16">
         <p className="eyebrow mb-5">Physiotherapy, planned</p>
-        <h1 className="max-w-3xl text-[40px] font-bold leading-[1.05] tracking-[-0.03em] sm:text-[60px]">
-          Recover with a plan. Track. Heal. Thrive.
+        <h1 className="max-w-3xl text-[40px] font-extrabold leading-[1.08] tracking-[-0.03em] sm:text-[60px]">
+          <span className="text-[#0F2A33]">Recover with a plan.</span>
+          <br />
+          <span className="text-brand">Track.</span> <span className="text-leaf">Heal.</span> <span className="text-sun">Thrive.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-muted sm:text-[17px]">
           Find a physiotherapist near you, book online or in-clinic, follow your prescribed exercises and medicines —
