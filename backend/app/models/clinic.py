@@ -49,6 +49,7 @@ class Branch(UUIDPk, Timestamps, Base):
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
     hours: Mapped[str | None] = mapped_column(String(120))  # display text, e.g. "Mon–Sat · 8 AM–8 PM"
+    timezone: Mapped[str] = mapped_column(String(40), default="Asia/Kolkata", server_default="Asia/Kolkata")
     therapy_rooms: Mapped[int] = mapped_column(Integer, default=1)
     lead_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

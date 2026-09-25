@@ -1,15 +1,24 @@
-import { Tabs } from 'expo-router/js-tabs'
+import { Stack } from 'expo-router/stack'
 
-import { tabIcon, tabScreenOptions } from '@/components/tab-bar'
+import { colors, font } from '@shared/tokens'
 
-export default function PatientTabs() {
+export default function PatientStack() {
   return (
-    <Tabs screenOptions={tabScreenOptions}>
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('home-outline') }} />
-      <Tabs.Screen name="plan" options={{ title: 'Care plan', tabBarIcon: tabIcon('clipboard-outline') }} />
-      <Tabs.Screen name="exercises" options={{ title: 'Exercises', tabBarIcon: tabIcon('barbell-outline') }} />
-      <Tabs.Screen name="progress" options={{ title: 'Progress', tabBarIcon: tabIcon('stats-chart-outline') }} />
-      <Tabs.Screen name="chat" options={{ title: 'Chat', tabBarIcon: tabIcon('chatbubble-ellipses-outline') }} />
-    </Tabs>
+    <Stack
+      screenOptions={{
+        headerShadowVisible: false,
+        headerTintColor: colors.ink,
+        headerTitleStyle: { fontFamily: font.semibold, fontSize: 15 },
+        headerBackButtonDisplayMode: 'minimal',
+        contentStyle: { backgroundColor: colors.canvas },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="find" options={{ title: 'Find a physio' }} />
+      <Stack.Screen name="physio/[id]" options={{ title: '' }} />
+      <Stack.Screen name="book/[id]" options={{ title: 'Book appointment' }} />
+      <Stack.Screen name="pay" options={{ title: 'Payment', presentation: 'modal' }} />
+      <Stack.Screen name="appointment/[id]" options={{ title: 'Appointment' }} />
+    </Stack>
   )
 }

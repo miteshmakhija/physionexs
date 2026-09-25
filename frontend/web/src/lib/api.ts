@@ -54,9 +54,23 @@ export function refreshSession(): Promise<TokenOut | null> {
   return refreshing
 }
 
-export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-  const { json, ...rest } = init
-  const req: RequestInit = json === undefined ? rest : { ...rest, body: JSON.stringify(json) }
+export interface ApiInit extends RequestInit {
+  json?: unknown
+  /** Sent as X-Clinic-Id for practice-console endpoints. */
+  clinicId?: string
+  query?: Record<string, string | number | boolean | null | undefined>
+}
+
+export async function api<T>(path: string, init: ApiInit = {}): Promise<T> {
+  const { json, clinicId, query, ...rest } = init
+  const headers = new Headers(rest.headers)
+  if (clinicId) headers.set('X-Clinic-Id', clinicId)
+  const req: RequestInit = { ...rest, headers, ...(json === undefined ? {} : { body: JSON.stringify(json) }) }
+  if (query) {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== null && v !== '') qs.set(k, String(v))
+    if (qs.size) path += `?${qs}`
+  }
 
   let res = await raw(path, req)
   if (res.status === 401 && accessToken && !path.startsWith('/auth/')) {

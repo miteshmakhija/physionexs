@@ -6,6 +6,7 @@ export default function ClinicShell() {
   const { me } = useAuth()
   const membership = me?.memberships[0]
   const isOwner = membership?.role === 'owner'
+  const isClinician = isOwner || membership?.role === 'physio'
 
   const sections: NavSection[] = [
     {
@@ -14,6 +15,7 @@ export default function ClinicShell() {
         { to: '/clinic/queue', label: 'Token queue' },
         { to: '/clinic/schedule', label: 'Schedule' },
         { to: '/clinic/patients', label: 'Patients' },
+        ...(isClinician ? [{ to: '/clinic/hours', label: 'Profile & hours' }] : []),
         ...(isOwner
           ? [
               { to: '/clinic/billing', label: 'Billing' },

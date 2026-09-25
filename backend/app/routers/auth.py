@@ -103,7 +103,7 @@ def verify_otp(body: OtpVerifyIn, db: DB, request: Request, response: Response) 
     user = db.scalar(select(User).where(User.phone == body.phone))
     if user is None and not body.full_name:
         # New number: the code stays valid so the client can ask for a name and resubmit it.
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "full_name_required")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "full_name_required")
     otp.consumed_at = now
 
     if user is None:

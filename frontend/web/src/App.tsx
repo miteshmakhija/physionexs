@@ -5,9 +5,16 @@ import { RequireRole } from '@/auth/RequireRole'
 import { ComingSoon } from '@/components/ConsoleLayout'
 import { FullPageSpinner } from '@/components/ui'
 import AdminShell from '@/pages/admin/AdminShell'
+import Verification from '@/pages/admin/Verification'
 import ClinicShell from '@/pages/clinic/ClinicShell'
+import ProfileHours from '@/pages/clinic/ProfileHours'
+import Schedule from '@/pages/clinic/Schedule'
+import AppointmentDetail from '@/pages/patient/AppointmentDetail'
+import Book from '@/pages/patient/Book'
+import FindPhysio from '@/pages/patient/FindPhysio'
 import PatientHome from '@/pages/patient/PatientHome'
 import PatientShell from '@/pages/patient/PatientShell'
+import PhysioProfile from '@/pages/patient/PhysioProfile'
 import Landing from '@/pages/public/Landing'
 import SignIn from '@/pages/public/SignIn'
 
@@ -28,7 +35,10 @@ const router = createBrowserRouter([
     element: <RequireRole roles={['patient']}><PatientShell /></RequireRole>,
     children: [
       { index: true, element: <PatientHome /> },
-      { path: 'find', element: soon('Find a physio', ['Search by city, radius, rating and mode', 'Physio profiles & reviews', 'Slot booking', 'Razorpay checkout with Health Points']) },
+      { path: 'find', element: <FindPhysio /> },
+      { path: 'physios/:id', element: <PhysioProfile /> },
+      { path: 'book/:id', element: <Book /> },
+      { path: 'appointments/:id', element: <AppointmentDetail /> },
       { path: 'plan', element: soon('My care plan', ['Diagnosis, goal and stage', 'Physio’s notes', 'Test results', 'Prescriptions']) },
       { path: 'exercises', element: soon('Exercises', ['Today’s exercises', 'Step-by-step guidance with video', 'Log sets and how it felt']) },
       { path: 'progress', element: soon('Progress', ['Adherence and streaks', 'Pain trend', 'Exercise completion']) },
@@ -40,7 +50,8 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: soon('Dashboard', ['Appointments today, tokens waiting, active patients', 'Branch breakdown', 'Today’s schedule', 'Patients needing attention'], 'Here’s how your clinic is doing today.') },
       { path: 'queue', element: soon('Token queue', ['Register walk-ins', 'Now serving / call next', 'Live wait estimates on the patient app']) },
-      { path: 'schedule', element: soon('Schedule', ['Weekly calendar', 'Confirm app bookings', 'Tele-consults']) },
+      { path: 'schedule', element: <Schedule /> },
+      { path: 'hours', element: <ProfileHours /> },
       { path: 'patients', element: soon('Patients', ['Patient files', 'SOAP consultation notes', 'Medical background & functional analysis', 'Prescribe exercises, medicines & tests']) },
       { path: 'billing', element: soon('Billing & invoices', ['Invoices on your letterhead', 'Collections and dues', 'PDF / print']) },
       { path: 'analytics', element: soon('Analytics', ['Revenue, appointments, adherence, no-shows', 'Conditions treated', 'Online vs in-clinic']) },
@@ -53,7 +64,7 @@ const router = createBrowserRouter([
     element: <RequireRole roles={['super_admin']}><AdminShell /></RequireRole>,
     children: [
       { index: true, element: soon('Platform overview', ['Pending verifications', 'Onboarding & bookings', 'Revenue split — patients & doctors']) },
-      { path: 'verification', element: soon('Physiotherapist verification', ['Review council registration', 'Approve & publish / reject']) },
+      { path: 'verification', element: <Verification /> },
       { path: 'subscriptions', element: soon('PMS subscriptions', ['MRR / ARR', 'Per-clinic price & plan', 'Overdue reminders']) },
       { path: 'exercises', element: soon('Exercise library', ['Author & publish platform exercises', 'Review clinic submissions', 'Video & photo uploads']) },
       { path: 'analytics', element: soon('Analytics', ['Growth', 'Bookings by treatment', 'Revenue']) },

@@ -2,6 +2,8 @@
 
     python -m app.cli create-admin --name "Aditya Kulkarni" --email admin@physionexs.com --phone 9800000000
     python -m app.cli seed-settings
+    python -m app.cli seed-demo      # 3 verified demo physios in Pune (dev only)
+    python -m app.cli purge-demo
 """
 
 import argparse
@@ -15,14 +17,7 @@ from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models.platform import PlatformSetting
 from app.models.user import User, UserRole
-
-DEFAULT_SETTINGS: dict[str, dict] = {
-    "rewards": {"tiers": [{"days": 7, "points": 50}, {"days": 14, "points": 100}, {"days": 21, "points": 150}], "paise_per_point": 100},
-    "support": {"helpline": "+91 80 4711 2200", "email": "contact@physionexs.com"},
-    "reminders": {"appointment_hours_before": [24, 2]},
-    "pms_pricing": {"monthly_paise": 50_000, "yearly_paise": 500_000, "trial_days": 14},
-    "platform_fee": {"default_bps": 1000, "allowed_bps": [1000, 1500]},
-}
+from app.services.settings import DEFAULT_SETTINGS
 
 
 def create_admin(name: str, email: str, phone: str | None) -> None:
@@ -61,12 +56,26 @@ def main() -> None:
     admin.add_argument("--email", required=True)
     admin.add_argument("--phone")
     sub.add_parser("seed-settings")
+    sub.add_parser("seed-demo")
+    sub.add_parser("purge-demo")
     args = parser.parse_args()
 
     if args.cmd == "create-admin":
         create_admin(args.name, args.email, args.phone)
     elif args.cmd == "seed-settings":
         seed_settings()
+    elif args.cmd in ("seed-demo", "purge-demo"):
+        from app.core.config import get_settings
+        from app.devtools import DEMO_PASSWORD, purge_demo, seed_demo
+
+        if not get_settings().is_dev:
+            sys.exit("Demo data is only for development.")
+        with SessionLocal() as db:
+            if args.cmd == "seed-demo":
+                users = seed_demo(db)
+                print(f"Created {len(users)} demo physios (password: {DEMO_PASSWORD}).")
+            else:
+                print(f"Removed {purge_demo(db)} demo users.")
 
 
 if __name__ == "__main__":

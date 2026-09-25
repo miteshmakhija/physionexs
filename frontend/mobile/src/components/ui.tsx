@@ -152,3 +152,67 @@ const styles = StyleSheet.create({
   error: { backgroundColor: colors.dangerTint, borderRadius: radius.md, padding: 12 },
   avatar: { borderWidth: 1, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
 })
+
+export function Chip({
+  label,
+  selected,
+  onPress,
+  disabled,
+  strike,
+}: {
+  label: string
+  selected?: boolean
+  onPress?: () => void
+  disabled?: boolean
+  strike?: boolean
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+      style={{
+        borderWidth: 1,
+        borderColor: selected ? colors.ink : colors.lineStrong,
+        backgroundColor: selected ? colors.ink : colors.surface,
+        borderRadius: radius.sm,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        opacity: disabled ? 0.4 : 1,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: font.medium,
+          fontSize: 13,
+          color: selected ? '#fff' : colors.ink,
+          textDecorationLine: strike ? 'line-through' : 'none',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
+export function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 6 }}>
+      <Text>{label}</Text>
+      <Text style={{ color: colors.ink, fontFamily: font.medium, flexShrink: 1, textAlign: 'right' }}>{value}</Text>
+    </View>
+  )
+}
+
+export function Loading() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+      <ActivityIndicator color={colors.ink} />
+    </View>
+  )
+}
+
+export function Divider() {
+  return <View style={{ height: 1, backgroundColor: colors.line }} />
+}

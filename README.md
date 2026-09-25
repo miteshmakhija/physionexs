@@ -28,7 +28,9 @@ cp .env.example .env                                   # fill in DATABASE_URL, D
 
 - API docs: http://localhost:8000/docs (dev only).
 - Without MSG91 keys, login OTPs are printed to the API log instead of being sent by SMS.
-- Tests: `.venv/Scripts/python -m pytest`
+- Without Razorpay keys, checkout is simulated (orders start with `order_dev_`; the app asks you to confirm a fake payment). This is refused when `ENVIRONMENT=production`.
+- Demo data: `python -m app.cli seed-demo` adds 3 verified physios in Pune with weekly hours (password `demo-physio-123`, emails `iap-demo-100X@demo.physionexs.com`); `python -m app.cli purge-demo` removes them.
+- Tests: `.venv/Scripts/python -m pytest` (unit). The end-to-end booking tests write to the configured database and clean up afterwards: `PNX_INTEGRATION=1 .venv/Scripts/python -m pytest` — point them at a Neon dev branch, not production.
 
 ### Web
 
@@ -78,6 +80,12 @@ Create **two Vercel projects** from this repo:
    - `vercel.json` proxies `/api/*` to `api.physionexs.com`, so the login cookie stays first-party.
 
 Run migrations from your machine or CI before deploying backend changes; they are not run on deploy.
+
+### Razorpay
+
+1. Put `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` in the API project's environment variables (test keys first).
+2. Razorpay Dashboard → Webhooks → add `https://api.physionexs.com/webhooks/razorpay` with events `payment.captured`, `order.paid`, `payment.failed`, and set the same secret as `RAZORPAY_WEBHOOK_SECRET`. The webhook confirms bookings even if the patient closes the app right after paying.
+3. Booking money flow: the patient pays the full fee (minus Health Points) to the platform account. `payments.platform_fee_paise` and `payments.meta.payout_paise` record the split per clinic; automatic payouts to clinics (Razorpay Route) are a later step. Cancelled paid bookings are flagged with `meta.refund_required` for now — refund them from the Razorpay dashboard.
 
 ## Security notes
 

@@ -196,10 +196,522 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/physios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_physios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physios/{physio_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_physios__physio_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physios/{physio_id}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Slots */
+        get: operations["slots_physios__physio_id__slots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Booking */
+        post: operations["create_booking_bookings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/{appointment_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Payment
+         * @description Called by the client after Razorpay checkout succeeds. The webhook confirms too, whichever arrives first.
+         */
+        post: operations["verify_payment_bookings__appointment_id__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Appointments */
+        get: operations["my_appointments_me_appointments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/appointments/{appointment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Appointment */
+        get: operations["my_appointment_me_appointments__appointment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/appointments/{appointment_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_me_appointments__appointment_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Points */
+        get: operations["my_points_me_points_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/physio-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_clinic_physio_profile_get"];
+        /** Update Profile */
+        put: operations["update_profile_clinic_physio_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Branches */
+        get: operations["branches_clinic_branches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Availability */
+        get: operations["get_availability_clinic_availability_get"];
+        /**
+         * Set Availability
+         * @description Replace the signed-in physio's weekly hours at this clinic.
+         */
+        put: operations["set_availability_clinic_availability_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Appointments */
+        get: operations["appointments_clinic_appointments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/appointments/{appointment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Appointment */
+        patch: operations["update_appointment_clinic_appointments__appointment_id__patch"];
+        trace?: never;
+    };
+    "/admin/verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verifications */
+        get: operations["verifications_admin_verifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/verifications/{user_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_admin_verifications__user_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/verifications/{user_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_admin_verifications__user_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/razorpay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Razorpay Webhook
+         * @description Configure in Razorpay Dashboard → Webhooks with events payment.captured, order.paid, payment.failed.
+         */
+        post: operations["razorpay_webhook_webhooks_razorpay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AppointmentKind
+         * @enum {string}
+         */
+        AppointmentKind: "initial" | "follow_up";
+        /** AppointmentOut */
+        AppointmentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            mode: components["schemas"]["ConsultMode"];
+            kind: components["schemas"]["AppointmentKind"];
+            status: components["schemas"]["AppointmentStatus"];
+            physio: components["schemas"]["PhysioBrief"];
+            /** Clinic Name */
+            clinic_name: string;
+            branch: components["schemas"]["BranchBrief"];
+            /** Fee Paise */
+            fee_paise: number;
+            /** Amount Paid Paise */
+            amount_paid_paise: number;
+            /** Points Redeemed */
+            points_redeemed: number;
+            /** Paid */
+            paid: boolean;
+            /** Hold Expires At */
+            hold_expires_at: string | null;
+        };
+        /**
+         * AppointmentStatus
+         * @enum {string}
+         */
+        AppointmentStatus: "pending" | "confirmed" | "checked_in" | "completed" | "cancelled" | "no_show";
+        /** AppointmentStatusIn */
+        AppointmentStatusIn: {
+            status: components["schemas"]["AppointmentStatus"];
+        };
+        /** AvailabilityIn */
+        AvailabilityIn: {
+            /** Items */
+            items: components["schemas"]["AvailabilityItem"][];
+        };
+        /** AvailabilityItem */
+        AvailabilityItem: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Weekday */
+            weekday: number;
+            /**
+             * Start Time
+             * Format: time
+             */
+            start_time: string;
+            /**
+             * End Time
+             * Format: time
+             */
+            end_time: string;
+            /**
+             * Slot Minutes
+             * @default 30
+             */
+            slot_minutes: number;
+        };
+        /** BookingIn */
+        BookingIn: {
+            /**
+             * Physio Id
+             * Format: uuid
+             */
+            physio_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            mode: components["schemas"]["ConsultMode"];
+            /** Referral Source */
+            referral_source?: string | null;
+            /**
+             * Redeem Points
+             * @default false
+             */
+            redeem_points: boolean;
+        };
+        /** BranchBrief */
+        BranchBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Area */
+            area: string | null;
+            /** City */
+            city: string;
+            /** Address */
+            address?: string | null;
+        };
+        /** CheckoutOut */
+        CheckoutOut: {
+            /**
+             * Appointment Id
+             * Format: uuid
+             */
+            appointment_id: string;
+            status: components["schemas"]["AppointmentStatus"];
+            /** Fee Paise */
+            fee_paise: number;
+            /** Discount Paise */
+            discount_paise: number;
+            /** Points Redeemed */
+            points_redeemed: number;
+            /** Amount Paise */
+            amount_paise: number;
+            /** Hold Expires At */
+            hold_expires_at: string | null;
+            razorpay: components["schemas"]["RazorpayCheckout"] | null;
+        };
+        /** ClinicAppointmentOut */
+        ClinicAppointmentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            mode: components["schemas"]["ConsultMode"];
+            kind: components["schemas"]["AppointmentKind"];
+            status: components["schemas"]["AppointmentStatus"];
+            /** Source */
+            source: string;
+            /** Patient Name */
+            patient_name: string;
+            /** Patient Phone */
+            patient_phone: string | null;
+            /** Physio Name */
+            physio_name: string;
+            /** Branch Name */
+            branch_name: string;
+            /** Reason */
+            reason: string | null;
+            /** Fee Paise */
+            fee_paise: number;
+            /** Paid */
+            paid: boolean;
+        };
+        /**
+         * ConsultMode
+         * @enum {string}
+         */
+        ConsultMode: "in_clinic" | "online";
+        /** DayOut */
+        DayOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Slots */
+            slots: components["schemas"]["SlotOut"][];
+        };
+        /** DirectoryPage */
+        DirectoryPage: {
+            /** Items */
+            items: components["schemas"]["PhysioCard"][];
+            /** Total */
+            total: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -289,6 +801,166 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** PhysioBrief */
+        PhysioBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Qualification */
+            qualification: string | null;
+        };
+        /** PhysioCard */
+        PhysioCard: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Qualification */
+            qualification: string | null;
+            /** Specializations */
+            specializations: string[];
+            /** Experience Years */
+            experience_years: number | null;
+            /** Rating Avg */
+            rating_avg: number;
+            /** Reviews Count */
+            reviews_count: number;
+            /** Offers In Clinic */
+            offers_in_clinic: boolean;
+            /** Offers Online */
+            offers_online: boolean;
+            /** Fee In Clinic Paise */
+            fee_in_clinic_paise: number | null;
+            /** Fee Online Paise */
+            fee_online_paise: number | null;
+            /** Clinic Name */
+            clinic_name: string;
+            branch: components["schemas"]["BranchBrief"];
+            /** Distance Km */
+            distance_km?: number | null;
+            /** Next Slot At */
+            next_slot_at?: string | null;
+        };
+        /** PhysioDetail */
+        PhysioDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Qualification */
+            qualification: string | null;
+            /** Specializations */
+            specializations: string[];
+            /** Experience Years */
+            experience_years: number | null;
+            /** Rating Avg */
+            rating_avg: number;
+            /** Reviews Count */
+            reviews_count: number;
+            /** Offers In Clinic */
+            offers_in_clinic: boolean;
+            /** Offers Online */
+            offers_online: boolean;
+            /** Fee In Clinic Paise */
+            fee_in_clinic_paise: number | null;
+            /** Fee Online Paise */
+            fee_online_paise: number | null;
+            /** Clinic Name */
+            clinic_name: string;
+            branch: components["schemas"]["BranchBrief"];
+            /** Distance Km */
+            distance_km?: number | null;
+            /** Next Slot At */
+            next_slot_at?: string | null;
+            /** Bio */
+            bio: string | null;
+            /** College */
+            college: string | null;
+            /** Languages */
+            languages: string[];
+            /** Branches */
+            branches: components["schemas"]["BranchBrief"][];
+            /** Reviews */
+            reviews: components["schemas"]["ReviewOut"][];
+        };
+        /** PhysioProfileIn */
+        PhysioProfileIn: {
+            /** Qualification */
+            qualification?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /** College */
+            college?: string | null;
+            /** Experience Years */
+            experience_years?: number | null;
+            /** Specializations */
+            specializations?: string[];
+            /** Languages */
+            languages?: string[];
+            /**
+             * Offers In Clinic
+             * @default true
+             */
+            offers_in_clinic: boolean;
+            /**
+             * Offers Online
+             * @default false
+             */
+            offers_online: boolean;
+            /** Fee In Clinic Paise */
+            fee_in_clinic_paise?: number | null;
+            /** Fee Online Paise */
+            fee_online_paise?: number | null;
+        };
+        /** PhysioProfileOut */
+        PhysioProfileOut: {
+            /** Qualification */
+            qualification?: string | null;
+            /** Bio */
+            bio?: string | null;
+            /** College */
+            college?: string | null;
+            /** Experience Years */
+            experience_years?: number | null;
+            /** Specializations */
+            specializations?: string[];
+            /** Languages */
+            languages?: string[];
+            /**
+             * Offers In Clinic
+             * @default true
+             */
+            offers_in_clinic: boolean;
+            /**
+             * Offers Online
+             * @default false
+             */
+            offers_online: boolean;
+            /** Fee In Clinic Paise */
+            fee_in_clinic_paise?: number | null;
+            /** Fee Online Paise */
+            fee_online_paise?: number | null;
+            /** Registration No */
+            registration_no: string;
+            /** Council */
+            council: string | null;
+            /** Verification Status */
+            verification_status: string;
+        };
         /** PhysioRegisterIn */
         PhysioRegisterIn: {
             /** Full Name */
@@ -315,10 +987,83 @@ export interface components {
             /** @default monthly */
             plan: components["schemas"]["SubscriptionPlan"];
         };
+        /** PointsOut */
+        PointsOut: {
+            /** Balance */
+            balance: number;
+            /** Paise Per Point */
+            paise_per_point: number;
+        };
+        /** RazorpayCheckout */
+        RazorpayCheckout: {
+            /** Key Id */
+            key_id: string;
+            /** Order Id */
+            order_id: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Currency
+             * @default INR
+             */
+            currency: string;
+            /**
+             * Name
+             * @default Physionexs
+             */
+            name: string;
+            /** Description */
+            description: string;
+            /** Prefill */
+            prefill: {
+                [key: string]: string;
+            };
+        };
         /** RefreshIn */
         RefreshIn: {
             /** Refresh Token */
             refresh_token?: string | null;
+        };
+        /** RejectIn */
+        RejectIn: {
+            /** Reason */
+            reason: string;
+        };
+        /** ReviewOut */
+        ReviewOut: {
+            /** Rating */
+            rating: number;
+            /** Tags */
+            tags: string[];
+            /** Comment */
+            comment: string | null;
+            /** Patient Name */
+            patient_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** SlotOut */
+        SlotOut: {
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Available */
+            available: boolean;
         };
         /**
          * SubscriptionPlan
@@ -370,11 +1115,51 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VerificationItem */
+        VerificationItem: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Email */
+            email: string | null;
+            /** Phone */
+            phone: string | null;
+            /** Qualification */
+            qualification: string | null;
+            /** Registration No */
+            registration_no: string;
+            /** Council */
+            council: string | null;
+            /** Clinic Name */
+            clinic_name: string | null;
+            /** City */
+            city: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+        };
         /**
          * VerificationStatus
          * @enum {string}
          */
         VerificationStatus: "pending" | "approved" | "rejected";
+        /** VerifyPaymentIn */
+        VerifyPaymentIn: {
+            /** Razorpay Order Id */
+            razorpay_order_id: string;
+            /** Razorpay Payment Id */
+            razorpay_payment_id: string;
+            /** Razorpay Signature */
+            razorpay_signature: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -699,6 +1484,657 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_physios_get: {
+        parameters: {
+            query?: {
+                city?: string | null;
+                q?: string | null;
+                mode?: components["schemas"]["ConsultMode"] | null;
+                min_rating?: number | null;
+                lat?: number | null;
+                lng?: number | null;
+                radius_km?: number | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_physios__physio_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                physio_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhysioDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    slots_physios__physio_id__slots_get: {
+        parameters: {
+            query?: {
+                start?: string | null;
+                days?: number;
+            };
+            header?: never;
+            path: {
+                physio_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_booking_bookings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_payment_bookings__appointment_id__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyPaymentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_appointments_me_appointments_get: {
+        parameters: {
+            query?: {
+                scope?: "upcoming" | "past";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_appointment_me_appointments__appointment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_me_appointments__appointment_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_points_me_points_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointsOut"];
+                };
+            };
+        };
+    };
+    get_profile_clinic_physio_profile_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhysioProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_clinic_physio_profile_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhysioProfileIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhysioProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    branches_clinic_branches_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchBrief"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_availability_clinic_availability_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_availability_clinic_availability_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilityIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    appointments_clinic_appointments_get: {
+        parameters: {
+            query: {
+                day: string;
+                branch_id?: string | null;
+                physio_id?: string | null;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicAppointmentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_appointment_clinic_appointments__appointment_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                appointment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppointmentStatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicAppointmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verifications_admin_verifications_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["VerificationStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_admin_verifications__user_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_admin_verifications__user_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    razorpay_webhook_webhooks_razorpay_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-razorpay-signature"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

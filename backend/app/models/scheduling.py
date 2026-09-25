@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime, time
 from enum import StrEnum
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text, Time, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -49,7 +49,18 @@ class AppointmentSource(StrEnum):
 
 class Appointment(UUIDPk, Timestamps, Base):
     __tablename__ = "appointments"
-    __table_args__ = (Index("ix_appointments_physio_starts", "physio_user_id", "starts_at"),)
+    __table_args__ = (
+        Index("ix_appointments_physio_starts", "physio_user_id", "starts_at"),
+        # A physio can hold only one live booking per start time. Cancelled/no-show rows don't count,
+        # so a slot frees up again when a booking is cancelled or its payment hold expires.
+        Index(
+            "uq_appointments_physio_slot_live",
+            "physio_user_id",
+            "starts_at",
+            unique=True,
+            postgresql_where=text("status IN ('pending', 'confirmed', 'checked_in', 'completed')"),
+        ),
+    )
 
     clinic_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinics.id", ondelete="CASCADE"), index=True)
     branch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("branches.id"))
@@ -65,6 +76,8 @@ class Appointment(UUIDPk, Timestamps, Base):
     referral_source: Mapped[str | None] = mapped_column(String(60))  # "How did you find ...?"
     fee_paise: Mapped[int] = mapped_column(Integer, default=0)
     payment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payments.id"))
+    # Unpaid app bookings hold the slot until this time, then are cancelled.
+    hold_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     video_room_id: Mapped[str | None] = mapped_column(String(120))
     reminder_24h_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reminder_2h_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
