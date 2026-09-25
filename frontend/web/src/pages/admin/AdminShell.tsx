@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
 import { ConsoleLayout } from '@/components/ConsoleLayout'
@@ -6,6 +6,9 @@ import { Alert } from '@/components/ui'
 
 export default function AdminShell() {
   const { me } = useAuth()
+  const { pathname } = useLocation()
+  // Production refuses every admin API call until 2FA is on, so go straight to setting it up.
+  if (import.meta.env.PROD && me && !me.totp_enabled && pathname !== '/admin/security') return <Navigate to="/admin/security" replace />
   return (
     <ConsoleLayout
       badge="SUPER ADMIN"
