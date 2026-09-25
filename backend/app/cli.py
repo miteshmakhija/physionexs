@@ -4,6 +4,7 @@
     python -m app.cli seed-settings
     python -m app.cli seed-demo      # 3 verified demo physios in Pune (dev only)
     python -m app.cli purge-demo
+    python -m app.cli seed-exercises  # starter library, status "in review" until a physio publishes each
 """
 
 import argparse
@@ -58,12 +59,23 @@ def main() -> None:
     sub.add_parser("seed-settings")
     sub.add_parser("seed-demo")
     sub.add_parser("purge-demo")
+    seed_ex = sub.add_parser("seed-exercises")
+    seed_ex.add_argument("--publish", action="store_true", help="dev only: publish immediately, skipping clinical review")
     args = parser.parse_args()
 
     if args.cmd == "create-admin":
         create_admin(args.name, args.email, args.phone)
     elif args.cmd == "seed-settings":
         seed_settings()
+    elif args.cmd == "seed-exercises":
+        from app.core.config import get_settings
+        from app.seed.loader import seed_exercises
+
+        if args.publish and not get_settings().is_dev:
+            sys.exit("--publish is only for development; publish reviewed exercises from Super Admin.")
+        with SessionLocal() as db:
+            n = seed_exercises(db, publish=args.publish)
+        print(f"Added {n} starter exercises ({'published' if args.publish else 'in review'}).")
     elif args.cmd in ("seed-demo", "purge-demo"):
         from app.core.config import get_settings
         from app.devtools import DEMO_PASSWORD, purge_demo, seed_demo

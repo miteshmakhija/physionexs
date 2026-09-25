@@ -30,6 +30,7 @@ cp .env.example .env                                   # fill in DATABASE_URL, D
 - Without MSG91 keys, login OTPs are printed to the API log instead of being sent by SMS.
 - Without Razorpay keys, checkout is simulated (orders start with `order_dev_`; the app asks you to confirm a fake payment). This is refused when `ENVIRONMENT=production`.
 - Demo data: `python -m app.cli seed-demo` adds 3 verified physios in Pune with weekly hours (password `demo-physio-123`, emails `iap-demo-100X@demo.physionexs.com`); `python -m app.cli purge-demo` removes them.
+- Exercise library: `python -m app.cli seed-exercises` loads 42 starter exercises as **in review**. They're draft content written to seed the library — a Physionexs physiotherapist must check each one and publish it from **Super Admin → Exercise library** before clinics can prescribe it. (`--publish` skips review and is refused outside development.)
 - Tests: `.venv/Scripts/python -m pytest` (unit). The end-to-end booking tests write to the configured database and clean up afterwards: `PNX_INTEGRATION=1 .venv/Scripts/python -m pytest` — point them at a Neon dev branch, not production.
 
 ### Web
@@ -80,6 +81,8 @@ Create **two Vercel projects** from this repo:
    - `vercel.json` proxies `/api/*` to `api.physionexs.com`, so the login cookie stays first-party.
 
 Run migrations from your machine or CI before deploying backend changes; they are not run on deploy.
+
+The API project pins its functions to Vercel's Singapore region (`sin1`, in `backend/vercel.json`) to sit next to the Neon database in ap-southeast-1 — keep them in the same region or every query pays a cross-region round trip.
 
 ### Razorpay
 

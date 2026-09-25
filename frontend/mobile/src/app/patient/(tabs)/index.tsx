@@ -20,6 +20,7 @@ export default function PatientHome() {
     queryFn: () => api<Schemas['AppointmentOut'][]>('/me/appointments', { query: { scope: 'upcoming' } }),
   })
   const points = useQuery({ queryKey: ['points'], queryFn: () => api<Schemas['PointsOut']>('/me/points') })
+  const tokens = useQuery({ queryKey: ['my-tokens'], queryFn: () => api<Schemas['MyTokenOut'][]>('/me/tokens'), refetchInterval: 20_000 })
   if (!me) return null
   const balance = points.data?.balance ?? 0
 
@@ -34,6 +35,17 @@ export default function PatientHome() {
           <Avatar name={me.full_name} size={44} />
         </Pressable>
       </View>
+
+      {tokens.data?.map((t) => (
+        <Card key={t.label} style={{ gap: 4 }}>
+          <Text variant="eyebrow">Your live token · {t.clinic_name}</Text>
+          <Text style={{ fontFamily: font.bold, fontSize: 40, color: colors.ink }}>{t.label}</Text>
+          <Text style={{ color: colors.ink, fontFamily: font.semibold }}>
+            {t.status === 'serving' ? 'It’s your turn — please go in' : t.ahead === 0 ? 'You’re next' : `${t.ahead} patient${t.ahead === 1 ? '' : 's'} ahead`}
+          </Text>
+          {t.status !== 'serving' && <Text variant="caption">Est. wait ~{t.est_wait_minutes} min{t.now_serving ? ` · now serving ${t.now_serving}` : ''}</Text>}
+        </Card>
+      ))}
 
       <Card style={{ backgroundColor: colors.ink, borderColor: colors.ink, padding: 22 }}>
         <Text variant="eyebrow" style={{ color: 'rgba(255,255,255,0.6)' }}>

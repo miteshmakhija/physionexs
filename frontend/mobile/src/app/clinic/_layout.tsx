@@ -1,14 +1,21 @@
-import { Tabs } from 'expo-router/js-tabs'
+import { Stack } from 'expo-router/stack'
 
-import { tabIcon, tabScreenOptions } from '@/components/tab-bar'
+import { colors, font } from '@shared/tokens'
 
-export default function ClinicTabs() {
+export default function ClinicStack() {
   return (
-    <Tabs screenOptions={tabScreenOptions}>
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('home-outline') }} />
-      <Tabs.Screen name="queue" options={{ title: 'Queue', tabBarIcon: tabIcon('people-outline') }} />
-      <Tabs.Screen name="schedule" options={{ title: 'Schedule', tabBarIcon: tabIcon('calendar-outline') }} />
-      <Tabs.Screen name="patients" options={{ title: 'Patients', tabBarIcon: tabIcon('folder-open-outline') }} />
-    </Tabs>
+    <Stack
+      screenOptions={{
+        headerShadowVisible: false,
+        headerTintColor: colors.ink,
+        headerTitleStyle: { fontFamily: font.semibold, fontSize: 15 },
+        headerBackButtonDisplayMode: 'minimal',
+        contentStyle: { backgroundColor: colors.canvas },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="patient/[id]" options={{ title: 'Patient file' }} />
+      <Stack.Screen name="patient/consult" options={{ title: 'Consultation', presentation: 'modal' }} />
+    </Stack>
   )
 }

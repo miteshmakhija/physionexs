@@ -56,3 +56,21 @@
     outline-offset: 2px;
   }
 }
+
+/* Printing a prescription/invoice: show only the document. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .rx-document,
+  .rx-document * {
+    visibility: visible;
+  }
+  .rx-document {
+    position: absolute;
+    inset: 0;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

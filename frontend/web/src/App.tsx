@@ -5,6 +5,19 @@ import { RequireRole } from '@/auth/RequireRole'
 import { ComingSoon } from '@/components/ConsoleLayout'
 import { FullPageSpinner } from '@/components/ui'
 import AdminShell from '@/pages/admin/AdminShell'
+import { AdminExerciseEditor, AdminExerciseList } from '@/pages/admin/Exercises'
+import CarePlanForm from '@/pages/clinic/CarePlanForm'
+import Consultation from '@/pages/clinic/Consultation'
+import PatientFile from '@/pages/clinic/PatientFile'
+import Patients from '@/pages/clinic/Patients'
+import PrescribeExercises from '@/pages/clinic/PrescribeExercises'
+import PrescribeMedicines from '@/pages/clinic/PrescribeMedicines'
+import PrescriptionView from '@/pages/clinic/PrescriptionView'
+import QueuePage from '@/pages/clinic/Queue'
+import CarePlan from '@/pages/patient/CarePlan'
+import Exercises from '@/pages/patient/Exercises'
+import PrescriptionPage from '@/pages/patient/PrescriptionPage'
+import Progress from '@/pages/patient/Progress'
 import Verification from '@/pages/admin/Verification'
 import ClinicShell from '@/pages/clinic/ClinicShell'
 import ProfileHours from '@/pages/clinic/ProfileHours'
@@ -39,9 +52,10 @@ const router = createBrowserRouter([
       { path: 'physios/:id', element: <PhysioProfile /> },
       { path: 'book/:id', element: <Book /> },
       { path: 'appointments/:id', element: <AppointmentDetail /> },
-      { path: 'plan', element: soon('My care plan', ['Diagnosis, goal and stage', 'Physio’s notes', 'Test results', 'Prescriptions']) },
-      { path: 'exercises', element: soon('Exercises', ['Today’s exercises', 'Step-by-step guidance with video', 'Log sets and how it felt']) },
-      { path: 'progress', element: soon('Progress', ['Adherence and streaks', 'Pain trend', 'Exercise completion']) },
+      { path: 'plan', element: <CarePlan /> },
+      { path: 'prescriptions/:id', element: <PrescriptionPage /> },
+      { path: 'exercises', element: <Exercises /> },
+      { path: 'progress', element: <Progress /> },
     ],
   },
   {
@@ -49,10 +63,16 @@ const router = createBrowserRouter([
     element: <RequireRole roles={['physio', 'staff']}><ClinicShell /></RequireRole>,
     children: [
       { index: true, element: soon('Dashboard', ['Appointments today, tokens waiting, active patients', 'Branch breakdown', 'Today’s schedule', 'Patients needing attention'], 'Here’s how your clinic is doing today.') },
-      { path: 'queue', element: soon('Token queue', ['Register walk-ins', 'Now serving / call next', 'Live wait estimates on the patient app']) },
+      { path: 'queue', element: <QueuePage /> },
       { path: 'schedule', element: <Schedule /> },
       { path: 'hours', element: <ProfileHours /> },
-      { path: 'patients', element: soon('Patients', ['Patient files', 'SOAP consultation notes', 'Medical background & functional analysis', 'Prescribe exercises, medicines & tests']) },
+      { path: 'patients', element: <Patients /> },
+      { path: 'patients/:id', element: <PatientFile /> },
+      { path: 'patients/:id/consult', element: <Consultation /> },
+      { path: 'patients/:id/plan', element: <CarePlanForm /> },
+      { path: 'patients/:id/exercises', element: <PrescribeExercises /> },
+      { path: 'patients/:id/medicines', element: <PrescribeMedicines /> },
+      { path: 'prescriptions/:id', element: <PrescriptionView /> },
       { path: 'billing', element: soon('Billing & invoices', ['Invoices on your letterhead', 'Collections and dues', 'PDF / print']) },
       { path: 'analytics', element: soon('Analytics', ['Revenue, appointments, adherence, no-shows', 'Conditions treated', 'Online vs in-clinic']) },
       { path: 'profile', element: soon('Clinic profile', ['Logo & letterhead', 'Contact details & GSTIN', 'Branches', 'PMS subscription']) },
@@ -66,7 +86,8 @@ const router = createBrowserRouter([
       { index: true, element: soon('Platform overview', ['Pending verifications', 'Onboarding & bookings', 'Revenue split — patients & doctors']) },
       { path: 'verification', element: <Verification /> },
       { path: 'subscriptions', element: soon('PMS subscriptions', ['MRR / ARR', 'Per-clinic price & plan', 'Overdue reminders']) },
-      { path: 'exercises', element: soon('Exercise library', ['Author & publish platform exercises', 'Review clinic submissions', 'Video & photo uploads']) },
+      { path: 'exercises', element: <AdminExerciseList /> },
+      { path: 'exercises/:id', element: <AdminExerciseEditor /> },
       { path: 'analytics', element: soon('Analytics', ['Growth', 'Bookings by treatment', 'Revenue']) },
       { path: 'audit', element: soon('Audit log', ['Every create, update and delete across the platform']) },
       { path: 'settings', element: soon('Platform settings', ['Rewards & points', 'Support contacts', 'Reminders', 'Pricing & platform fee']) },

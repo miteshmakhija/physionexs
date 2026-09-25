@@ -98,3 +98,9 @@ export const REFERRAL_OPTIONS = [
   { value: 'walk_by', label: 'Walked past the clinic' },
   { value: 'other', label: 'Other' },
 ] as const
+
+/** "Mon 28 Sep" for a YYYY-MM-DD date. */
+export function shortDate(yyyyMmDd: string): string {
+  const d = new Date(`${yyyyMmDd}T00:00:00Z`)
+  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+}

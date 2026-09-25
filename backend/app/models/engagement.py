@@ -1,6 +1,5 @@
 import uuid
 from datetime import date, datetime
-from enum import StrEnum
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID

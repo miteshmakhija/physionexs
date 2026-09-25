@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, SmallInteger, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -112,7 +112,10 @@ class Medication(UUIDPk, Timestamps, Base):
 
 class MedicationLog(UUIDPk, Base):
     __tablename__ = "medication_logs"
-    __table_args__ = (Index("ix_medication_logs_patient_day", "patient_id", "logged_on"),)
+    __table_args__ = (
+        Index("ix_medication_logs_patient_day", "patient_id", "logged_on"),
+        UniqueConstraint("medication_id", "logged_on", "dose_slot", name="uq_medication_logs_dose"),
+    )
 
     medication_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("medications.id", ondelete="CASCADE"))
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"))

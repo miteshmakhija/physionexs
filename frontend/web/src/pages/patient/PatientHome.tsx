@@ -19,6 +19,7 @@ export default function PatientHome() {
     queryFn: () => api<Schemas['AppointmentOut'][]>('/me/appointments', { query: { scope: 'upcoming' } }),
   })
   const points = useQuery({ queryKey: ['points'], queryFn: () => api<Schemas['PointsOut']>('/me/points') })
+  const tokens = useQuery({ queryKey: ['my-tokens'], queryFn: () => api<Schemas['MyTokenOut'][]>('/me/tokens'), refetchInterval: 20_000 })
   const balance = points.data?.balance ?? 0
 
   return (
@@ -28,7 +29,24 @@ export default function PatientHome() {
         <h1 className="mt-1 text-[28px] font-bold tracking-[-0.02em]">{firstName}</h1>
       </div>
 
-      <Card className="border-ink bg-ink p-6 text-white">
+      {tokens.data?.map((t) => (
+        <Card key={t.label} className="p-6">
+          <p className="eyebrow">Your live token · {t.clinic_name}</p>
+          <div className="mt-2 flex items-end justify-between gap-4">
+            <p className="text-[44px] font-bold leading-none">{t.label}</p>
+            <p className="text-right text-[14px]">
+              {t.status === 'serving' ? <span className="font-semibold">It's your turn — please go in</span> : (
+                <>
+                  <span className="block font-semibold">{t.ahead === 0 ? "You're next" : `${t.ahead} patient${t.ahead === 1 ? '' : 's'} ahead`}</span>
+                  <span className="text-muted">Est. wait ~{t.est_wait_minutes} min{t.now_serving ? ` · now serving ${t.now_serving}` : ''}</span>
+                </>
+              )}
+            </p>
+          </div>
+        </Card>
+      ))}
+
+      <Card inverse className="p-6">
         <p className="eyebrow !text-white/60">Physionexs Health Points</p>
         <p className="mt-3 text-[36px] font-bold">
           {balance} <span className="text-[14px] font-semibold text-white/70">points</span>
@@ -72,6 +90,16 @@ export default function PatientHome() {
           </Card>
         )}
       </section>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          { to: '/app/plan', label: 'My care plan' },
+          { to: '/app/exercises', label: "Today's exercises" },
+          { to: '/app/progress', label: 'My progress' },
+        ].map((l) => (
+          <Link key={l.to} to={l.to} className="border border-line p-5 text-[14.5px] font-semibold hover:border-ink">{l.label} →</Link>
+        ))}
+      </div>
 
       <Card className="p-5">
         <h2 className="text-[15px] font-semibold">Visiting a clinic directly?</h2>

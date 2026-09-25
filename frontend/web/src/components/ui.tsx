@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
@@ -85,8 +85,10 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   )
 }
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cx('rounded-xl border border-line bg-surface', className)}>{children}</div>
+export function Card({ className, children, inverse = false }: { className?: string; children: ReactNode; inverse?: boolean }) {
+  // Background/border come from `inverse`, not className: Tailwind resolves conflicting utilities by
+  // stylesheet order, so passing `bg-ink` alongside the default `bg-surface` isn't reliable.
+  return <div className={cx('rounded-xl border', inverse ? 'border-ink bg-ink text-white' : 'border-line bg-surface', className)}>{children}</div>
 }
 
 export function Alert({ tone = 'danger', children }: { tone?: 'danger' | 'info' | 'warning'; children: ReactNode }) {
@@ -164,5 +166,46 @@ export function Avatar({ name, className }: { name: string; className?: string }
     >
       {initials(name)}
     </span>
+  )
+}
+
+export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      rows={3}
+      {...props}
+      className={cx(
+        'w-full rounded-md border border-line-strong bg-surface px-3.5 py-2.5 text-[14px] leading-relaxed text-ink',
+        'placeholder:text-subtle focus:border-ink focus:outline-none',
+        props.className,
+      )}
+    />
+  )
+}
+
+export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={cx('h-11 w-full rounded-md border border-line-strong bg-surface px-3 text-[14px] text-ink focus:border-ink focus:outline-none', props.className)}
+    />
+  )
+}
+
+export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
+  return (
+    <div className="border border-line p-4">
+      <p className="eyebrow">{label}</p>
+      <p className="mt-2 text-[24px] font-bold tabular-nums">{value}</p>
+      {sub && <p className="mt-0.5 text-[12.5px] text-muted">{sub}</p>}
+    </div>
+  )
+}
+
+export function Loader() {
+  return (
+    <div className="grid place-items-center py-16 text-muted">
+      <Spinner />
+    </div>
   )
 }

@@ -19,6 +19,7 @@ export default function PatientStack() {
       <Stack.Screen name="book/[id]" options={{ title: 'Book appointment' }} />
       <Stack.Screen name="pay" options={{ title: 'Payment', presentation: 'modal' }} />
       <Stack.Screen name="appointment/[id]" options={{ title: 'Appointment' }} />
+      <Stack.Screen name="exercise/[id]" options={{ title: 'Exercise' }} />
     </Stack>
   )
 }

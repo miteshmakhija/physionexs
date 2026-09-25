@@ -11,17 +11,28 @@ from app.models import (
     AuditLog,
     Availability,
     Branch,
+    CarePlan,
+    CarePlanExercise,
     Clinic,
     ClinicMember,
     ClinicPatient,
+    Consultation,
+    Exercise,
+    ExerciseLog,
+    MedicalBackground,
+    Medication,
+    MedicationLog,
     Notification,
     OtpRequest,
     Patient,
     Payment,
     PhysioProfile,
     PointsLedger,
+    Prescription,
+    QueueToken,
     RefreshToken,
     Subscription,
+    TestOrder,
     User,
 )
 from app.models.clinic import MembershipRole, SubscriptionStatus, VerificationStatus
@@ -97,6 +108,22 @@ def purge_users(db: Session, user_ids: list, phones: list[str] = ()) -> None:
     patient_ids = list(db.scalars(select(Patient.id).where(or_(Patient.user_id.in_(user_ids), Patient.phone.in_(list(phones))))))
     appt_filter = or_(Appointment.clinic_id.in_(clinic_ids), Appointment.patient_id.in_(patient_ids), Appointment.physio_user_id.in_(user_ids))
     payment_ids = list(db.scalars(select(Appointment.payment_id).where(appt_filter, Appointment.payment_id.is_not(None))))
+    cp_ids = list(db.scalars(select(ClinicPatient.id).where(or_(ClinicPatient.clinic_id.in_(clinic_ids), ClinicPatient.patient_id.in_(patient_ids)))))
+    plan_ids = list(db.scalars(select(CarePlan.id).where(CarePlan.clinic_patient_id.in_(cp_ids))))
+    med_ids = list(db.scalars(select(Medication.id).where(Medication.care_plan_id.in_(plan_ids))))
+    pe_ids = list(db.scalars(select(CarePlanExercise.id).where(CarePlanExercise.care_plan_id.in_(plan_ids))))
+    db.execute(delete(MedicationLog).where(or_(MedicationLog.medication_id.in_(med_ids), MedicationLog.patient_id.in_(patient_ids))))
+    db.execute(delete(ExerciseLog).where(or_(ExerciseLog.plan_exercise_id.in_(pe_ids), ExerciseLog.patient_id.in_(patient_ids))))
+    db.execute(delete(Prescription).where(Prescription.clinic_patient_id.in_(cp_ids)))
+    db.execute(delete(TestOrder).where(TestOrder.clinic_patient_id.in_(cp_ids)))
+    db.execute(delete(Consultation).where(Consultation.clinic_patient_id.in_(cp_ids)))
+    db.execute(delete(Medication).where(Medication.id.in_(med_ids)))
+    db.execute(delete(CarePlanExercise).where(CarePlanExercise.id.in_(pe_ids)))
+    db.execute(delete(CarePlan).where(CarePlan.id.in_(plan_ids)))
+    db.execute(delete(MedicalBackground).where(MedicalBackground.clinic_patient_id.in_(cp_ids)))
+    branch_ids = list(db.scalars(select(Branch.id).where(Branch.clinic_id.in_(clinic_ids))))
+    db.execute(delete(QueueToken).where(or_(QueueToken.branch_id.in_(branch_ids), QueueToken.patient_id.in_(patient_ids))))
+    db.execute(delete(Exercise).where(Exercise.owner_clinic_id.in_(clinic_ids)))
     db.execute(delete(Appointment).where(appt_filter))
     db.execute(delete(PointsLedger).where(PointsLedger.patient_id.in_(patient_ids)))
     db.execute(delete(Payment).where(or_(Payment.id.in_(payment_ids), Payment.clinic_id.in_(clinic_ids), Payment.patient_id.in_(patient_ids))))

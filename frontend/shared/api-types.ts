@@ -493,6 +493,594 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Queue */
+        get: operations["get_queue_clinic_queue_get"];
+        put?: never;
+        /** Register Walk In */
+        post: operations["register_walk_in_clinic_queue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/queue/call-next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call Next */
+        post: operations["call_next_clinic_queue_call_next_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/queue/{token_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Token */
+        patch: operations["update_token_clinic_queue__token_id__patch"];
+        trace?: never;
+    };
+    "/me/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Tokens
+         * @description The patient's walk-in tokens that are still live today, with position and estimated wait.
+         */
+        get: operations["my_tokens_me_tokens_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Patients */
+        get: operations["list_patients_clinic_patients_get"];
+        put?: never;
+        /** Create Patient */
+        post: operations["create_patient_clinic_patients_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Patient File */
+        get: operations["patient_file_clinic_patients__cp_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}/background": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Background */
+        put: operations["update_background_clinic_patients__cp_id__background_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}/consultations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Consultation */
+        post: operations["create_consultation_clinic_patients__cp_id__consultations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/consultations/{consultation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Consultation */
+        put: operations["update_consultation_clinic_consultations__consultation_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}/care-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Plan
+         * @description Start a new plan. Any current plan at this clinic is marked completed.
+         */
+        post: operations["create_plan_clinic_patients__cp_id__care_plans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Plan */
+        put: operations["update_plan_clinic_care_plans__plan_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Plan */
+        post: operations["complete_plan_clinic_care_plans__plan_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Plan Exercises
+         * @description Replace the exercise program. Removed exercises are deactivated so their logs stay intact.
+         */
+        put: operations["set_plan_exercises_clinic_care_plans__plan_id__exercises_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}/medications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Plan Medications */
+        put: operations["set_plan_medications_clinic_care_plans__plan_id__medications_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Order Test */
+        post: operations["order_test_clinic_care_plans__plan_id__tests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/tests/{test_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Test */
+        patch: operations["update_test_clinic_tests__test_id__patch"];
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue Prescription
+         * @description Freeze the current plan into a numbered prescription (what gets printed and shown in the app).
+         */
+        post: operations["issue_prescription_clinic_care_plans__plan_id__prescriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Prescriptions */
+        get: operations["list_prescriptions_clinic_patients__cp_id__prescriptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/prescriptions/{rx_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Prescription */
+        get: operations["get_prescription_clinic_prescriptions__rx_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clinic Library
+         * @description Everything this clinic can prescribe: published public exercises + its own.
+         */
+        get: operations["clinic_library_clinic_exercises_get"];
+        put?: never;
+        /** Create Clinic Exercise */
+        post: operations["create_clinic_exercise_clinic_exercises_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/exercises/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Regions */
+        get: operations["regions_clinic_exercises_regions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/exercises/{exercise_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit For Review
+         * @description Offer a clinic exercise to the public library. It stays usable in the clinic meanwhile.
+         */
+        post: operations["submit_for_review_clinic_exercises__exercise_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Library */
+        get: operations["admin_library_admin_exercises_get"];
+        put?: never;
+        /** Admin Create */
+        post: operations["admin_create_admin_exercises_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/exercises/{exercise_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Get */
+        get: operations["admin_get_admin_exercises__exercise_id__get"];
+        /** Admin Update */
+        put: operations["admin_update_admin_exercises__exercise_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/exercises/{exercise_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Publish */
+        post: operations["admin_publish_admin_exercises__exercise_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/exercises/{exercise_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Reject */
+        post: operations["admin_reject_admin_exercises__exercise_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/care-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Plans */
+        get: operations["my_plans_me_care_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Today */
+        get: operations["today_me_today_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/exercise-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log Exercise */
+        post: operations["log_exercise_me_exercise_logs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/exercise-logs/{plan_exercise_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Undo Exercise
+         * @description Undo the latest completion (for mis-taps). Points already awarded are kept.
+         */
+        delete: operations["undo_exercise_me_exercise_logs__plan_exercise_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/dose-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log Dose */
+        post: operations["log_dose_me_dose_logs_post"];
+        /** Undo Dose */
+        delete: operations["undo_dose_me_dose_logs_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress */
+        get: operations["progress_me_progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Prescriptions */
+        get: operations["my_prescriptions_me_prescriptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/razorpay": {
         parameters: {
             query?: never;
@@ -596,6 +1184,40 @@ export interface components {
              */
             slot_minutes: number;
         };
+        /** BackgroundIn */
+        BackgroundIn: {
+            /** Past History */
+            past_history?: string | null;
+            /** Conditions */
+            conditions?: string[];
+            /** Prior Medicines */
+            prior_medicines?: {
+                [key: string]: unknown;
+            }[];
+            /** Core Strengths */
+            core_strengths?: string | null;
+            /** Weaknesses */
+            weaknesses?: string | null;
+            core_grade?: components["schemas"]["CoreGrade"] | null;
+        };
+        /** BackgroundOut */
+        BackgroundOut: {
+            /** Past History */
+            past_history?: string | null;
+            /** Conditions */
+            conditions?: string[];
+            /** Prior Medicines */
+            prior_medicines?: {
+                [key: string]: unknown;
+            }[];
+            /** Core Strengths */
+            core_strengths?: string | null;
+            /** Weaknesses */
+            weaknesses?: string | null;
+            core_grade?: components["schemas"]["CoreGrade"] | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
         /** BookingIn */
         BookingIn: {
             /**
@@ -633,6 +1255,66 @@ export interface components {
             /** Address */
             address?: string | null;
         };
+        /** CarePlanIn */
+        CarePlanIn: {
+            /** Condition */
+            condition: string;
+            /** Condition Detail */
+            condition_detail?: string | null;
+            /** Goal */
+            goal?: string | null;
+            /** Stage */
+            stage?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Sessions Planned */
+            sessions_planned?: number | null;
+            /** Ends On */
+            ends_on?: string | null;
+        };
+        /** CarePlanOut */
+        CarePlanOut: {
+            /** Condition */
+            condition: string;
+            /** Condition Detail */
+            condition_detail?: string | null;
+            /** Goal */
+            goal?: string | null;
+            /** Stage */
+            stage?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Sessions Planned */
+            sessions_planned?: number | null;
+            /** Ends On */
+            ends_on?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["CarePlanStatus"];
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+            /** Physio Name */
+            physio_name: string;
+            /** Clinic Name */
+            clinic_name: string;
+            /** Exercises */
+            exercises: components["schemas"]["PlanExerciseOut"][];
+            /** Medications */
+            medications: components["schemas"]["MedicationOut"][];
+            /** Tests */
+            tests: components["schemas"]["TestOrderOut"][];
+        };
+        /**
+         * CarePlanStatus
+         * @enum {string}
+         */
+        CarePlanStatus: "active" | "completed" | "cancelled";
         /** CheckoutOut */
         CheckoutOut: {
             /**
@@ -691,10 +1373,79 @@ export interface components {
             paid: boolean;
         };
         /**
+         * ClinicPatientStatus
+         * @enum {string}
+         */
+        ClinicPatientStatus: "active" | "discharged";
+        /**
          * ConsultMode
          * @enum {string}
          */
         ConsultMode: "in_clinic" | "online";
+        /** ConsultationIn */
+        ConsultationIn: {
+            /** Title */
+            title?: string | null;
+            /** Appointment Id */
+            appointment_id?: string | null;
+            /** Subjective */
+            subjective?: string | null;
+            /** Objective */
+            objective?: string | null;
+            /** Assessment */
+            assessment?: string | null;
+            /** Plan */
+            plan?: string | null;
+            /** Vitals */
+            vitals?: {
+                [key: string]: string | number;
+            };
+            /** Pain Vas */
+            pain_vas?: number | null;
+            /**
+             * Sign
+             * @default false
+             */
+            sign: boolean;
+        };
+        /** ConsultationOut */
+        ConsultationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string | null;
+            /** Physio Name */
+            physio_name: string;
+            /** Subjective */
+            subjective: string | null;
+            /** Objective */
+            objective: string | null;
+            /** Assessment */
+            assessment: string | null;
+            /** Plan */
+            plan: string | null;
+            /** Vitals */
+            vitals: {
+                [key: string]: unknown;
+            };
+            /** Pain Vas */
+            pain_vas: number | null;
+            /** Signed At */
+            signed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * CoreGrade
+         * @enum {string}
+         */
+        CoreGrade: "poor" | "fair" | "good" | "strong";
         /** DayOut */
         DayOut: {
             /**
@@ -712,6 +1463,199 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** DoseLogIn */
+        DoseLogIn: {
+            /**
+             * Medication Id
+             * Format: uuid
+             */
+            medication_id: string;
+            /**
+             * Logged On
+             * Format: date
+             */
+            logged_on: string;
+            /** Dose Slot */
+            dose_slot: string;
+        };
+        /**
+         * DoseUnit
+         * @enum {string}
+         */
+        DoseUnit: "reps" | "seconds";
+        /**
+         * ExerciseCategory
+         * @enum {string}
+         */
+        ExerciseCategory: "strength" | "mobility" | "stretch" | "balance" | "proprioception" | "endurance" | "breathing" | "functional";
+        /** ExerciseIn */
+        ExerciseIn: {
+            /** Name */
+            name: string;
+            /** Body Region */
+            body_region: string;
+            category: components["schemas"]["ExerciseCategory"];
+            position?: components["schemas"]["ExercisePosition"] | null;
+            /** Equipment */
+            equipment?: string[];
+            /**
+             * Difficulty
+             * @default 1
+             */
+            difficulty: number;
+            /** @default reps */
+            dose_unit: components["schemas"]["DoseUnit"];
+            /**
+             * Default Sets
+             * @default 3
+             */
+            default_sets: number;
+            /**
+             * Default Reps
+             * @default 10
+             */
+            default_reps: number | null;
+            /** Default Hold Seconds */
+            default_hold_seconds?: number | null;
+            /**
+             * Default Rest Seconds
+             * @default 30
+             */
+            default_rest_seconds: number;
+            /** Steps */
+            steps: string[];
+            /** Cues */
+            cues?: string | null;
+            /** Common Mistakes */
+            common_mistakes?: string | null;
+            /** Precautions */
+            precautions?: string | null;
+            /** Contraindications */
+            contraindications?: string | null;
+            /** Conditions */
+            conditions?: string[];
+        };
+        /** ExerciseLogIn */
+        ExerciseLogIn: {
+            /**
+             * Plan Exercise Id
+             * Format: uuid
+             */
+            plan_exercise_id: string;
+            /**
+             * Logged On
+             * Format: date
+             */
+            logged_on: string;
+            feel?: components["schemas"]["Feel"] | null;
+            /** Pain */
+            pain?: number | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** ExerciseLogOut */
+        ExerciseLogOut: {
+            /** Done */
+            done: number;
+            /** Scheduled */
+            scheduled: number;
+            /** Streak Days */
+            streak_days: number;
+            /** Points Awarded */
+            points_awarded: number;
+        };
+        /** ExerciseOut */
+        ExerciseOut: {
+            /** Name */
+            name: string;
+            /** Body Region */
+            body_region: string;
+            category: components["schemas"]["ExerciseCategory"];
+            position?: components["schemas"]["ExercisePosition"] | null;
+            /** Equipment */
+            equipment?: string[];
+            /**
+             * Difficulty
+             * @default 1
+             */
+            difficulty: number;
+            /** @default reps */
+            dose_unit: components["schemas"]["DoseUnit"];
+            /**
+             * Default Sets
+             * @default 3
+             */
+            default_sets: number;
+            /**
+             * Default Reps
+             * @default 10
+             */
+            default_reps: number | null;
+            /** Default Hold Seconds */
+            default_hold_seconds?: number | null;
+            /**
+             * Default Rest Seconds
+             * @default 30
+             */
+            default_rest_seconds: number;
+            /** Steps */
+            steps: string[];
+            /** Cues */
+            cues?: string | null;
+            /** Common Mistakes */
+            common_mistakes?: string | null;
+            /** Precautions */
+            precautions?: string | null;
+            /** Contraindications */
+            contraindications?: string | null;
+            /** Conditions */
+            conditions?: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Source */
+            source: string;
+            /** Visibility */
+            visibility: string;
+            status: components["schemas"]["ExerciseStatus"];
+            /** Owner Clinic Id */
+            owner_clinic_id: string | null;
+            /** Review Note */
+            review_note: string | null;
+            /** Media */
+            media: components["schemas"]["MediaOut"][];
+        };
+        /** ExercisePage */
+        ExercisePage: {
+            /** Items */
+            items: components["schemas"]["ExerciseOut"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * ExercisePosition
+         * @enum {string}
+         */
+        ExercisePosition: "standing" | "sitting" | "supine" | "prone" | "side_lying" | "quadruped" | "kneeling";
+        /**
+         * ExerciseStatus
+         * @enum {string}
+         */
+        ExerciseStatus: "draft" | "in_review" | "published" | "rejected";
+        /**
+         * Feel
+         * @enum {string}
+         */
+        Feel: "easy" | "ok" | "hard";
+        /**
+         * Frequency
+         * @enum {string}
+         */
+        Frequency: "daily" | "alternate_days" | "weekly_3x" | "weekly";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -753,6 +1697,59 @@ export interface components {
              */
             memberships: components["schemas"]["MembershipOut"][];
         };
+        /** MediaOut */
+        MediaOut: {
+            /** Kind */
+            kind: string;
+            /** Url */
+            url: string;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Duration Seconds */
+            duration_seconds?: number | null;
+        };
+        /** MedicationIn */
+        MedicationIn: {
+            /** Name */
+            name: string;
+            /** Dose */
+            dose?: string | null;
+            /** Frequency */
+            frequency: string;
+            /** Timing */
+            timing?: string | null;
+            /** Duration Days */
+            duration_days?: number | null;
+            /** Instructions */
+            instructions?: string | null;
+        };
+        /** MedicationOut */
+        MedicationOut: {
+            /** Name */
+            name: string;
+            /** Dose */
+            dose?: string | null;
+            /** Frequency */
+            frequency: string;
+            /** Timing */
+            timing?: string | null;
+            /** Duration Days */
+            duration_days?: number | null;
+            /** Instructions */
+            instructions?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reminder Times */
+            reminder_times: string[];
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+        };
         /** MembershipOut */
         MembershipOut: {
             /**
@@ -771,6 +1768,22 @@ export interface components {
          * @enum {string}
          */
         MembershipRole: "owner" | "physio" | "staff";
+        /** MyTokenOut */
+        MyTokenOut: {
+            /** Label */
+            label: string;
+            status: components["schemas"]["TokenStatus"];
+            /** Clinic Name */
+            clinic_name: string;
+            /** Branch Name */
+            branch_name: string;
+            /** Ahead */
+            ahead: number;
+            /** Est Wait Minutes */
+            est_wait_minutes: number;
+            /** Now Serving */
+            now_serving: string | null;
+        };
         /** OtpRequestIn */
         OtpRequestIn: {
             /** Phone */
@@ -789,6 +1802,92 @@ export interface components {
             code: string;
             /** Full Name */
             full_name?: string | null;
+        };
+        /** PatientFileOut */
+        PatientFileOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Patient Id
+             * Format: uuid
+             */
+            patient_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string | null;
+            /** Email */
+            email: string | null;
+            /** Age */
+            age: number | null;
+            sex: components["schemas"]["Sex"] | null;
+            /** Has App */
+            has_app: boolean;
+            status: components["schemas"]["ClinicPatientStatus"];
+            /** First Visit On */
+            first_visit_on: string | null;
+            /** Last Visit On */
+            last_visit_on: string | null;
+            /** Adherence 7D */
+            adherence_7d: number | null;
+            /** Latest Pain */
+            latest_pain: number | null;
+            /** First Pain */
+            first_pain: number | null;
+            /** Sessions Done */
+            sessions_done: number;
+            background: components["schemas"]["BackgroundOut"] | null;
+            active_plan: components["schemas"]["CarePlanOut"] | null;
+            /** Past Plans */
+            past_plans: {
+                [key: string]: unknown;
+            }[];
+            /** Consultations */
+            consultations: components["schemas"]["ConsultationOut"][];
+        };
+        /** PatientIn */
+        PatientIn: {
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Age */
+            age?: number | null;
+            sex?: components["schemas"]["Sex"] | null;
+        };
+        /** PatientListItem */
+        PatientListItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Patient Id
+             * Format: uuid
+             */
+            patient_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string | null;
+            /** Age */
+            age: number | null;
+            sex: components["schemas"]["Sex"] | null;
+            /** Condition */
+            condition: string | null;
+            /** Last Visit On */
+            last_visit_on: string | null;
+            /** Adherence 7D */
+            adherence_7d: number | null;
+            status: components["schemas"]["ClinicPatientStatus"];
+            /** Has App */
+            has_app: boolean;
         };
         /** PatientRegisterIn */
         PatientRegisterIn: {
@@ -987,12 +2086,188 @@ export interface components {
             /** @default monthly */
             plan: components["schemas"]["SubscriptionPlan"];
         };
+        /** PlanExerciseIn */
+        PlanExerciseIn: {
+            /**
+             * Exercise Id
+             * Format: uuid
+             */
+            exercise_id: string;
+            /** Sets */
+            sets: number;
+            /** Reps */
+            reps?: number | null;
+            /** Hold Seconds */
+            hold_seconds?: number | null;
+            /**
+             * Rest Seconds
+             * @default 30
+             */
+            rest_seconds: number;
+            /** @default daily */
+            frequency: components["schemas"]["Frequency"];
+            /**
+             * Times Per Day
+             * @default 1
+             */
+            times_per_day: number;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** PlanExerciseOut */
+        PlanExerciseOut: {
+            /**
+             * Exercise Id
+             * Format: uuid
+             */
+            exercise_id: string;
+            /** Sets */
+            sets: number;
+            /** Reps */
+            reps?: number | null;
+            /** Hold Seconds */
+            hold_seconds?: number | null;
+            /**
+             * Rest Seconds
+             * @default 30
+             */
+            rest_seconds: number;
+            /** @default daily */
+            frequency: components["schemas"]["Frequency"];
+            /**
+             * Times Per Day
+             * @default 1
+             */
+            times_per_day: number;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Body Region */
+            body_region: string;
+            dose_unit: components["schemas"]["DoseUnit"];
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+        };
         /** PointsOut */
         PointsOut: {
             /** Balance */
             balance: number;
             /** Paise Per Point */
             paise_per_point: number;
+        };
+        /** PrescriptionOut */
+        PrescriptionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Rx No */
+            rx_no: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** ProgressDay */
+        ProgressDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Scheduled */
+            scheduled: number;
+            /** Done */
+            done: number;
+            /** Pct */
+            pct: number | null;
+            /** Pain */
+            pain: number | null;
+        };
+        /** ProgressOut */
+        ProgressOut: {
+            /** Days */
+            days: components["schemas"]["ProgressDay"][];
+            /** Adherence Pct */
+            adherence_pct: number | null;
+            /** Streak Days */
+            streak_days: number;
+            /** Best Streak Days */
+            best_streak_days: number;
+            /** Pain Now */
+            pain_now: number | null;
+            /** Pain Start */
+            pain_start: number | null;
+            /** Unlogged Doses Today */
+            unlogged_doses_today: number;
+        };
+        /** QueueOut */
+        QueueOut: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Service Date
+             * Format: date
+             */
+            service_date: string;
+            now_serving: components["schemas"]["QueueTokenOut"] | null;
+            /** Waiting */
+            waiting: components["schemas"]["QueueTokenOut"][];
+            /** Done */
+            done: components["schemas"]["QueueTokenOut"][];
+            /** Avg Wait Minutes */
+            avg_wait_minutes: number | null;
+        };
+        /** QueueTokenOut */
+        QueueTokenOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Number */
+            number: number;
+            status: components["schemas"]["TokenStatus"];
+            /**
+             * Patient Id
+             * Format: uuid
+             */
+            patient_id: string;
+            /** Clinic Patient Id */
+            clinic_patient_id: string | null;
+            /** Patient Name */
+            patient_name: string;
+            /** Patient Age */
+            patient_age: number | null;
+            patient_sex: components["schemas"]["Sex"] | null;
+            /** Reason */
+            reason: string | null;
+            /** Physio Name */
+            physio_name: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Called At */
+            called_at: string | null;
         };
         /** RazorpayCheckout */
         RazorpayCheckout: {
@@ -1029,6 +2304,11 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** ReviewDecisionIn */
+        ReviewDecisionIn: {
+            /** Note */
+            note?: string | null;
+        };
         /** ReviewOut */
         ReviewOut: {
             /** Rating */
@@ -1045,6 +2325,11 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * Sex
+         * @enum {string}
+         */
+        Sex: "M" | "F" | "O";
         /** SlotOut */
         SlotOut: {
             /**
@@ -1070,6 +2355,118 @@ export interface components {
          * @enum {string}
          */
         SubscriptionPlan: "monthly" | "yearly";
+        /** TestOrderIn */
+        TestOrderIn: {
+            /** Name */
+            name: string;
+        };
+        /** TestOrderOut */
+        TestOrderOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            status: components["schemas"]["TestOrderStatus"];
+            /** Result Note */
+            result_note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Result At */
+            result_at: string | null;
+        };
+        /**
+         * TestOrderStatus
+         * @enum {string}
+         */
+        TestOrderStatus: "ordered" | "result_ready" | "cancelled";
+        /** TestOrderUpdate */
+        TestOrderUpdate: {
+            status: components["schemas"]["TestOrderStatus"];
+            /** Result Note */
+            result_note?: string | null;
+        };
+        /** TodayDose */
+        TodayDose: {
+            /**
+             * Medication Id
+             * Format: uuid
+             */
+            medication_id: string;
+            /** Name */
+            name: string;
+            /** Dose */
+            dose: string | null;
+            /** Timing */
+            timing: string | null;
+            /** Slot */
+            slot: string;
+            /** Taken */
+            taken: boolean;
+        };
+        /** TodayExercise */
+        TodayExercise: {
+            /**
+             * Plan Exercise Id
+             * Format: uuid
+             */
+            plan_exercise_id: string;
+            /**
+             * Exercise Id
+             * Format: uuid
+             */
+            exercise_id: string;
+            /** Name */
+            name: string;
+            /** Body Region */
+            body_region: string;
+            /** Sets */
+            sets: number;
+            /** Reps */
+            reps: number | null;
+            /** Hold Seconds */
+            hold_seconds: number | null;
+            /** Rest Seconds */
+            rest_seconds: number;
+            dose_unit: components["schemas"]["DoseUnit"];
+            /** Notes */
+            notes: string | null;
+            /** Steps */
+            steps: string[];
+            /** Cues */
+            cues: string | null;
+            /** Precautions */
+            precautions: string | null;
+            /** Media */
+            media: components["schemas"]["MediaOut"][];
+            /** Scheduled */
+            scheduled: number;
+            /** Done */
+            done: number;
+        };
+        /** TodayOut */
+        TodayOut: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Exercises */
+            exercises: components["schemas"]["TodayExercise"][];
+            /** Doses */
+            doses: components["schemas"]["TodayDose"][];
+            /** Exercise Pct */
+            exercise_pct: number | null;
+            /** Dose Pct */
+            dose_pct: number | null;
+            /** Streak Days */
+            streak_days: number;
+        };
         /** TokenOut */
         TokenOut: {
             /** Access Token */
@@ -1084,6 +2481,15 @@ export interface components {
             /** Expires In */
             expires_in: number;
             user: components["schemas"]["MeOut"];
+        };
+        /**
+         * TokenStatus
+         * @enum {string}
+         */
+        TokenStatus: "waiting" | "serving" | "done" | "skipped";
+        /** TokenStatusIn */
+        TokenStatusIn: {
+            status: components["schemas"]["TokenStatus"];
         };
         /** TotpCodeIn */
         TotpCodeIn: {
@@ -1159,6 +2565,27 @@ export interface components {
             razorpay_payment_id: string;
             /** Razorpay Signature */
             razorpay_signature: string;
+        };
+        /** WalkInIn */
+        WalkInIn: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /** Patient Id */
+            patient_id?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Full Name */
+            full_name?: string | null;
+            /** Age */
+            age?: number | null;
+            sex?: components["schemas"]["Sex"] | null;
+            /** Reason */
+            reason?: string | null;
+            /** Physio Id */
+            physio_id?: string | null;
         };
     };
     responses: never;
@@ -2111,6 +3538,1304 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_queue_clinic_queue_get: {
+        parameters: {
+            query: {
+                branch_id: string;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_walk_in_clinic_queue_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalkInIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueTokenOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    call_next_clinic_queue_call_next_post: {
+        parameters: {
+            query: {
+                branch_id: string;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_token_clinic_queue__token_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                token_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenStatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueTokenOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_tokens_me_tokens_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTokenOut"][];
+                };
+            };
+        };
+    };
+    list_patients_clinic_patients_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_patient_clinic_patients_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientListItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patient_file_clinic_patients__cp_id__get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientFileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_background_clinic_patients__cp_id__background_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackgroundIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackgroundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_consultation_clinic_patients__cp_id__consultations_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_consultation_clinic_consultations__consultation_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                consultation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_plan_clinic_patients__cp_id__care_plans_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CarePlanIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_plan_clinic_care_plans__plan_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CarePlanIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_plan_clinic_care_plans__plan_id__complete_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_plan_exercises_clinic_care_plans__plan_id__exercises_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanExerciseIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_plan_medications_clinic_care_plans__plan_id__medications_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MedicationIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_test_clinic_care_plans__plan_id__tests_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestOrderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_test_clinic_tests__test_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                test_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestOrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestOrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_prescription_clinic_care_plans__plan_id__prescriptions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_prescriptions_clinic_patients__cp_id__prescriptions_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_prescription_clinic_prescriptions__rx_id__get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                rx_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clinic_library_clinic_exercises_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                body_region?: string | null;
+                category?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExercisePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_clinic_exercise_clinic_exercises_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regions_clinic_exercises_regions_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_for_review_clinic_exercises__exercise_id__submit_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                exercise_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_library_admin_exercises_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ExerciseStatus"] | null;
+                q?: string | null;
+                body_region?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExercisePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_create_admin_exercises_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_admin_exercises__exercise_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_update_admin_exercises__exercise_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_publish_admin_exercises__exercise_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_reject_admin_exercises__exercise_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_plans_me_care_plans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarePlanOut"][];
+                };
+            };
+        };
+    };
+    today_me_today_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodayOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    log_exercise_me_exercise_logs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseLogIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseLogOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_exercise_me_exercise_logs__plan_exercise_id__delete: {
+        parameters: {
+            query: {
+                logged_on: string;
+            };
+            header?: never;
+            path: {
+                plan_exercise_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    log_dose_me_dose_logs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DoseLogIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_dose_me_dose_logs_delete: {
+        parameters: {
+            query: {
+                medication_id: string;
+                logged_on: string;
+                dose_slot: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    progress_me_progress_get: {
+        parameters: {
+            query?: {
+                range?: "week" | "month";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_prescriptions_me_prescriptions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionOut"][];
                 };
             };
         };
