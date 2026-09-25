@@ -93,7 +93,7 @@ export function AdminAnalytics() {
   const [months, setMonths] = useState(6)
   const q = useQuery({ queryKey: ['admin-analytics', months], queryFn: () => api<Schemas['AdminAnalytics']>('/admin/analytics', { query: { months } }), placeholderData: (p) => p })
   const a = q.data
-  const plans = (a?.plan_monthly ?? 0) + (a?.plan_yearly ?? 0)
+  const plans = (a?.plan_monthly ?? 0) + (a?.plan_yearly ?? 0) + (a?.plan_commission ?? 0)
   const chart = (title: string, pick: (m: Schemas['MonthPoint']) => number, fmt: (v: number) => string, color?: string) => (
     <section className="border-t border-line pt-5">
       <h2 className="mb-2 text-[14px] font-semibold">{title}</h2>
@@ -127,9 +127,10 @@ export function AdminAnalytics() {
               <Shares items={a.by_speciality} empty="No bookings yet." />
             </section>
           </div>
-          <div className="grid gap-3 border-t border-line pt-6 sm:grid-cols-3">
+          <div className="grid gap-3 border-t border-line pt-6 sm:grid-cols-4">
             <Stat label="PMS plan mix · monthly" value={a.plan_monthly} sub={plans ? `${Math.round((100 * a.plan_monthly) / plans)}% of clinics` : undefined} />
             <Stat label="PMS plan mix · yearly" value={a.plan_yearly} sub={plans ? `${Math.round((100 * a.plan_yearly) / plans)}% of clinics` : undefined} />
+            <Stat label="Plan mix · pay per booking" value={a.plan_commission} sub={plans ? `${Math.round((100 * a.plan_commission) / plans)}% of clinics` : undefined} />
             <Stat label="Avg. platform fee" value={a.avg_fee_pct == null ? '—' : `${a.avg_fee_pct}%`} sub="on patient bookings" />
           </div>
         </div>
@@ -169,7 +170,7 @@ export function AdminSubscriptions() {
                 ) : (
                   <tr key={r.clinic_id}>
                     <td className="py-3"><span className="block font-semibold">{r.clinic_name}</span><span className="block text-[12.5px] text-muted">{r.owner_name}{r.owner_email ? ` · ${r.owner_email}` : ''}</span></td>
-                    <td className="capitalize">{r.plan}</td>
+                    <td>{r.plan === 'commission' ? 'Pay per booking' : r.plan === 'yearly' ? 'Yearly' : 'Monthly'}</td>
                     <td className="tabular-nums">{rupees(r.price_paise)}</td>
                     <td className="tabular-nums">{r.platform_fee_bps / 100}%</td>
                     <td className="text-muted">{r.current_period_end ? dayLabel(r.current_period_end) : '—'}</td>
@@ -199,9 +200,9 @@ function EditRow({ row, onDone }: { row: Schemas['SubscriptionRow']; onDone: () 
   return (
     <tr className="bg-surface-2">
       <td className="py-3 font-semibold">{row.clinic_name}</td>
-      <td><Select value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value as typeof f.plan })} className="!h-9"><option value="monthly">Monthly</option><option value="yearly">Yearly</option></Select></td>
+      <td><Select value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value as typeof f.plan, ...(e.target.value === 'commission' ? { price: '0', fee: '300' } : { fee: '0' }) })} className="!h-9"><option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="commission">Pay per booking</option></Select></td>
       <td><Input type="number" min={0} value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} className="!h-9 !w-28" aria-label="Price (₹)" /></td>
-      <td><Select value={f.fee} onChange={(e) => setF({ ...f, fee: e.target.value })} className="!h-9"><option value="1000">10%</option><option value="1500">15%</option></Select></td>
+      <td><Select value={f.fee} onChange={(e) => setF({ ...f, fee: e.target.value })} className="!h-9">{[0, 300, 500, 1000].map((b) => <option key={b} value={b}>{b / 100}%</option>)}</Select></td>
       <td><Input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} className="!h-9" aria-label="Next due" /></td>
       <td><Select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as typeof f.status })} className="!h-9">{['trial', 'active', 'overdue', 'cancelled'].map((s) => <option key={s} value={s}>{s}</option>)}</Select></td>
       <td className="space-x-2 whitespace-nowrap">

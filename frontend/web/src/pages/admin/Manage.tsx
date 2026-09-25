@@ -148,16 +148,17 @@ function SupportForm({ s }: { s?: Setting }) {
 }
 
 function PricingForm({ s }: { s?: Setting }) {
-  const v = (s?.value ?? {}) as { monthly_paise?: number; yearly_paise?: number; trial_days?: number }
-  const [f, setF] = useState({ monthly: String((v.monthly_paise ?? 50_000) / 100), yearly: String((v.yearly_paise ?? 500_000) / 100), trial: String(v.trial_days ?? 14) })
+  const v = (s?.value ?? {}) as { monthly_paise?: number; yearly_paise?: number; trial_days?: number; commission_bps?: number }
+  const [f, setF] = useState({ monthly: String((v.monthly_paise ?? 50_000) / 100), yearly: String((v.yearly_paise ?? 500_000) / 100), trial: String(v.trial_days ?? 14), commission: String((v.commission_bps ?? 300) / 100) })
   const save = useSave('pms_pricing')
   return (
-    <Section title="PMS pricing (new clinics)" s={s} save={save} onSubmit={() => save.mutate({ monthly_paise: Math.round(Number(f.monthly) * 100), yearly_paise: Math.round(Number(f.yearly) * 100), trial_days: Number(f.trial) })}>
-      <p className="mb-3 text-[13px] text-muted">Existing clinics keep their own price — change those under Subscriptions.</p>
-      <div className="grid gap-4 sm:grid-cols-3">
+    <Section title="Plans & pricing (new clinics)" s={s} save={save} onSubmit={() => save.mutate({ monthly_paise: Math.round(Number(f.monthly) * 100), yearly_paise: Math.round(Number(f.yearly) * 100), trial_days: Number(f.trial), commission_bps: Math.round(Number(f.commission) * 100) })}>
+      <p className="mb-3 text-[13px] text-muted">Monthly and yearly plans have no fee on app bookings; pay per booking has no subscription. Existing clinics keep their own terms — change those under Subscriptions.</p>
+      <div className="grid gap-4 sm:grid-cols-4">
         <Field label="Monthly (₹)"><Input type="number" min={0} value={f.monthly} onChange={(e) => setF({ ...f, monthly: e.target.value })} /></Field>
         <Field label="Yearly (₹)"><Input type="number" min={0} value={f.yearly} onChange={(e) => setF({ ...f, yearly: e.target.value })} /></Field>
         <Field label="Free trial (days)"><Input type="number" min={0} max={180} value={f.trial} onChange={(e) => setF({ ...f, trial: e.target.value })} /></Field>
+        <Field label="Pay per booking (%)"><Input type="number" min={0} max={50} step={0.5} value={f.commission} onChange={(e) => setF({ ...f, commission: e.target.value })} /></Field>
       </div>
     </Section>
   )
@@ -170,14 +171,14 @@ function FeeForm({ s }: { s?: Setting }) {
   const save = useSave('platform_fee')
   return (
     <Section
-      title="Platform fee on patient bookings"
+      title="Allowed per-clinic booking fees"
       s={s}
       save={save}
       onSubmit={() => save.mutate({ default_bps: Math.round(Number(def) * 100), allowed_bps: allowed.split(',').map((x) => Math.round(Number(x.trim()) * 100)).filter((x) => !Number.isNaN(x)) })}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Allowed fees (%)" hint="Comma separated, e.g. 10, 15"><Input value={allowed} onChange={(e) => setAllowed(e.target.value)} /></Field>
-        <Field label="Default for new clinics (%)"><Input type="number" min={0} step={0.5} value={def} onChange={(e) => setDef(e.target.value)} /></Field>
+        <Field label="Default (%)" hint="Subscription plans use 0%."><Input type="number" min={0} step={0.5} value={def} onChange={(e) => setDef(e.target.value)} /></Field>
       </div>
     </Section>
   )

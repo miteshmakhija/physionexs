@@ -146,7 +146,8 @@ def analytics(admin: AdminUser, db: DB, months: Annotated[int, Query(ge=3, le=24
     plans = dict(db.execute(select(Subscription.plan, func.count()).where(Subscription.status != SubscriptionStatus.CANCELLED).group_by(Subscription.plan)).all())
     split = revenue_split(db)
     return AdminAnalytics(months=points, by_speciality=by_speciality(db), plan_monthly=plans.get(SubscriptionPlan.MONTHLY, 0),
-                          plan_yearly=plans.get(SubscriptionPlan.YEARLY, 0), avg_fee_pct=split.avg_fee_pct, revenue=split)
+                          plan_yearly=plans.get(SubscriptionPlan.YEARLY, 0), plan_commission=plans.get(SubscriptionPlan.COMMISSION, 0),
+                          avg_fee_pct=split.avg_fee_pct, revenue=split)
 
 
 # ── Subscriptions ───────────────────────────────────────────────────────────
@@ -160,7 +161,7 @@ def subscriptions(admin: AdminUser, db: DB, status_: Annotated[SubscriptionStatu
     out = []
     for sub, clinic, owner in rows:
         counts[sub.status] += 1
-        if sub.status == SubscriptionStatus.ACTIVE:
+        if sub.status == SubscriptionStatus.ACTIVE and sub.plan != SubscriptionPlan.COMMISSION:
             mrr += sub.price_paise if sub.plan == SubscriptionPlan.MONTHLY else sub.price_paise // 12
         if status_ and sub.status != status_:
             continue

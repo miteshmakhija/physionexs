@@ -80,6 +80,11 @@ def request_otp(body: OtpRequestIn, db: DB) -> OtpRequestOut:
     if recent >= OTP_MAX_PER_WINDOW:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many codes requested. Try again in a few minutes.")
 
+    if body.intent == "staff":
+        staff = db.scalar(select(User).where(User.phone == body.phone))
+        if staff is None or staff.role != UserRole.STAFF or not staff.is_active:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "This number isn't registered by a clinic. Ask your clinic to add you from Staff management.")
+
     code = generate_otp(settings.otp_length)
     db.add(
         OtpRequest(
@@ -113,6 +118,8 @@ def verify_otp(body: OtpVerifyIn, db: DB, request: Request, response: Response) 
         db.commit()
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect code")
     user = db.scalar(select(User).where(User.phone == body.phone))
+    if body.intent == "staff" and (user is None or user.role != UserRole.STAFF):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "This number isn't registered by a clinic. Ask your clinic to add you from Staff management.")
     if user is None and not body.full_name:
         # New number: the code stays valid so the client can ask for a name and resubmit it.
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "full_name_required")
@@ -149,23 +156,13 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
 
     The public profile stays hidden until a Super Admin verifies the council registration.
     """
-    google_sub = None
     email = body.email.lower()
-    if body.google_signup_token:
-        try:
-            claims = decode_purpose_token(body.google_signup_token, "google_signup")
-        except jwt.PyJWTError:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google sign-up expired — continue with Google again")
-        google_sub, email = claims["sub"], claims["email"]  # the verified Google email wins
     _ensure_unique(db, phone=body.phone, email=email)
-    if google_sub and db.scalar(select(User.id).where(User.google_sub == google_sub)):
-        raise HTTPException(status.HTTP_409_CONFLICT, "This Google account is already registered")
     user = User(
         full_name=body.full_name,
         phone=body.phone,
         email=email,
-        password_hash=hash_password(body.password) if body.password else None,
-        google_sub=google_sub,
+        password_hash=hash_password(body.password),
         role=UserRole.PHYSIO,
     )
     db.add(user)
@@ -178,9 +175,13 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
             qualification=body.qualification,
         )
     )
-    fee = get_setting(db, "platform_fee")
     pricing = get_setting(db, "pms_pricing")
-    clinic = Clinic(name=body.clinic_name, slug=unique_slug(db, body.clinic_name), owner_user_id=user.id, phone=body.phone, platform_fee_bps=int(fee.get("default_bps", 1000)))
+    commission = body.plan == SubscriptionPlan.COMMISSION
+    clinic = Clinic(
+        name=body.clinic_name, slug=unique_slug(db, body.clinic_name), owner_user_id=user.id, phone=body.phone,
+        # Subscription plans pay no fee on app bookings; "pay per booking" pays a percentage instead.
+        platform_fee_bps=int(pricing.get("commission_bps", 300)) if commission else 0,
+    )
     db.add(clinic)
     db.flush()
     branch = Branch(clinic_id=clinic.id, name=body.clinic_name, city=body.city, lead_user_id=user.id)
@@ -189,16 +190,19 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
     db.add(ClinicMember(clinic_id=clinic.id, user_id=user.id, branch_id=branch.id, role=MembershipRole.OWNER, job_title="Physiotherapist"))
     now = datetime.now(UTC)
     trial = timedelta(days=int(pricing.get("trial_days", TRIAL_DAYS)))
-    db.add(
-        Subscription(
-            clinic_id=clinic.id,
-            plan=body.plan,
-            price_paise=int(pricing["monthly_paise"] if body.plan == SubscriptionPlan.MONTHLY else pricing["yearly_paise"]),
-            status=SubscriptionStatus.TRIAL,
-            trial_ends_at=now + trial,
-            current_period_end=now + trial,
+    if commission:
+        db.add(Subscription(clinic_id=clinic.id, plan=body.plan, price_paise=0, status=SubscriptionStatus.ACTIVE))
+    else:
+        db.add(
+            Subscription(
+                clinic_id=clinic.id,
+                plan=body.plan,
+                price_paise=int(pricing["monthly_paise"] if body.plan == SubscriptionPlan.MONTHLY else pricing["yearly_paise"]),
+                status=SubscriptionStatus.TRIAL,
+                trial_ends_at=now + trial,
+                current_period_end=now + trial,
+            )
         )
-    )
     audit.record(db, action="register", entity="user", entity_id=user.id, actor_user_id=user.id, clinic_id=clinic.id, summary=f"Physio signed up · {body.clinic_name}", request=request)
     return issue_tokens(db, user, request, response)
 
@@ -381,8 +385,9 @@ def reset_password(body: ResetPasswordIn, db: DB, request: Request) -> Response:
 
 @router.post("/google", response_model=TokenOut)
 def google_sign_in(body: GoogleIn, db: DB, request: Request, response: Response) -> TokenOut:
-    """Exchange a Google authorization code. Patients are created on first sign-in; a new physio gets a
-    `physio_signup_required` response with a token to finish clinic registration."""
+    """Exchange a Google authorization code. Google sign-in is for patients; they're created on first sign-in."""
+    if body.intent != "patient":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Physiotherapists sign in with their email or mobile and password")
     try:
         who = google.identity_from_code(body.code, body.redirect_uri)
     except google.GoogleAuthError as exc:
@@ -390,9 +395,6 @@ def google_sign_in(body: GoogleIn, db: DB, request: Request, response: Response)
 
     user = db.scalar(select(User).where(User.google_sub == who.sub)) or db.scalar(select(User).where(func.lower(User.email) == who.email))
     if user is None:
-        if body.intent == "physio":
-            token = create_purpose_token("google_signup", {"sub": who.sub, "email": who.email, "name": who.name}, minutes=30)
-            raise HTTPException(status.HTTP_409_CONFLICT, {"code": "physio_signup_required", "signup_token": token, "email": who.email, "full_name": who.name})
         user = _create_patient_user(db, full_name=who.name, email=who.email)
         user.google_sub = who.sub
         user.avatar_url = who.picture
@@ -402,10 +404,8 @@ def google_sign_in(body: GoogleIn, db: DB, request: Request, response: Response)
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Super Admin signs in with a password")
         if not user.is_active:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
-        if body.intent == "patient" and user.role != UserRole.PATIENT:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This Google account belongs to a clinic account — use the physiotherapist sign-in")
-        if body.intent == "physio" and user.role == UserRole.PATIENT:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This Google account is registered as a patient — use the patient sign-in")
+        if user.role != UserRole.PATIENT:
+            raise HTTPException(status.HTTP_409_CONFLICT, "This email belongs to a clinic account — sign in on the practice console with your password")
         if user.google_sub is None:
             user.google_sub = who.sub  # link on first Google sign-in (Google has verified the email)
         if user.totp_enabled:

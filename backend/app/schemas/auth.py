@@ -14,6 +14,8 @@ Name = Annotated[str, Field(min_length=2, max_length=120)]
 
 class OtpRequestIn(BaseModel):
     phone: Phone
+    # "staff": only numbers a clinic has added may sign in (no patient sign-up).
+    intent: Literal["patient", "staff"] = "patient"
 
 
 class OtpRequestOut(BaseModel):
@@ -24,6 +26,7 @@ class OtpVerifyIn(BaseModel):
     phone: Phone
     code: Annotated[str, Field(pattern=r"^\d{4,8}$")]
     full_name: Name | None = None  # required the first time (new patient)
+    intent: Literal["patient", "staff"] = "patient"
 
 
 class PatientRegisterIn(BaseModel):
@@ -43,21 +46,13 @@ class PhysioRegisterIn(BaseModel):
     full_name: Name
     email: EmailStr
     phone: Phone
-    # Either a password, or the token from Google sign-in (Google then signs them in).
-    password: Password | None = None
-    google_signup_token: str | None = None
+    password: Password
     registration_no: Annotated[str, Field(min_length=3, max_length=60)]
-    council: str | None = Field(default=None, max_length=80)
-    qualification: str | None = Field(default=None, max_length=120)
+    council: Annotated[str, Field(min_length=2, max_length=80)]
+    qualification: Annotated[str, Field(min_length=2, max_length=120)]
     clinic_name: Annotated[str, Field(min_length=2, max_length=160)]
     city: Annotated[str, Field(min_length=2, max_length=80)]
     plan: SubscriptionPlan = SubscriptionPlan.MONTHLY
-
-    @model_validator(mode="after")
-    def credential(self):
-        if not self.password and not self.google_signup_token:
-            raise ValueError("Choose a password or continue with Google")
-        return self
 
 
 class LoginIn(BaseModel):
@@ -125,7 +120,7 @@ class ResetPasswordIn(BaseModel):
 class GoogleIn(BaseModel):
     code: Annotated[str, Field(min_length=10, max_length=2048)]
     redirect_uri: Annotated[str, Field(max_length=300)]
-    intent: Literal["patient", "physio"]
+    intent: Literal["patient", "physio"]  # Google sign-in is for patients; "physio" is refused
 
 
 class GoogleTotpIn(BaseModel):

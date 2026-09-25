@@ -159,7 +159,7 @@ def test_expired_hold_frees_slot(env):
 def test_physio_hours_and_admin_verification(env):
     c = env["client"]
     # A new physio registers → pending → not in the directory until approved.
-    reg = c.post("/auth/register/physio", json={"full_name": "Dr. Test Pending", "email": "pending@demo.physionexs.com", "phone": PHYSIO_PHONE, "password": "supersecret1", "registration_no": "IAP-DEMO-9999", "clinic_name": "Pending Clinic", "city": "Nagpur"}).json()
+    reg = c.post("/auth/register/physio", json={"full_name": "Dr. Test Pending", "email": "pending@demo.physionexs.com", "phone": PHYSIO_PHONE, "password": "supersecret1", "registration_no": "IAP-DEMO-9999", "council": "IAP", "qualification": "BPT", "clinic_name": "Pending Clinic", "city": "Nagpur"}).json()
     h = {"Authorization": f"Bearer {reg['access_token']}", "X-Clinic-Id": reg["user"]["memberships"][0]["clinic_id"]}
 
     prof = c.put("/clinic/physio-profile", headers=h, json={"qualification": "BPT", "offers_in_clinic": True, "fee_in_clinic_paise": 50_000, "specializations": ["Knee"]})

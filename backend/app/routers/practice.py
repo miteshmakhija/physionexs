@@ -122,6 +122,8 @@ def subscription_checkout(body: CheckoutIn, member: Owner, user: CurrentUser, db
     if sub is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No subscription")
     plan = body.plan or sub.plan
+    if plan == SubscriptionPlan.COMMISSION:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The pay-per-booking plan has no subscription to pay — switch to it instead")
     amount = sub.price_paise if plan == sub.plan else _price(db, plan)
     payment = Payment(purpose=PaymentPurpose.SUBSCRIPTION, clinic_id=member.clinic_id, amount_paise=amount, meta={"plan": plan.value})
     db.add(payment)
@@ -138,6 +140,24 @@ def subscription_checkout(body: CheckoutIn, member: Owner, user: CurrentUser, db
         description=f"Physionexs practice console · {plan.value}",
         prefill={k: v for k, v in {"name": user.full_name, "email": clinic.email or user.email, "contact": clinic.phone or user.phone}.items() if v},
     )
+
+
+@router.post("/subscription/commission", response_model=SubscriptionOut)
+def switch_to_commission(member: Owner, user: CurrentUser, db: DB, request: Request) -> SubscriptionOut:
+    """Move to "pay per booking": no subscription, a percentage of each app booking. Takes effect now."""
+    sub = db.scalar(select(Subscription).where(Subscription.clinic_id == member.clinic_id).with_for_update())
+    if sub is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No subscription")
+    clinic = db.get(Clinic, member.clinic_id)
+    bps = int(get_setting(db, "pms_pricing").get("commission_bps", 300))
+    before = {"plan": sub.plan.value, "fee_bps": clinic.platform_fee_bps}
+    sub.plan, sub.price_paise, sub.status = SubscriptionPlan.COMMISSION, 0, SubscriptionStatus.ACTIVE
+    sub.trial_ends_at = sub.current_period_end = None
+    clinic.platform_fee_bps = bps
+    audit.record(db, action="update", entity="subscription", entity_id=sub.id, actor_user_id=user.id, clinic_id=clinic.id,
+                 summary=f"Switched to pay per booking ({bps / 100:g}%)", changes={"before": before}, request=request)
+    db.commit()
+    return subscription_out(sub)
 
 
 @router.post("/subscription/verify", response_model=SubscriptionOut)
@@ -167,6 +187,9 @@ def apply_subscription_payment(db: Session, payment: Payment, razorpay_payment_i
     if plan != sub.plan:
         sub.plan = plan
         sub.price_paise = payment.amount_paise
+    # Paying a monthly/yearly subscription means no platform fee on app bookings.
+    clinic = db.get(Clinic, payment.clinic_id)
+    clinic.platform_fee_bps = 0
     base = max(now, sub.current_period_end or now) if sub.status != SubscriptionStatus.TRIAL else max(now, sub.trial_ends_at or now)
     sub.current_period_end = base + (timedelta(days=365) if plan == SubscriptionPlan.YEARLY else timedelta(days=30))
     sub.status = SubscriptionStatus.ACTIVE

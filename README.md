@@ -125,4 +125,6 @@ The Hobby plan runs cron jobs at most once a day — the hourly job needs Vercel
 - Sensitive actions are written to `audit_logs` (Super Admin → Audit log).
 - In production, Super Admin pages refuse access until two-factor authentication is on (Super Admin → Security). Physios can turn it on from the practice console's Security page.
 - The Super Admin records browser only offers audited, reversible actions (deactivate/activate users and clinics, change a clinic's fee, hide/restore reviews). Financial and clinical records are never edited or deleted from the UI.
+- Clinic plans: **Monthly** (₹500) and **Yearly** (₹5,000) have no fee on app bookings; **Pay per booking** has no subscription and Physionexs keeps 3% of each app booking. Changing plan updates the clinic's booking fee.
+- Practice-console sign-in has **Doctor-Admin** (mobile or email + password, 2FA when on) and **Staff** tabs. Staff can't self-register — the Doctor-Admin adds them under Staff management, and the Staff tab refuses numbers no clinic has added. Google sign-in is for patients only.
 - Platform settings (rewards, support contacts, PMS pricing, platform fee) are edited in Super Admin → Settings and validated server-side; new clinics pick up the current pricing, fee and trial length at sign-up.

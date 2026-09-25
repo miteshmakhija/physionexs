@@ -188,39 +188,67 @@ function BranchForm({ branch, clinicId, onDone, onCancel }: { branch: Branch | n
 function SubscriptionPanel({ clinicId }: { clinicId: string }) {
   const qc = useQueryClient()
   const sub = useQuery({ queryKey: ['subscription'], queryFn: () => api<Schemas['SubscriptionOut']>('/clinic/subscription', { clinicId }) })
-  const [plan, setPlan] = useState<'monthly' | 'yearly' | null>(null)
+  const [plan, setPlan] = useState<'monthly' | 'yearly' | 'commission' | null>(null)
+  const refresh = (s: Schemas['SubscriptionOut'] | null) => {
+    if (s) qc.setQueryData(['subscription'], s)
+    void qc.invalidateQueries({ queryKey: ['dashboard'] })
+    void qc.invalidateQueries({ queryKey: ['clinic-profile'] })
+    setPlan(null)
+  }
   const pay = useMutation({
-    mutationFn: async () => {
-      const checkout = await api<Schemas['RazorpayCheckout']>('/clinic/subscription/checkout', { method: 'POST', clinicId, json: { plan } })
+    mutationFn: async (target: 'monthly' | 'yearly') => {
+      const checkout = await api<Schemas['RazorpayCheckout']>('/clinic/subscription/checkout', { method: 'POST', clinicId, json: { plan: target } })
       const result = await payWithRazorpay(checkout)
       return result ? api<Schemas['SubscriptionOut']>('/clinic/subscription/verify', { method: 'POST', clinicId, json: result }) : null
     },
-    onSuccess: (s) => {
-      if (s) qc.setQueryData(['subscription'], s)
-      void qc.invalidateQueries({ queryKey: ['dashboard'] })
-    },
+    onSuccess: refresh,
+  })
+  const toCommission = useMutation({
+    mutationFn: () => api<Schemas['SubscriptionOut']>('/clinic/subscription/commission', { method: 'POST', clinicId }),
+    onSuccess: refresh,
   })
   const s = sub.data
   if (!s) return null
   const chosen = plan ?? s.plan
-  const status = { trial: 'Free trial', active: 'Active', overdue: 'Overdue', cancelled: 'Cancelled' }[s.status]
+  const onCommission = s.plan === 'commission'
+  const status = onCommission ? 'Active · pay per booking' : { trial: 'Free trial', active: 'Active', overdue: 'Overdue', cancelled: 'Cancelled' }[s.status]
+  const cards = [
+    { value: 'monthly' as const, label: 'Monthly', price: s.plan === 'monthly' ? rupees(s.price_paise) : '₹500', unit: '/mo', fine: 'No fee on app bookings' },
+    { value: 'yearly' as const, label: 'Yearly · 2 months free', price: s.plan === 'yearly' ? rupees(s.price_paise) : '₹5,000', unit: '/yr', fine: 'No fee on app bookings' },
+    { value: 'commission' as const, label: 'Pay per booking', price: '3%', unit: '/booking', fine: 'No subscription' },
+  ]
+  const busy = pay.isPending || toCommission.isPending
+  const error = (pay.error ?? toCommission.error) as Error | null
   return (
     <section className="mt-10 border-t border-line pt-6">
-      <h2 className="eyebrow mb-1">PMS subscription</h2>
-      <p className="mb-4 text-[13px] text-muted">Your usage charge for the practice console. Price is managed by the platform admin; automatic reminders are sent before each due date.</p>
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1.2fr]">
-        {(['monthly', 'yearly'] as const).map((p) => (
-          <button key={p} onClick={() => setPlan(p)} className={`border p-4 text-left ${chosen === p ? 'border-ink' : 'border-line-strong hover:border-ink'}`}>
-            <span className="eyebrow">{p === 'monthly' ? 'Monthly' : 'Yearly · 2 months free'}</span>
-            <span className="mt-1 block text-[22px] font-bold">{p === s.plan ? rupees(s.price_paise) : p === 'yearly' ? '₹5,000' : '₹500'}<span className="text-[13px] font-medium text-muted">{p === 'yearly' ? '/yr' : '/mo'}</span></span>
+      <h2 className="eyebrow mb-1">Plan</h2>
+      <p className="mb-4 text-[13px] text-muted">Monthly and yearly plans have no fee on app bookings. Pay per booking has no subscription — Physionexs keeps 3% of each booking patients pay through the app.</p>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr]">
+        {cards.map((c) => (
+          <button key={c.value} onClick={() => setPlan(c.value)} className={`border p-4 text-left ${chosen === c.value ? 'border-ink' : 'border-line-strong hover:border-ink'}`}>
+            <span className="eyebrow">{c.label}{s.plan === c.value ? ' · current' : ''}</span>
+            <span className="mt-1 block text-[22px] font-bold">{c.price}<span className="text-[13px] font-medium text-muted">{c.unit}</span></span>
+            <span className="text-[12.5px] text-muted">{c.fine}</span>
           </button>
         ))}
         <div className="border border-line p-4 text-[14px]">
           <p><span className="text-muted">Status: </span><span className="font-semibold">{status}</span></p>
-          <p className="mt-1"><span className="text-muted">{s.status === 'trial' ? 'Trial ends' : 'Next payment due'}: </span>{(s.status === 'trial' ? s.trial_ends_at : s.current_period_end) ? dayLabel((s.status === 'trial' ? s.trial_ends_at : s.current_period_end)!) : '—'}</p>
-          {pay.error && <p className="mt-2 text-[13px] text-danger">{(pay.error as Error).message}</p>}
-          {pay.data && <p className="mt-2 text-[13px] text-leaf-dark">Payment received — thank you.</p>}
-          <Button className="mt-3 w-full" onClick={() => pay.mutate()} loading={pay.isPending}>Pay {chosen === s.plan ? rupees(s.price_paise) : chosen === 'yearly' ? '₹5,000' : '₹500'}</Button>
+          {!onCommission && (
+            <p className="mt-1"><span className="text-muted">{s.status === 'trial' ? 'Trial ends' : 'Next payment due'}: </span>{(s.status === 'trial' ? s.trial_ends_at : s.current_period_end) ? dayLabel((s.status === 'trial' ? s.trial_ends_at : s.current_period_end)!) : '—'}</p>
+          )}
+          {error && <p className="mt-2 text-[13px] text-danger">{error.message}</p>}
+          {(pay.data || toCommission.data) && <p className="mt-2 text-[13px] text-leaf-dark">Plan updated.</p>}
+          {chosen === 'commission' ? (
+            onCommission ? <p className="mt-3 text-[13px] text-muted">You’re on pay per booking. Pick Monthly or Yearly to switch.</p> : (
+              <Button className="mt-3 w-full" loading={busy} onClick={() => window.confirm('Switch to pay per booking? Your subscription stops and 3% applies to each app booking from now on.') && toCommission.mutate()}>
+                Switch to pay per booking
+              </Button>
+            )
+          ) : (
+            <Button className="mt-3 w-full" loading={busy} onClick={() => pay.mutate(chosen)}>
+              {s.plan === chosen ? `Pay ${cards.find((c) => c.value === chosen)!.price}` : `Switch & pay ${cards.find((c) => c.value === chosen)!.price}`}
+            </Button>
+          )}
         </div>
       </div>
     </section>

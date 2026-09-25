@@ -11,8 +11,10 @@ DEFAULT_SETTINGS: dict[str, dict] = {
         "hours": "Monday to Saturday · 10:00 – 19:00 IST",
     },
     "reminders": {"appointment_hours_before": [24, 2]},
-    "pms_pricing": {"monthly_paise": 50_000, "yearly_paise": 500_000, "trial_days": 14},
-    "platform_fee": {"default_bps": 1000, "allowed_bps": [1000, 1500]},
+    # Monthly/yearly: fixed fee, 0% on app bookings. Commission: no fee, commission_bps of each app booking.
+    "pms_pricing": {"monthly_paise": 50_000, "yearly_paise": 500_000, "trial_days": 14, "commission_bps": 300},
+    # Per-clinic overrides the Super Admin may set.
+    "platform_fee": {"default_bps": 0, "allowed_bps": [0, 300, 500, 1000]},
 }
 
 

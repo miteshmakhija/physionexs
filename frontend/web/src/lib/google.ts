@@ -42,16 +42,3 @@ export function takeGoogleState(state: string | null): { intent: Intent; next: s
     return null
   }
 }
-
-const SIGNUP_KEY = 'pnx_google_signup'
-export interface GoogleSignup { signup_token: string; email: string; full_name: string }
-export const saveGoogleSignup = (s: GoogleSignup) => sessionStorage.setItem(SIGNUP_KEY, JSON.stringify(s))
-export function takeGoogleSignup(): GoogleSignup | null {
-  const raw = sessionStorage.getItem(SIGNUP_KEY)
-  sessionStorage.removeItem(SIGNUP_KEY)
-  try {
-    return raw ? (JSON.parse(raw) as GoogleSignup) : null
-  } catch {
-    return null
-  }
-}

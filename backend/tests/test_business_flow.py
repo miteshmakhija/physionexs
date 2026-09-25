@@ -108,7 +108,7 @@ def test_analytics_and_dashboard(env):
     assert len(a["revenue_by_day"]) == 7 and a["revenue_paise"] == 380_000  # the voided booking doesn't count
     assert a["revenue_by_day"][-1]["value"] == 380_000
     d = c.get("/clinic/dashboard", headers=h).json()
-    assert d["revenue_week_paise"] == 380_000 and d["subscription"]["plan"] == "monthly" and len(d["branches"]) == 1
+    assert d["revenue_week_paise"] == 380_000 and d["subscription"]["plan"] == "commission" and len(d["branches"]) == 1
 
 
 def test_clinic_profile_and_branches(env):
@@ -129,17 +129,39 @@ def test_clinic_profile_and_branches(env):
     assert closed["is_active"] is False and len(c.get("/clinic/branches", headers=h).json()) == 1
 
 
-def test_subscription_payment_extends_period(env):
+def test_plans_fees_and_switching(env):
     c, h = env["c"], env["h"]
     before = c.get("/clinic/subscription", headers=h).json()
-    order = c.post("/clinic/subscription/checkout", headers=h, json={}).json()
-    assert order["amount"] == before["price_paise"] and order["order_id"].startswith("order_dev_")
+    assert before["plan"] == "commission" and before["price_paise"] == 0
+    assert c.post("/clinic/subscription/checkout", headers=h, json={}).status_code == 400  # nothing to pay on pay-per-booking
+    assert c.get("/clinic/profile", headers=h).json()["platform_fee_bps"] == 300
+
+    order = c.post("/clinic/subscription/checkout", headers=h, json={"plan": "monthly"}).json()
+    assert order["amount"] == 50_000 and order["order_id"].startswith("order_dev_")
     after = c.post("/clinic/subscription/verify", headers=h, json={"razorpay_order_id": order["order_id"], "razorpay_payment_id": "pay_dev_sub", "razorpay_signature": "dev"}).json()
-    assert after["status"] == "active"
-    was = datetime.fromisoformat(before["current_period_end"]) if before["current_period_end"] else datetime.now(UTC)
-    assert datetime.fromisoformat(after["current_period_end"]) - was >= timedelta(days=29)
-    yearly = c.post("/clinic/subscription/checkout", headers=h, json={"plan": "yearly"}).json()
-    assert yearly["amount"] == 500_000
+    assert after["status"] == "active" and after["plan"] == "monthly" and after["current_period_end"]
+    assert c.get("/clinic/profile", headers=h).json()["platform_fee_bps"] == 0  # no booking fee on a subscription
+    assert c.post("/clinic/subscription/checkout", headers=h, json={"plan": "yearly"}).json()["amount"] == 500_000
+
+    back = c.post("/clinic/subscription/commission", headers=h).json()
+    assert back["plan"] == "commission" and back["price_paise"] == 0 and back["current_period_end"] is None
+    assert c.get("/clinic/profile", headers=h).json()["platform_fee_bps"] == 300
+
+
+def test_new_clinic_plan_sets_booking_fee(env):
+    c = env["c"]
+    base = {"full_name": "Dr. Plan Test", "password": "plan-password-1", "registration_no": "IAP-DEMO-PLAN", "council": "IAP",
+            "qualification": "BPT", "clinic_name": "Plan Clinic", "city": "Pune"}
+    r = c.post("/auth/register/physio", json={**base, "email": "plan-commission@demo.physionexs.com", "phone": "+919000000954", "plan": "commission"}).json()
+    ph = {"Authorization": f"Bearer {r['access_token']}", "X-Clinic-Id": r["user"]["memberships"][0]["clinic_id"]}
+    assert c.get("/clinic/profile", headers=ph).json()["platform_fee_bps"] == 300
+    sub = c.get("/clinic/subscription", headers=ph).json()
+    assert sub["plan"] == "commission" and sub["status"] == "active" and sub["due_soon"] is False
+    r2 = c.post("/auth/register/physio", json={**base, "email": "plan-monthly@demo.physionexs.com", "phone": "+919000000955", "plan": "monthly",
+                                               "registration_no": "IAP-DEMO-PLAN2"}).json()
+    ph2 = {"Authorization": f"Bearer {r2['access_token']}", "X-Clinic-Id": r2["user"]["memberships"][0]["clinic_id"]}
+    assert c.get("/clinic/profile", headers=ph2).json()["platform_fee_bps"] == 0
+    assert c.get("/clinic/subscription", headers=ph2).json()["status"] == "trial"
 
 
 def test_staff_attendance_leave_and_payroll(env):
@@ -149,6 +171,8 @@ def test_staff_attendance_leave_and_payroll(env):
     assert added.status_code == 201, added.text
     member_id = added.json()["id"]
 
+    # The staff tab only accepts numbers a clinic has added; unknown numbers don't become patients.
+    assert c.post("/auth/otp/request", json={"phone": "+919000000959", "intent": "staff"}).status_code == 404
     staff = env["otp_login"](STAFF_PHONE)
     assert staff["user"]["role"] == "staff" and staff["user"]["memberships"][0]["role"] == "staff"
     sh = {"Authorization": f"Bearer {staff['access_token']}", "X-Clinic-Id": env["clinic_id"]}

@@ -150,7 +150,7 @@ function SubscriptionBanner({ sub, clinicId }: { sub: Schemas['SubscriptionOut']
   return (
     <div className={cx('flex flex-wrap items-center justify-between gap-4 border p-4', sub.status === 'overdue' ? 'border-danger' : 'border-line')}>
       <p className="text-[14px]">
-        <span className="font-semibold">PMS subscription · {rupees(sub.price_paise)}{sub.plan === 'yearly' ? '/yr' : '/mo'}</span>
+        <span className="font-semibold">Practice console · {rupees(sub.price_paise)}{sub.plan === 'yearly' ? '/yr' : '/mo'}</span>
         <span className="text-muted"> — {text} Automatic reminders are sent before each due date.</span>
       </p>
       <div className="flex items-center gap-3">

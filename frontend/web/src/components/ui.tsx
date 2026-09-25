@@ -52,16 +52,21 @@ export function Field({
   label,
   hint,
   error,
+  required,
   children,
 }: {
   label: string
   hint?: ReactNode
   error?: string | null
+  required?: boolean
   children: ReactNode
 }) {
   return (
     <label className="block">
-      <span className="eyebrow mb-1.5 block">{label}</span>
+      <span className="eyebrow mb-1.5 block">
+        {label}
+        {required && <span className="ml-0.5 text-danger" aria-hidden> *</span>}
+      </span>
       {children}
       {error ? (
         <span className="mt-1 block text-[12px] text-danger">{error}</span>

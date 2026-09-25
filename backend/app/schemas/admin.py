@@ -57,6 +57,7 @@ class AdminAnalytics(BaseModel):
     by_speciality: list[CategoryShare]
     plan_monthly: int
     plan_yearly: int
+    plan_commission: int
     avg_fee_pct: float | None
     revenue: RevenueSplit
 
@@ -156,6 +157,7 @@ class PricingSetting(BaseModel):
     monthly_paise: Annotated[int, Field(ge=0, le=10_000_000)]
     yearly_paise: Annotated[int, Field(ge=0, le=100_000_000)]
     trial_days: Annotated[int, Field(ge=0, le=180)]
+    commission_bps: Annotated[int, Field(ge=0, le=5000)] = 300  # "Pay per booking" plan
 
 
 class PlatformFeeSetting(BaseModel):

@@ -34,8 +34,8 @@ class Clinic(UUIDPk, Timestamps, Base):
     email: Mapped[str | None] = mapped_column(String(254))
     address: Mapped[str | None] = mapped_column(Text)
     gstin: Mapped[str | None] = mapped_column(String(15))
-    # Platform commission on patient bookings, in basis points (1000 = 10%).
-    platform_fee_bps: Mapped[int] = mapped_column(Integer, default=1000)
+    # Platform fee on patient app bookings, in basis points (300 = 3%). 0 on subscription plans.
+    platform_fee_bps: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -118,8 +118,9 @@ class PhysioProfile(UUIDPk, Timestamps, Base):
 
 
 class SubscriptionPlan(StrEnum):
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
+    MONTHLY = "monthly"  # fixed fee, no fee on app bookings
+    YEARLY = "yearly"  # fixed fee, no fee on app bookings
+    COMMISSION = "commission"  # no subscription; a % of each app booking
 
 
 class SubscriptionStatus(StrEnum):

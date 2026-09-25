@@ -41,7 +41,7 @@ from app.models import (
     TestOrder,
     User,
 )
-from app.models.clinic import MembershipRole, SubscriptionStatus, VerificationStatus
+from app.models.clinic import MembershipRole, SubscriptionPlan, SubscriptionStatus, VerificationStatus
 from app.models.user import UserRole
 
 DEMO_DOMAIN = "demo.physionexs.com"
@@ -90,14 +90,18 @@ def seed_demo(db: Session) -> list[User]:
                 fee_in_clinic_paise=d["fee"], fee_online_paise=d["online"],
             )
         )
-        clinic = Clinic(name=d["clinic"], slug=d["reg"].lower(), owner_user_id=user.id, phone=d["phone"])
+        commission = d is DEMO_PHYSIOS[0]  # Sunrise pays per booking (3%); the others pay monthly (0%)
+        clinic = Clinic(name=d["clinic"], slug=d["reg"].lower(), owner_user_id=user.id, phone=d["phone"], platform_fee_bps=300 if commission else 0)
         db.add(clinic)
         db.flush()
         branch = Branch(clinic_id=clinic.id, name=d["branch"], area=d["area"], city=d["city"], latitude=d["lat"], longitude=d["lng"], hours="Mon–Sat · 9 AM–7 PM", lead_user_id=user.id)
         db.add(branch)
         db.flush()
         db.add(ClinicMember(clinic_id=clinic.id, user_id=user.id, branch_id=branch.id, role=MembershipRole.OWNER, job_title="Physiotherapist"))
-        db.add(Subscription(clinic_id=clinic.id, status=SubscriptionStatus.ACTIVE, current_period_end=datetime.now(UTC) + timedelta(days=30)))
+        if commission:
+            db.add(Subscription(clinic_id=clinic.id, plan=SubscriptionPlan.COMMISSION, price_paise=0, status=SubscriptionStatus.ACTIVE))
+        else:
+            db.add(Subscription(clinic_id=clinic.id, status=SubscriptionStatus.ACTIVE, current_period_end=datetime.now(UTC) + timedelta(days=30)))
         for weekday in range(6):  # Mon–Sat
             db.add(Availability(physio_user_id=user.id, branch_id=branch.id, weekday=weekday, start_time=time(9), end_time=time(13), slot_minutes=30))
             db.add(Availability(physio_user_id=user.id, branch_id=branch.id, weekday=weekday, start_time=time(15), end_time=time(19), slot_minutes=30))

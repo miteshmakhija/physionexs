@@ -278,8 +278,7 @@ export interface paths {
         put?: never;
         /**
          * Google Sign In
-         * @description Exchange a Google authorization code. Patients are created on first sign-in; a new physio gets a
-         *     `physio_signup_required` response with a token to finish clinic registration.
+         * @description Exchange a Google authorization code. Google sign-in is for patients; they're created on first sign-in.
          */
         post: operations["google_sign_in_auth_google_post"];
         delete?: never;
@@ -1590,6 +1589,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/subscription/commission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Switch To Commission
+         * @description Move to "pay per booking": no subscription, a percentage of each app booking. Takes effect now.
+         */
+        post: operations["switch_to_commission_clinic_subscription_commission_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/subscription/verify": {
         parameters: {
             query?: never;
@@ -1844,6 +1863,8 @@ export interface components {
             plan_monthly: number;
             /** Plan Yearly */
             plan_yearly: number;
+            /** Plan Commission */
+            plan_commission: number;
             /** Avg Fee Pct */
             avg_fee_pct: number | null;
             revenue: components["schemas"]["RevenueSplit"];
@@ -3131,6 +3152,12 @@ export interface components {
         OtpRequestIn: {
             /** Phone */
             phone: string;
+            /**
+             * Intent
+             * @default patient
+             * @enum {string}
+             */
+            intent: "patient" | "staff";
         };
         /** OtpRequestOut */
         OtpRequestOut: {
@@ -3145,6 +3172,12 @@ export interface components {
             code: string;
             /** Full Name */
             full_name?: string | null;
+            /**
+             * Intent
+             * @default patient
+             * @enum {string}
+             */
+            intent: "patient" | "staff";
         };
         /** PatientFileOut */
         PatientFileOut: {
@@ -3473,15 +3506,13 @@ export interface components {
             /** Phone */
             phone: string;
             /** Password */
-            password?: string | null;
-            /** Google Signup Token */
-            google_signup_token?: string | null;
+            password: string;
             /** Registration No */
             registration_no: string;
             /** Council */
-            council?: string | null;
+            council: string;
             /** Qualification */
-            qualification?: string | null;
+            qualification: string;
             /** Clinic Name */
             clinic_name: string;
             /** City */
@@ -3982,7 +4013,7 @@ export interface components {
          * SubscriptionPlan
          * @enum {string}
          */
-        SubscriptionPlan: "monthly" | "yearly";
+        SubscriptionPlan: "monthly" | "yearly" | "commission";
         /** SubscriptionRow */
         SubscriptionRow: {
             /**
@@ -7519,6 +7550,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RazorpayCheckout"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    switch_to_commission_clinic_subscription_commission_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionOut"];
                 };
             };
             /** @description Validation Error */

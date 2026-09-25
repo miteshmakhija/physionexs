@@ -3,8 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { homePathFor, useAuth } from '@/auth/AuthProvider'
 import { Alert, Button, Card, cx, Field, Input, Logo, Segmented } from '@/components/ui'
-import { api, ApiError, type Me, type Schemas } from '@/lib/api'
-import { authConfig, startGoogle, takeGoogleSignup, type GoogleSignup, type Intent } from '@/lib/google'
+import { api, ApiError, applyTokens, type Me, type Schemas } from '@/lib/api'
+import { authConfig, startGoogle, type Intent } from '@/lib/google'
 
 /** Patients and physiotherapists get separate sign-in pages; the role comes from ?as= or where they were going. */
 export default function SignIn() {
@@ -288,20 +288,62 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
   )
 }
 
-// ── Physiotherapist ─────────────────────────────────────────────────────────
+// ── Physiotherapist / clinic team ───────────────────────────────────────────
 
-function PhysioAuth({ onDone, next, initialMode }: { onDone: (me: Me) => void; next: string | null; initialMode: 'signin' | 'register' }) {
-  const [google] = useState<GoogleSignup | null>(() => (initialMode === 'register' ? takeGoogleSignup() : null))
-  const [mode, setMode] = useState<'signin' | 'register' | 'forgot'>(initialMode)
-  if (mode === 'forgot') return <ForgotPassword onBack={() => setMode('signin')} />
-  return mode === 'signin' ? (
-    <PhysioSignIn onDone={onDone} next={next} onRegister={() => setMode('register')} onForgot={() => setMode('forgot')} />
-  ) : (
-    <PhysioRegister onDone={onDone} next={next} google={google} onSignIn={() => setMode('signin')} />
+type Role = 'doctor' | 'staff'
+type Method = 'phone' | 'email'
+
+function RoleTabs({ value, onChange }: { value: Role; onChange: (r: Role) => void }) {
+  const tabs: { value: Role; title: string; sub: string }[] = [
+    { value: 'doctor', title: 'Doctor-Admin', sub: 'Owner · full access' },
+    { value: 'staff', title: 'Staff', sub: 'No billing / analytics' },
+  ]
+  return (
+    <div>
+      <p className="mb-2 text-[13px] font-semibold text-ink-2">Sign in as</p>
+      <div className="grid grid-cols-2 gap-1 rounded-lg bg-canvas p-1 ring-1 ring-line" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            aria-selected={value === t.value}
+            onClick={() => onChange(t.value)}
+            className={cx('rounded-md px-3 py-2.5 text-center transition', value === t.value ? 'bg-white shadow-[0_1px_3px_rgb(0_0_0/0.08)]' : 'hover:bg-white/60')}
+          >
+            <span className={cx('block text-[15px] font-semibold', value === t.value ? 'text-brand' : 'text-ink-2')}>{t.title}</span>
+            <span className="block text-[12px] text-muted">{t.sub}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
-function PhysioSignIn({ onDone, next, onRegister, onForgot }: { onDone: (me: Me) => void; next: string | null; onRegister: () => void; onForgot: () => void }) {
+function PhysioAuth({ onDone, initialMode }: { onDone: (me: Me) => void; next: string | null; initialMode: 'signin' | 'register' }) {
+  const [role, setRole] = useState<Role>('doctor')
+  const [mode, setMode] = useState<'signin' | 'register' | 'forgot'>(initialMode)
+  if (mode === 'forgot') return <ForgotPassword onBack={() => setMode('signin')} />
+  if (mode === 'register') return <PhysioRegister onDone={onDone} onSignIn={() => setMode('signin')} />
+  return (
+    <div className="space-y-5">
+      <Heading title="Practice console" sub="Sign in to run your clinic." />
+      <RoleTabs value={role} onChange={setRole} />
+      {role === 'doctor' ? (
+        <DoctorSignIn onDone={onDone} onForgot={() => setMode('forgot')} onRegister={() => setMode('register')} />
+      ) : (
+        <StaffSignIn onDone={onDone} onForgot={() => setMode('forgot')} />
+      )}
+    </div>
+  )
+}
+
+function MethodTabs({ value, onChange }: { value: Method; onChange: (m: Method) => void }) {
+  return <Segmented value={value} onChange={onChange} options={[{ value: 'phone', label: 'Mobile number' }, { value: 'email', label: 'Email' }]} />
+}
+
+/** Password sign-in with a mobile number or email (+ authenticator code when 2FA is on). */
+function PasswordSignIn({ method, onDone, onForgot }: { method: Method; onDone: (me: Me) => void; onForgot: () => void }) {
   const { login } = useAuth()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -320,110 +362,145 @@ function PhysioSignIn({ onDone, next, onRegister, onForgot }: { onDone: (me: Me)
     )
   }
   return (
+    <form onSubmit={submit} className="space-y-4">
+      {error && <Alert>{error}</Alert>}
+      {method === 'phone' ? (
+        <Field label="Mobile number"><Input key="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="98123 45678" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
+      ) : (
+        <Field label="Email"><Input key="email" type="email" autoComplete="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
+      )}
+      <Field label="Password"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></Field>
+      <div className="-mt-2 text-right">
+        <button type="button" onClick={onForgot} className="text-[13px] font-semibold text-muted hover:text-ink">Forgot password?</button>
+      </div>
+      {needsTotp && (
+        <Field label="Two-factor authentication code" hint="Enter the 6-digit code from your authenticator app.">
+          <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={totp} onChange={(e) => setTotp(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" />
+        </Field>
+      )}
+      <Button type="submit" loading={busy} className="w-full">Sign in</Button>
+    </form>
+  )
+}
+
+function DoctorSignIn({ onDone, onForgot, onRegister }: { onDone: (me: Me) => void; onForgot: () => void; onRegister: () => void }) {
+  const [method, setMethod] = useState<Method>('phone')
+  return (
     <div className="space-y-5">
-      <Heading title="Practice console" sub="Sign in to run your clinic." />
-      <GoogleButton intent="physio" next={next} />
-      <Divider />
-      <form onSubmit={submit} className="space-y-4">
-        {error && <Alert>{error}</Alert>}
-        <Field label="Email or mobile number"><Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" required /></Field>
-        <Field label="Password"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></Field>
-        <div className="-mt-2 text-right">
-          <button type="button" onClick={onForgot} className="text-[13px] font-semibold text-muted hover:text-ink">Forgot password?</button>
-        </div>
-        {needsTotp && (
-          <Field label="Two-factor authentication code" hint="Enter the 6-digit code from your authenticator app.">
-            <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={totp} onChange={(e) => setTotp(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" />
-          </Field>
-        )}
-        <Button type="submit" loading={busy} className="w-full">Sign in</Button>
-      </form>
+      <MethodTabs value={method} onChange={setMethod} />
+      <PasswordSignIn key={method} method={method} onDone={onDone} onForgot={onForgot} />
       <p className="text-center text-[13px] text-muted">
         New to Physionexs? <button type="button" onClick={onRegister} className="font-semibold text-ink underline">Register your clinic</button>
       </p>
-      <p className="text-center text-[12.5px] text-muted">Clinic staff: sign in with a one-time code on the <Link to="/signin?as=patient" className="underline">mobile sign-in</Link> using the number your clinic registered.</p>
     </div>
   )
 }
 
+/** Clinic team members. They can't register — the Doctor-Admin adds them under Staff management. */
+function StaffSignIn({ onDone, onForgot }: { onDone: (me: Me) => void; onForgot: () => void }) {
+  const [method, setMethod] = useState<Method>('phone')
+  return (
+    <div className="space-y-5">
+      <MethodTabs value={method} onChange={setMethod} />
+      {method === 'phone' ? <StaffOtp onDone={onDone} /> : <PasswordSignIn method="email" onDone={onDone} onForgot={onForgot} />}
+      <p className="text-center text-[12.5px] text-muted">Staff accounts are created by your clinic’s Doctor-Admin. Not added yet? Ask them to add you under Staff management.</p>
+    </div>
+  )
+}
+
+function StaffOtp({ onDone }: { onDone: (me: Me) => void }) {
+  const [step, setStep] = useState<'phone' | 'code'>('phone')
+  const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const { busy, error, run } = useRun()
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    void run(async () => {
+      if (step === 'phone') {
+        await api('/auth/otp/request', { method: 'POST', json: { phone, intent: 'staff' } })
+        setStep('code')
+      } else {
+        const tokens = await api<Schemas['TokenOut']>('/auth/otp/verify', { method: 'POST', json: { phone, code, intent: 'staff' } })
+        applyTokens(tokens)
+        onDone(tokens.user)
+      }
+    })
+  }
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <p className="text-[13.5px] text-muted">{step === 'phone' ? 'We’ll text a one-time code to the number your clinic registered.' : `Enter the code sent to ${phone}.`}</p>
+      {error && <Alert>{error}</Alert>}
+      {step === 'phone' ? (
+        <Field label="Mobile number"><Input type="tel" inputMode="tel" autoComplete="tel" placeholder="98123 45678" value={phone} onChange={(e) => setPhone(e.target.value)} required autoFocus /></Field>
+      ) : (
+        <Field label="6-digit code"><Input inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" /></Field>
+      )}
+      <Button type="submit" loading={busy} className="w-full">{step === 'phone' ? 'Send code' : 'Verify & continue'}</Button>
+      {step === 'code' && <button type="button" className="w-full text-[13px] font-semibold text-muted hover:text-ink" onClick={() => { setStep('phone'); setCode('') }}>Use a different number</button>}
+    </form>
+  )
+}
+
 const PLANS = [
-  { value: 'monthly', label: 'Monthly', price: '₹500', unit: '/mo', note: null },
-  { value: 'yearly', label: 'Yearly', price: '₹5,000', unit: '/yr', note: '2 mo free' },
+  { value: 'monthly', label: 'Monthly', price: '₹500', unit: '/mo', note: null, fine: 'No fee on app bookings' },
+  { value: 'yearly', label: 'Yearly', price: '₹5,000', unit: '/yr', note: '2 mo free', fine: 'No fee on app bookings' },
+  { value: 'commission', label: 'Pay per booking', price: '3%', unit: '/booking', note: 'No subscription', fine: 'Of each app booking' },
 ] as const
 
-function PhysioRegister({ onDone, next, google, onSignIn }: { onDone: (me: Me) => void; next: string | null; google: GoogleSignup | null; onSignIn: () => void }) {
+function PhysioRegister({ onDone, onSignIn }: { onDone: (me: Me) => void; onSignIn: () => void }) {
   const { registerPhysio } = useAuth()
-  const [form, setForm] = useState({
-    full_name: google?.full_name ?? '', email: google?.email ?? '', phone: '', password: '',
-    registration_no: '', council: '', qualification: '', clinic_name: '', city: '',
-  })
-  const [plan, setPlan] = useState<'monthly' | 'yearly'>('monthly')
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', password: '', registration_no: '', council: '', qualification: '', clinic_name: '', city: '' })
+  const [plan, setPlan] = useState<'monthly' | 'yearly' | 'commission'>('monthly')
   const { busy, error, run } = useRun()
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value })
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    void run(async () =>
-      onDone(await registerPhysio({
-        ...form,
-        password: google ? null : form.password,
-        google_signup_token: google?.signup_token ?? null,
-        council: form.council || null,
-        qualification: form.qualification || null,
-        plan,
-      })),
-    )
+    void run(async () => onDone(await registerPhysio({ ...form, plan })))
   }
+  const chosen = PLANS.find((p) => p.value === plan)!
   return (
     <div className="space-y-5">
-      <Heading title="Register your clinic" sub="14-day free trial, cancel anytime." />
-      {google ? (
-        <Alert tone="info">Signed in with Google as {google.email}. Add your clinic details to finish.</Alert>
-      ) : (
-        <>
-          <GoogleButton intent="physio" next={next} label="Register with Google" />
-          <Divider />
-        </>
-      )}
+      <Heading title="Register your clinic" sub="You’ll be the clinic’s Doctor-Admin. Add your staff after signing in." />
       <form onSubmit={submit} className="space-y-4">
         {error && <Alert>{error}</Alert>}
-        <Field label="Full name"><Input value={form.full_name} onChange={set('full_name')} placeholder="Dr. Ananya Sharma" required /></Field>
+        <Field label="Full name" required><Input value={form.full_name} onChange={set('full_name')} placeholder="Dr. Ananya Sharma" required minLength={2} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Email"><Input type="email" value={form.email} onChange={set('email')} autoComplete="email" required disabled={!!google} /></Field>
-          <Field label="Mobile"><Input type="tel" value={form.phone} onChange={set('phone')} autoComplete="tel" required /></Field>
+          <Field label="Email" required><Input type="email" value={form.email} onChange={set('email')} autoComplete="email" required /></Field>
+          <Field label="Mobile" required><Input type="tel" value={form.phone} onChange={set('phone')} autoComplete="tel" required /></Field>
         </div>
-        <Field label="Physiotherapy Council Registration No." hint="We verify this with your national / state council before your profile goes live.">
-          <Input value={form.registration_no} onChange={set('registration_no')} required />
+        <Field label="Physiotherapy Council Registration No." required hint="We verify this with your national / state council before your profile goes live.">
+          <Input value={form.registration_no} onChange={set('registration_no')} required minLength={3} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Council"><Input value={form.council} onChange={set('council')} placeholder="IAP, HCPC, APTA…" /></Field>
-          <Field label="Qualification"><Input value={form.qualification} onChange={set('qualification')} placeholder="MPT (Ortho)" /></Field>
+          <Field label="Council" required><Input value={form.council} onChange={set('council')} placeholder="IAP, HCPC, APTA…" required minLength={2} /></Field>
+          <Field label="Qualification" required><Input value={form.qualification} onChange={set('qualification')} placeholder="MPT (Ortho)" required minLength={2} /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Clinic name"><Input value={form.clinic_name} onChange={set('clinic_name')} required /></Field>
-          <Field label="City"><Input value={form.city} onChange={set('city')} required /></Field>
+          <Field label="Clinic name" required><Input value={form.clinic_name} onChange={set('clinic_name')} required minLength={2} /></Field>
+          <Field label="City" required><Input value={form.city} onChange={set('city')} required minLength={2} /></Field>
         </div>
         <div>
-          <span className="eyebrow mb-1.5 block">Choose your PMS plan</span>
-          <div className="grid grid-cols-2 gap-3">
+          <span className="eyebrow mb-1.5 block">Choose your plan *</span>
+          <div className="grid gap-2 sm:grid-cols-3">
             {PLANS.map((p) => (
               <button key={p.value} type="button" onClick={() => setPlan(p.value)} aria-pressed={plan === p.value}
                 className={cx('rounded-md border p-3 text-left transition', plan === p.value ? 'border-ink bg-surface-2' : 'border-line-strong hover:bg-surface-2')}>
-                <span className="flex items-center justify-between text-[12.5px] font-semibold text-ink-2">
-                  {p.label}
-                  {p.note && <span className="rounded-full bg-leaf-tint px-2 py-0.5 text-[10.5px] text-leaf-dark">{p.note}</span>}
-                </span>
-                <span className="mt-1 block text-[20px] font-bold">{p.price}<span className="text-[12px] font-semibold text-muted">{p.unit}</span></span>
+                <span className="block text-[12.5px] font-semibold text-ink-2">{p.label}</span>
+                <span className="mt-1 block text-[19px] font-bold">{p.price}<span className="text-[11.5px] font-semibold text-muted">{p.unit}</span></span>
+                {p.note && <span className="mt-1 inline-block rounded-full bg-leaf-tint px-2 py-0.5 text-[10.5px] text-leaf-dark">{p.note}</span>}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[12px] text-muted">A platform fee of 10% applies to bookings made through the Physionexs app — the rest is settled to your account.</p>
+          <p className="mt-2 text-[12px] text-muted">
+            {plan === 'commission'
+              ? 'No monthly or yearly fee. Physionexs keeps 3% of each booking patients pay through the app; the rest is settled to your account.'
+              : `${chosen.label} subscription with a 14-day free trial. No transaction fee on bookings patients pay through the app.`}
+          </p>
         </div>
-        {!google && (
-          <Field label="Password" hint="At least 8 characters.">
-            <Input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" minLength={8} required />
-          </Field>
-        )}
-        <Button type="submit" loading={busy} className="w-full">Start free trial</Button>
+        <Field label="Password" required hint="At least 8 characters.">
+          <Input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" minLength={8} required />
+        </Field>
+        <Button type="submit" loading={busy} className="w-full">{plan === 'commission' ? 'Create clinic account' : 'Start free trial'}</Button>
       </form>
       <p className="text-center text-[13px] text-muted">
         Already registered? <button type="button" onClick={onSignIn} className="font-semibold text-ink underline">Sign in</button>

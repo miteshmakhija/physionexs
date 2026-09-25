@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { homePathFor } from '@/auth/AuthProvider'
 import { Alert, Button, Card, Field, FullPageSpinner, Input, Logo } from '@/components/ui'
 import { api, ApiError, applyTokens, type TokenOut } from '@/lib/api'
-import { googleRedirectUri, saveGoogleSignup, takeGoogleState, type Intent } from '@/lib/google'
+import { googleRedirectUri, takeGoogleState, type Intent } from '@/lib/google'
 
 /** Google redirects here with ?code&state. We finish sign-in with the API. */
 export default function GoogleCallback() {
@@ -31,11 +31,8 @@ export default function GoogleCallback() {
     api<TokenOut>('/auth/google', { method: 'POST', json: { code: params.get('code'), redirect_uri: googleRedirectUri(), intent: saved.intent } })
       .then((t) => finish(t, saved.next))
       .catch((e: unknown) => {
-        const detail = e instanceof ApiError ? (e.detail as { code?: string; signup_token?: string; email?: string; full_name?: string; pending_token?: string }) : null
-        if (detail?.code === 'physio_signup_required') {
-          saveGoogleSignup({ signup_token: detail.signup_token!, email: detail.email!, full_name: detail.full_name! })
-          navigate('/signin?as=physio&mode=register', { replace: true })
-        } else if (detail?.code === 'totp_required') {
+        const detail = e instanceof ApiError ? (e.detail as { code?: string; pending_token?: string }) : null
+        if (detail?.code === 'totp_required') {
           setPending({ token: detail.pending_token!, next: saved.next })
         } else {
           setError(e instanceof Error ? e.message : 'Google sign-in failed.')

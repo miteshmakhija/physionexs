@@ -92,11 +92,12 @@ def test_dashboard_and_analytics(env):
     d = c.get("/admin/dashboard", headers=a).json()
     assert d["bookings"] >= 1 and d["patients"] >= 1 and d["physios"] >= 3 and d["reviews"] >= 1
     rev = d["revenue"]
-    assert rev["commission_paise"] >= 8_000 and rev["gmv_paise"] >= 80_000 and rev["payout_paise"] >= 72_000 and rev["avg_fee_pct"] == 10.0
+    # Sunrise is on "pay per booking" (3%): ₹800 booking → ₹24 fee, ₹776 to the clinic.
+    assert rev["commission_paise"] >= 2_400 and rev["gmv_paise"] >= 80_000 and rev["payout_paise"] >= 77_600 and rev["avg_fee_pct"] == 3.0
     assert any(s["label"] == "Knee" for s in d["by_speciality"])
     assert any(x["entity"] == "review" for x in d["activity"])
     an = c.get("/admin/analytics", headers=a, params={"months": 6}).json()
-    assert len(an["months"]) == 6 and an["months"][-1]["bookings"] >= 1 and an["plan_monthly"] >= 3
+    assert len(an["months"]) == 6 and an["months"][-1]["bookings"] >= 1 and an["plan_monthly"] >= 2 and an["plan_commission"] >= 1
     assert c.get("/admin/dashboard", headers=env["doc"]).status_code == 403
 
 
@@ -104,10 +105,10 @@ def test_subscriptions_management(env):
     c, a = env["c"], env["admin"]
     page = c.get("/admin/subscriptions", headers=a).json()
     row = next(r for r in page["rows"] if r["clinic_name"].startswith("Sunrise"))
-    assert page["kpis"]["active"] >= 3 and page["kpis"]["mrr_paise"] >= 150_000
-    body = {"plan": "monthly", "price_paise": 40_000, "status": "active", "platform_fee_bps": 1500}
+    assert page["kpis"]["active"] >= 3 and page["kpis"]["mrr_paise"] >= 100_000
+    body = {"plan": "monthly", "price_paise": 40_000, "status": "active", "platform_fee_bps": 500}
     upd = c.put(f"/admin/subscriptions/{row['clinic_id']}", headers=a, json=body)
-    assert upd.status_code == 200 and upd.json()["price_paise"] == 40_000 and upd.json()["platform_fee_bps"] == 1500
+    assert upd.status_code == 200 and upd.json()["price_paise"] == 40_000 and upd.json()["platform_fee_bps"] == 500
     assert c.put(f"/admin/subscriptions/{row['clinic_id']}", headers=a, json={**body, "platform_fee_bps": 1234}).status_code == 422
     assert c.get("/clinic/subscription", headers=env["doc"]).json()["price_paise"] == 40_000
 
