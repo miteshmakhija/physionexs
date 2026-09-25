@@ -352,6 +352,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/appointments/{appointment_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review
+         * @description Rate a completed visit (once). Updates the physio's public rating.
+         */
+        post: operations["review_me_appointments__appointment_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/points": {
         parameters: {
             query?: never;
@@ -487,6 +507,176 @@ export interface paths {
         put?: never;
         /** Reject */
         post: operations["reject_admin_verifications__user_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard */
+        get: operations["dashboard_admin_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Analytics */
+        get: operations["analytics_admin_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subscriptions */
+        get: operations["subscriptions_admin_subscriptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/subscriptions/{clinic_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Subscription */
+        put: operations["update_subscription_admin_subscriptions__clinic_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit Log */
+        get: operations["audit_log_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Settings */
+        get: operations["list_settings_admin_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/settings/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Setting */
+        put: operations["update_setting_admin_settings__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Collections */
+        get: operations["collections_admin_records_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/records/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Records */
+        get: operations["records_admin_records__key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/records/{key}/{record_id}/action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Action */
+        post: operations["record_action_admin_records__key___record_id__action_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1531,6 +1721,63 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActivityItem */
+        ActivityItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Action */
+            action: string;
+            /** Entity */
+            entity: string;
+            /** Summary */
+            summary: string | null;
+            /** Actor */
+            actor: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminAnalytics */
+        AdminAnalytics: {
+            /** Months */
+            months: components["schemas"]["MonthPoint"][];
+            /** By Speciality */
+            by_speciality: components["schemas"]["CategoryShare"][];
+            /** Plan Monthly */
+            plan_monthly: number;
+            /** Plan Yearly */
+            plan_yearly: number;
+            /** Avg Fee Pct */
+            avg_fee_pct: number | null;
+            revenue: components["schemas"]["RevenueSplit"];
+        };
+        /** AdminDashboard */
+        AdminDashboard: {
+            /** Pending Verifications */
+            pending_verifications: number;
+            /** Patients */
+            patients: number;
+            /** Patients This Month */
+            patients_this_month: number;
+            /** Physios */
+            physios: number;
+            /** Bookings */
+            bookings: number;
+            /** Reviews */
+            reviews: number;
+            /** Rating Avg */
+            rating_avg: number | null;
+            revenue: components["schemas"]["RevenueSplit"];
+            /** By Speciality */
+            by_speciality: components["schemas"]["CategoryShare"][];
+            /** Activity */
+            activity: components["schemas"]["ActivityItem"][];
+        };
         /** AnalyticsOut */
         AnalyticsOut: {
             /** Days */
@@ -1601,6 +1848,7 @@ export interface components {
             paid: boolean;
             /** Hold Expires At */
             hold_expires_at: string | null;
+            review?: components["schemas"]["VisitReview"] | null;
         };
         /**
          * AppointmentStatus
@@ -1667,6 +1915,40 @@ export interface components {
             note: string;
             /** Adherence */
             adherence: number;
+        };
+        /** AuditPage */
+        AuditPage: {
+            /** Rows */
+            rows: components["schemas"]["AuditRow"][];
+            /** Total */
+            total: number;
+        };
+        /** AuditRow */
+        AuditRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Action */
+            action: string;
+            /** Entity */
+            entity: string;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Summary */
+            summary: string | null;
+            /** Actor */
+            actor: string | null;
+            /** Clinic */
+            clinic: string | null;
+            /** Ip */
+            ip: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** AvailabilityIn */
         AvailabilityIn: {
@@ -1935,6 +2217,15 @@ export interface components {
          * @enum {string}
          */
         CarePlanStatus: "active" | "completed" | "cancelled";
+        /** CategoryShare */
+        CategoryShare: {
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+            /** Pct */
+            pct: number;
+        };
         /** CheckoutIn */
         CheckoutIn: {
             plan?: components["schemas"]["SubscriptionPlan"] | null;
@@ -2039,6 +2330,17 @@ export interface components {
             slug: string;
             /** Platform Fee Bps */
             platform_fee_bps: number;
+        };
+        /** Collection */
+        Collection: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+            /** Actions */
+            actions: string[];
         };
         /**
          * ConsultMode
@@ -2663,6 +2965,24 @@ export interface components {
          * @enum {string}
          */
         MembershipRole: "owner" | "physio" | "staff";
+        /** MonthPoint */
+        MonthPoint: {
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Patients */
+            patients: number;
+            /** Physios */
+            physios: number;
+            /** Bookings */
+            bookings: number;
+            /** Commission Paise */
+            commission_paise: number;
+            /** Pms Paise */
+            pms_paise: number;
+        };
         /** MyTokenOut */
         MyTokenOut: {
             /** Label */
@@ -3247,6 +3567,30 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** RecordAction */
+        RecordAction: {
+            /** Action */
+            action: string;
+            /** Value */
+            value?: unknown;
+        };
+        /** RecordsPage */
+        RecordsPage: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Columns */
+            columns: string[];
+            /** Rows */
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** Total */
+            total: number;
+            /** Actions */
+            actions: string[];
+        };
         /** RefreshIn */
         RefreshIn: {
             /** Refresh Token */
@@ -3257,10 +3601,32 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** RevenueSplit */
+        RevenueSplit: {
+            /** Commission Paise */
+            commission_paise: number;
+            /** Pms Paise */
+            pms_paise: number;
+            /** Gmv Paise */
+            gmv_paise: number;
+            /** Payout Paise */
+            payout_paise: number;
+            /** Avg Fee Pct */
+            avg_fee_pct: number | null;
+        };
         /** ReviewDecisionIn */
         ReviewDecisionIn: {
             /** Note */
             note?: string | null;
+        };
+        /** ReviewIn */
+        ReviewIn: {
+            /** Rating */
+            rating: number;
+            /** Tags */
+            tags?: string[];
+            /** Comment */
+            comment?: string | null;
         };
         /** ReviewOut */
         ReviewOut: {
@@ -3308,6 +3674,19 @@ export interface components {
             day: string;
             /** Value */
             value: number;
+        };
+        /** SettingOut */
+        SettingOut: {
+            /** Key */
+            key: string;
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+            /** Updated At */
+            updated_at: string | null;
+            /** Updated By */
+            updated_by: string | null;
         };
         /**
          * Sex
@@ -3424,6 +3803,21 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** SubscriptionKpis */
+        SubscriptionKpis: {
+            /** Mrr Paise */
+            mrr_paise: number;
+            /** Arr Paise */
+            arr_paise: number;
+            /** Active */
+            active: number;
+            /** Trial */
+            trial: number;
+            /** Overdue */
+            overdue: number;
+            /** Cancelled */
+            cancelled: number;
+        };
         /** SubscriptionOut */
         SubscriptionOut: {
             plan: components["schemas"]["SubscriptionPlan"];
@@ -3439,16 +3833,57 @@ export interface components {
             /** Due Soon */
             due_soon: boolean;
         };
+        /** SubscriptionPage */
+        SubscriptionPage: {
+            kpis: components["schemas"]["SubscriptionKpis"];
+            /** Rows */
+            rows: components["schemas"]["SubscriptionRow"][];
+        };
         /**
          * SubscriptionPlan
          * @enum {string}
          */
         SubscriptionPlan: "monthly" | "yearly";
+        /** SubscriptionRow */
+        SubscriptionRow: {
+            /**
+             * Clinic Id
+             * Format: uuid
+             */
+            clinic_id: string;
+            /** Clinic Name */
+            clinic_name: string;
+            /** Owner Name */
+            owner_name: string;
+            /** Owner Email */
+            owner_email: string | null;
+            plan: components["schemas"]["SubscriptionPlan"];
+            /** Price Paise */
+            price_paise: number;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Current Period End */
+            current_period_end: string | null;
+            /** Trial Ends At */
+            trial_ends_at: string | null;
+            /** Platform Fee Bps */
+            platform_fee_bps: number;
+        };
         /**
          * SubscriptionStatus
          * @enum {string}
          */
         SubscriptionStatus: "trial" | "active" | "overdue" | "cancelled";
+        /** SubscriptionUpdate */
+        SubscriptionUpdate: {
+            plan: components["schemas"]["SubscriptionPlan"];
+            /** Price Paise */
+            price_paise: number;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Current Period End */
+            current_period_end?: string | null;
+            /** Platform Fee Bps */
+            platform_fee_bps: number;
+        };
         /** SupportOut */
         SupportOut: {
             /** Email */
@@ -3670,6 +4105,15 @@ export interface components {
             razorpay_payment_id: string;
             /** Razorpay Signature */
             razorpay_signature: string;
+        };
+        /** VisitReview */
+        VisitReview: {
+            /** Rating */
+            rating: number;
+            /** Tags */
+            tags: string[];
+            /** Comment */
+            comment: string | null;
         };
         /** WalkInIn */
         WalkInIn: {
@@ -4315,6 +4759,41 @@ export interface operations {
             };
         };
     };
+    review_me_appointments__appointment_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     my_points_me_points_get: {
         parameters: {
             query?: never;
@@ -4623,6 +5102,308 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerificationItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dashboard_admin_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboard"];
+                };
+            };
+        };
+    };
+    analytics_admin_analytics_get: {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAnalytics"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subscriptions_admin_subscriptions_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SubscriptionStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subscription_admin_subscriptions__clinic_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionRow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_log_admin_audit_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                entity?: string | null;
+                action?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_settings_admin_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingOut"][];
+                };
+            };
+        };
+    };
+    update_setting_admin_settings__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    collections_admin_records_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"][];
+                };
+            };
+        };
+    };
+    records_admin_records__key__get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordsPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_action_admin_records__key___record_id__action_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

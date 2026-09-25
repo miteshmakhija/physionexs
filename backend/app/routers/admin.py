@@ -4,20 +4,20 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.deps import DB, require_roles
+from app.core.deps import DB, AdminUser
 from app.models.clinic import Branch, Clinic, PhysioProfile, VerificationStatus
 from app.models.engagement import Notification
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.booking import RejectIn, VerificationItem
 from app.services import audit
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-Admin = Annotated[User, Depends(require_roles(UserRole.SUPER_ADMIN))]
+Admin = AdminUser
 
 
 @router.get("/verifications", response_model=list[VerificationItem])

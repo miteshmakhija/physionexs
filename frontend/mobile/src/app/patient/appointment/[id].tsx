@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Alert, ScrollView, View } from 'react-native'
 
+import { RateVisit } from '@/components/RateVisit'
 import { Avatar, Button, Card, Divider, ErrorText, Loading, Row, Text } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { MODE_LABEL, rupees, STATUS_LABEL, when } from '@shared/format'
@@ -47,6 +48,7 @@ export default function AppointmentDetail() {
         <Row label="Where" value={a.mode === 'online' ? 'Video link shared before the session' : `${a.clinic_name}, ${[a.branch.area, a.branch.city].filter(Boolean).join(', ')}`} />
         <Row label={a.paid ? 'Paid' : 'Fee'} value={a.paid ? rupees(a.amount_paid_paise) + (a.points_redeemed ? ` + ${a.points_redeemed} pts` : '') : rupees(a.fee_paise)} />
       </Card>
+      {a.status === 'completed' && <RateVisit appointment={a} />}
       {cancel.error && <ErrorText>{(cancel.error as Error).message}</ErrorText>}
       <Button title="Back to home" onPress={() => router.dismissTo('/patient')} />
       {(a.status === 'confirmed' || a.status === 'pending') && (

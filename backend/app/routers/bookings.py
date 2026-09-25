@@ -22,9 +22,12 @@ from app.schemas.booking import (
     PhysioBrief,
     PointsOut,
     RazorpayCheckout,
+    ReviewIn,
     VerifyPaymentIn,
 )
-from app.services import booking, razorpay
+from app.models.engagement import Review
+from app.services import audit, booking, razorpay
+from app.services.reviews import REVIEW_TAGS, recompute_rating
 from app.services.settings import paise_per_point
 
 router = APIRouter(tags=["bookings"])
@@ -132,6 +135,24 @@ def cancel(appointment_id: uuid.UUID, user: PatientUser, db: DB) -> AppointmentO
     return appointment_out(db, booking.cancel_by_patient(db, appt, user))
 
 
+@router.post("/me/appointments/{appointment_id}/review", response_model=AppointmentOut)
+def review(appointment_id: uuid.UUID, body: ReviewIn, user: PatientUser, db: DB) -> AppointmentOut:
+    """Rate a completed visit (once). Updates the physio's public rating."""
+    patient = _patient(db, user)
+    appt = _own_appointment(db, patient, appointment_id)
+    if appt.status != AppointmentStatus.COMPLETED:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You can rate a visit once it's completed")
+    if db.scalar(select(Review.id).where(Review.appointment_id == appt.id)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "You've already rated this visit")
+    tags = [t for t in body.tags if t in REVIEW_TAGS]
+    db.add(Review(appointment_id=appt.id, physio_user_id=appt.physio_user_id, patient_id=patient.id, rating=body.rating, tags=tags, comment=(body.comment or "").strip() or None))
+    db.flush()
+    recompute_rating(db, appt.physio_user_id)
+    audit.record(db, action="create", entity="review", entity_id=appt.id, actor_user_id=user.id, clinic_id=appt.clinic_id, summary=f"{body.rating}★")
+    db.commit()
+    return appointment_out(db, appt)
+
+
 @router.get("/me/points", response_model=PointsOut)
 def my_points(user: PatientUser, db: DB) -> PointsOut:
     return PointsOut(balance=_patient(db, user).points_balance, paise_per_point=paise_per_point(db))
@@ -159,4 +180,5 @@ def appointment_out(db: Session, appt: Appointment) -> AppointmentOut:
         points_redeemed=payment.points_redeemed if payment else 0,
         paid=paid,
         hold_expires_at=appt.hold_expires_at if appt.status == AppointmentStatus.PENDING else None,
+        review=({"rating": rv.rating, "tags": rv.tags or [], "comment": rv.comment} if (rv := db.scalar(select(Review).where(Review.appointment_id == appt.id))) else None),
     )

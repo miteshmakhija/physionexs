@@ -36,6 +36,7 @@ from app.models import (
     Prescription,
     QueueToken,
     RefreshToken,
+    Review,
     Subscription,
     TestOrder,
     User,
@@ -136,6 +137,8 @@ def purge_users(db: Session, user_ids: list, phones: list[str] = ()) -> None:
     db.execute(delete(Attendance).where(Attendance.member_id.in_(member_ids)))
     db.execute(delete(LeaveRequest).where(LeaveRequest.member_id.in_(member_ids)))
     db.execute(delete(Payslip).where(Payslip.member_id.in_(member_ids)))
+    appt_ids = list(db.scalars(select(Appointment.id).where(appt_filter)))
+    db.execute(delete(Review).where(or_(Review.appointment_id.in_(appt_ids), Review.patient_id.in_(patient_ids), Review.physio_user_id.in_(user_ids))))
     db.execute(delete(Appointment).where(appt_filter))
     db.execute(delete(PointsLedger).where(PointsLedger.patient_id.in_(patient_ids)))
     db.execute(delete(Payment).where(or_(Payment.id.in_(payment_ids), Payment.clinic_id.in_(clinic_ids), Payment.patient_id.in_(patient_ids))))

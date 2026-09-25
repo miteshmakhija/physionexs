@@ -2,10 +2,12 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
 
 import { homePathFor, useAuth } from '@/auth/AuthProvider'
 import { RequireRole } from '@/auth/RequireRole'
-import { ComingSoon } from '@/components/ConsoleLayout'
 import { FullPageSpinner } from '@/components/ui'
 import AdminShell from '@/pages/admin/AdminShell'
 import { AdminExerciseEditor, AdminExerciseList } from '@/pages/admin/Exercises'
+import { AuditLogPage, RecordsPage, SettingsPage } from '@/pages/admin/Manage'
+import { AdminAnalytics, AdminDashboard, AdminSubscriptions } from '@/pages/admin/Platform'
+import Security from '@/pages/Security'
 import Analytics from '@/pages/clinic/Analytics'
 import { BillingList, InvoiceView, NewInvoice } from '@/pages/clinic/Billing'
 import CarePlanForm from '@/pages/clinic/CarePlanForm'
@@ -44,7 +46,6 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
   return children
 }
 
-const soon = (title: string, items: string[], subtitle?: string) => <ComingSoon title={title} subtitle={subtitle} items={items} />
 
 const router = createBrowserRouter([
   { path: '/', element: <Landing /> },
@@ -88,20 +89,23 @@ const router = createBrowserRouter([
       { path: 'profile', element: <ClinicProfile /> },
       { path: 'staff', element: <Staff /> },
       { path: 'leave', element: <MyLeave /> },
+      { path: 'security', element: <Security /> },
     ],
   },
   {
     path: '/admin',
     element: <RequireRole roles={['super_admin']}><AdminShell /></RequireRole>,
     children: [
-      { index: true, element: soon('Platform overview', ['Pending verifications', 'Onboarding & bookings', 'Revenue split — patients & doctors']) },
+      { index: true, element: <AdminDashboard /> },
       { path: 'verification', element: <Verification /> },
-      { path: 'subscriptions', element: soon('PMS subscriptions', ['MRR / ARR', 'Per-clinic price & plan', 'Overdue reminders']) },
+      { path: 'subscriptions', element: <AdminSubscriptions /> },
       { path: 'exercises', element: <AdminExerciseList /> },
       { path: 'exercises/:id', element: <AdminExerciseEditor /> },
-      { path: 'analytics', element: soon('Analytics', ['Growth', 'Bookings by treatment', 'Revenue']) },
-      { path: 'audit', element: soon('Audit log', ['Every create, update and delete across the platform']) },
-      { path: 'settings', element: soon('Platform settings', ['Rewards & points', 'Support contacts', 'Reminders', 'Pricing & platform fee']) },
+      { path: 'analytics', element: <AdminAnalytics /> },
+      { path: 'records', element: <RecordsPage /> },
+      { path: 'security', element: <Security /> },
+      { path: 'audit', element: <AuditLogPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

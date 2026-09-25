@@ -42,6 +42,7 @@ from app.schemas.auth import (
     TotpSetupOut,
 )
 from app.services import audit, msg91
+from app.services.settings import get_setting
 from app.services.auth import REFRESH_COOKIE, build_me, clear_refresh_cookie, issue_tokens, unique_slug
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -155,7 +156,9 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
             qualification=body.qualification,
         )
     )
-    clinic = Clinic(name=body.clinic_name, slug=unique_slug(db, body.clinic_name), owner_user_id=user.id, phone=body.phone)
+    fee = get_setting(db, "platform_fee")
+    pricing = get_setting(db, "pms_pricing")
+    clinic = Clinic(name=body.clinic_name, slug=unique_slug(db, body.clinic_name), owner_user_id=user.id, phone=body.phone, platform_fee_bps=int(fee.get("default_bps", 1000)))
     db.add(clinic)
     db.flush()
     branch = Branch(clinic_id=clinic.id, name=body.clinic_name, city=body.city, lead_user_id=user.id)
@@ -163,14 +166,15 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
     db.flush()
     db.add(ClinicMember(clinic_id=clinic.id, user_id=user.id, branch_id=branch.id, role=MembershipRole.OWNER, job_title="Physiotherapist"))
     now = datetime.now(UTC)
+    trial = timedelta(days=int(pricing.get("trial_days", TRIAL_DAYS)))
     db.add(
         Subscription(
             clinic_id=clinic.id,
             plan=body.plan,
-            price_paise=50_000 if body.plan == SubscriptionPlan.MONTHLY else 500_000,
+            price_paise=int(pricing["monthly_paise"] if body.plan == SubscriptionPlan.MONTHLY else pricing["yearly_paise"]),
             status=SubscriptionStatus.TRIAL,
-            trial_ends_at=now + timedelta(days=TRIAL_DAYS),
-            current_period_end=now + timedelta(days=TRIAL_DAYS),
+            trial_ends_at=now + trial,
+            current_period_end=now + trial,
         )
     )
     audit.record(db, action="register", entity="user", entity_id=user.id, actor_user_id=user.id, clinic_id=clinic.id, summary=f"Physio signed up · {body.clinic_name}", request=request)

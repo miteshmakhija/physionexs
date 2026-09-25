@@ -144,6 +144,22 @@ class AppointmentOut(BaseModel):
     points_redeemed: int
     paid: bool
     hold_expires_at: datetime | None
+    review: "VisitReview | None" = None  # set once the patient has rated the visit
+
+
+class VisitReview(BaseModel):
+    rating: int
+    tags: list[str]
+    comment: str | None
+
+
+AppointmentOut.model_rebuild()
+
+
+class ReviewIn(BaseModel):
+    rating: Annotated[int, Field(ge=1, le=5)]
+    tags: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=6)
+    comment: Annotated[str, Field(max_length=1000)] | None = None
 
 
 class PointsOut(BaseModel):

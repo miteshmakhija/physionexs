@@ -15,10 +15,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.deps import DB, CurrentUser, require_clinic_member, require_roles
+from app.core.deps import DB, AdminUser, CurrentUser, require_clinic_member
 from app.models.clinic import ClinicMember, MembershipRole
 from app.models.exercise import Exercise, ExerciseMedia, ExerciseSource, ExerciseStatus, ExerciseVisibility
-from app.models.user import User, UserRole
 from app.schemas.clinical import ExerciseIn, ExerciseOut, ExercisePage, ReviewDecisionIn
 from app.services import audit
 
@@ -26,7 +25,7 @@ router = APIRouter(tags=["exercises"])
 
 Member = Annotated[ClinicMember, Depends(require_clinic_member())]
 Clinician = Annotated[ClinicMember, Depends(require_clinic_member(MembershipRole.OWNER, MembershipRole.PHYSIO))]
-Admin = Annotated[User, Depends(require_roles(UserRole.SUPER_ADMIN))]
+Admin = AdminUser
 
 FIELDS = set(ExerciseIn.model_fields)
 

@@ -106,4 +106,7 @@ The Hobby plan runs cron jobs at most once a day — the hourly job needs Vercel
 - Secrets live only in `.env` files (git-ignored) and Vercel environment variables. Never commit them.
 - Physios who register a clinic and Super Admins sign in with a password plus an authenticator app (TOTP). Patients, and team members added by a clinic owner (staff or physiotherapists), sign in with a phone OTP.
 - Every clinic-scoped endpoint must use `require_clinic_member()` (`backend/app/core/deps.py`) so clinics can never see each other's data.
-- Sensitive actions are written to `audit_logs`.
+- Sensitive actions are written to `audit_logs` (Super Admin → Audit log).
+- In production, Super Admin pages refuse access until two-factor authentication is on (Super Admin → Security). Physios can turn it on from the practice console's Security page.
+- The Super Admin records browser only offers audited, reversible actions (deactivate/activate users and clinics, change a clinic's fee, hide/restore reviews). Financial and clinical records are never edited or deleted from the UI.
+- Platform settings (rewards, support contacts, PMS pricing, platform fee) are edited in Super Admin → Settings and validated server-side; new clinics pick up the current pricing, fee and trial length at sign-up.

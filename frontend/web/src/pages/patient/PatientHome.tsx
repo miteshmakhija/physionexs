@@ -20,6 +20,8 @@ export default function PatientHome() {
     queryFn: () => api<Schemas['AppointmentOut'][]>('/me/appointments', { query: { scope: 'upcoming' } }),
   })
   const points = useQuery({ queryKey: ['points'], queryFn: () => api<Schemas['PointsOut']>('/me/points') })
+  const past = useQuery({ queryKey: ['my-appointments', 'past'], queryFn: () => api<Schemas['AppointmentOut'][]>('/me/appointments', { query: { scope: 'past', limit: 5 } }) })
+  const toRate = past.data?.find((a) => a.status === 'completed' && !a.review)
   const tokens = useQuery({ queryKey: ['my-tokens'], queryFn: () => api<Schemas['MyTokenOut'][]>('/me/tokens'), refetchInterval: 20_000 })
   const balance = points.data?.balance ?? 0
 
@@ -58,6 +60,16 @@ export default function PatientHome() {
             : 'Log your exercises daily to build a streak and earn points off your next booking.'}
         </p>
       </Card>
+
+      {toRate && (
+        <Link to={`/app/appointments/${toRate.id}`} className="flex items-center justify-between gap-4 border border-line p-5 hover:border-ink">
+          <span>
+            <span className="block text-[15px] font-semibold">How was your last visit?</span>
+            <span className="block text-[13.5px] text-muted">Rate {toRate.physio.full_name} & leave a comment</span>
+          </span>
+          <span className="eyebrow !text-ink">Rate now →</span>
+        </Link>
+      )}
 
       <section>
         <div className="mb-3 flex items-baseline justify-between">

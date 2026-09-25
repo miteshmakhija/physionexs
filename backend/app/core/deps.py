@@ -71,3 +71,17 @@ def require_clinic_member(*roles: MembershipRole) -> Callable[..., ClinicMember]
         return member
 
     return dependency
+
+
+def require_admin(user: CurrentUser) -> User:
+    """Super Admin, with two-factor authentication enabled (enforced outside development)."""
+    from app.core.config import get_settings
+
+    if user.role != UserRole.SUPER_ADMIN:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not allowed for your role")
+    if not user.totp_enabled and not get_settings().is_dev:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "totp_setup_required")
+    return user
+
+
+AdminUser = Annotated[User, Depends(require_admin)]

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router'
 
+import { RateVisit } from '@/components/RateVisit'
 import { Alert, Avatar, Button, Spinner } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { MODE_LABEL, rupees, STATUS_LABEL, when } from '@shared/format'
@@ -55,6 +56,7 @@ export default function AppointmentDetail() {
         </dl>
       </div>
 
+      {a.status === 'completed' && <div className="mt-6"><RateVisit appointment={a} /></div>}
       {cancel.error && <div className="mt-4"><Alert>{(cancel.error as Error).message}</Alert></div>}
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import admin, auth, billing, bookings, care, clinic, cron, exercises, health, insights, physios, platform, practice, queue, records, staff, webhooks
+from app.routers import admin, admin_platform, auth, billing, bookings, care, clinic, cron, exercises, health, insights, physios, platform, practice, queue, records, staff, webhooks
 
 settings = get_settings()
 logging.basicConfig(level=logging.INFO if settings.is_dev else logging.WARNING)
@@ -31,6 +31,7 @@ app.include_router(physios.router)
 app.include_router(bookings.router)
 app.include_router(clinic.router)
 app.include_router(admin.router)
+app.include_router(admin_platform.router)
 app.include_router(queue.router)
 app.include_router(records.router)
 app.include_router(exercises.router)
