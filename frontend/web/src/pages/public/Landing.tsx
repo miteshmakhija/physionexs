@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 
+import { SupportFooter } from '@/components/Support'
 import { Logo } from '@/components/ui'
 
 export default function Landing() {
@@ -45,6 +46,7 @@ export default function Landing() {
           <span>physionexs.com</span>
         </div>
       </main>
+      <SupportFooter />
     </div>
   )
 }

@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/support": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Support */
+        get: operations["support_platform_support_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/otp/request": {
         parameters: {
             query?: never;
@@ -2355,6 +2372,17 @@ export interface components {
          * @enum {string}
          */
         SubscriptionPlan: "monthly" | "yearly";
+        /** SupportOut */
+        SupportOut: {
+            /** Email */
+            email: string;
+            /** Phone */
+            phone: string;
+            /** Address */
+            address: string;
+            /** Hours */
+            hours: string;
+        };
         /** TestOrderIn */
         TestOrderIn: {
             /** Name */
@@ -2614,6 +2642,26 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    support_platform_support_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportOut"];
                 };
             };
         };

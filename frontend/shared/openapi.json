@@ -28,6 +28,27 @@
         }
       }
     },
+    "/platform/support": {
+      "get": {
+        "tags": [
+          "platform"
+        ],
+        "summary": "Support",
+        "operationId": "support_platform_support_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/otp/request": {
       "post": {
         "tags": [
@@ -8038,6 +8059,34 @@
           "yearly"
         ],
         "title": "SubscriptionPlan"
+      },
+      "SupportOut": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "hours": {
+            "type": "string",
+            "title": "Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "phone",
+          "address",
+          "hours"
+        ],
+        "title": "SupportOut"
       },
       "TestOrderIn": {
         "properties": {

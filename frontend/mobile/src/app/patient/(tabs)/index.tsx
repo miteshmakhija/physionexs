@@ -3,6 +3,7 @@ import { Link, router } from 'expo-router'
 import { Pressable, View } from 'react-native'
 
 import { useSession } from '@/auth/session'
+import { SupportCard } from '@/components/Support'
 import { Avatar, Button, Card, Divider, Screen, Text } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { MODE_LABEL, rupees, when } from '@shared/format'
@@ -93,6 +94,8 @@ export default function PatientHome() {
         <Text variant="heading">Visiting a clinic directly?</Text>
         <Text>Complete registration at the reception desk to receive your live token number.</Text>
       </Card>
+
+      <SupportCard />
     </Screen>
   )
 }

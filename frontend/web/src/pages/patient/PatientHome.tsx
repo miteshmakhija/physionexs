@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
+import { SupportCard } from '@/components/Support'
 import { Avatar, Card } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { MODE_LABEL, rupees, when } from '@shared/format'
@@ -107,6 +108,7 @@ export default function PatientHome() {
           Complete registration at the reception desk to receive your live token number.
         </p>
       </Card>
+      <SupportCard />
     </div>
   )
 }
