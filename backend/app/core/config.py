@@ -1,0 +1,69 @@
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_name: str = "Physionexs API"
+    environment: Literal["development", "test", "production"] = "development"
+
+    # Neon pooled connection string (postgresql://...). Converted to the psycopg driver internally.
+    database_url: str
+    # Optional direct (non-pooled) URL for migrations. Falls back to database_url.
+    database_url_direct: str | None = None
+
+    jwt_secret: str = Field(min_length=32)
+    jwt_algorithm: str = "HS256"
+    access_token_minutes: int = 15
+    refresh_token_days: int = 30
+
+    cors_origins: list[str] = [
+        "https://physionexs.com",
+        "https://www.physionexs.com",
+        "http://localhost:5173",
+    ]
+    # Cookie domain for the web refresh token (".physionexs.com" in production, None locally).
+    cookie_domain: str | None = None
+
+    # MSG91 — OTP over SMS
+    msg91_auth_key: str | None = None
+    msg91_otp_template_id: str | None = None
+    otp_length: int = 6
+    otp_ttl_seconds: int = 300
+    otp_max_attempts: int = 5
+
+    # Razorpay
+    razorpay_key_id: str | None = None
+    razorpay_key_secret: str | None = None
+    razorpay_webhook_secret: str | None = None
+
+    # Vercel Cron authenticates with "Authorization: Bearer <CRON_SECRET>".
+    cron_secret: str | None = None
+
+    @property
+    def is_dev(self) -> bool:
+        return self.environment != "production"
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        return _to_psycopg(self.database_url)
+
+    @property
+    def sqlalchemy_url_direct(self) -> str:
+        return _to_psycopg(self.database_url_direct or self.database_url)
+
+
+def _to_psycopg(url: str) -> str:
+    for prefix in ("postgresql+psycopg://", "postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]
