@@ -22,6 +22,7 @@ from app.models.scheduling import (
 )
 from app.models.user import User
 from app.services import audit, razorpay
+from app.services.billing import invoice_for_paid_booking, void_booking_invoice
 from app.services.settings import paise_per_point
 from app.services.slots import find_slot
 
@@ -174,6 +175,8 @@ def finalize_payment(db: Session, payment: Payment, *, razorpay_payment_id: str 
     link = db.scalar(select(ClinicPatient).where(ClinicPatient.clinic_id == appt.clinic_id, ClinicPatient.patient_id == appt.patient_id))
     if link is None:
         db.add(ClinicPatient(clinic_id=appt.clinic_id, patient_id=appt.patient_id, primary_physio_id=appt.physio_user_id))
+        db.flush()
+    invoice_for_paid_booking(db, appt, payment)
 
     when = appt.starts_at.strftime("%d %b, %H:%M UTC")
     if patient and patient.user_id:
@@ -200,6 +203,7 @@ def cancel_by_patient(db: Session, appt: Appointment, user: User) -> Appointment
         if payment.amount_paise > 0:
             # Refunds are issued by ops from the Razorpay dashboard for now; flagged here.
             payment.meta = {**payment.meta, "refund_required": True, "refund_reason": "cancelled by patient"}
+        void_booking_invoice(db, appt.id, "cancelled by patient")
     audit.record(db, action="cancel", entity="appointment", entity_id=appt.id, actor_user_id=user.id, clinic_id=appt.clinic_id, summary="Cancelled by patient")
     db.commit()
     return appt

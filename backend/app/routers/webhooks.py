@@ -37,6 +37,11 @@ async def razorpay_webhook(
     if kind in ("payment.captured", "order.paid") and payment.purpose == PaymentPurpose.APPOINTMENT:
         booking.finalize_payment(db, payment, razorpay_payment_id=entity.get("id"), method=entity.get("method"))
         db.commit()
+    elif kind in ("payment.captured", "order.paid") and payment.purpose == PaymentPurpose.SUBSCRIPTION:
+        from app.routers.practice import apply_subscription_payment
+
+        apply_subscription_payment(db, payment, entity.get("id"), entity.get("method"))
+        db.commit()
     elif kind == "payment.failed" and payment.status == PaymentStatus.CREATED:
         payment.meta = {**payment.meta, "last_failure": entity.get("error_description")}
         db.commit()

@@ -14,7 +14,7 @@ type Token = Schemas['QueueTokenOut']
 export default function QueuePage() {
   const { clinicId } = useClinic()
   const qc = useQueryClient()
-  const branches = useQuery({ queryKey: ['branches'], queryFn: () => api<Schemas['BranchBrief'][]>('/clinic/branches', { clinicId }) })
+  const branches = useQuery({ queryKey: ['branches'], queryFn: () => api<Schemas['BranchOut'][]>('/clinic/branches', { clinicId }) })
   const [picked, setPicked] = useState('')
   const branchId = picked || branches.data?.[0]?.id || ''
 

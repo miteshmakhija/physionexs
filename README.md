@@ -84,6 +84,17 @@ Run migrations from your machine or CI before deploying backend changes; they ar
 
 The API project pins its functions to Vercel's Singapore region (`sin1`, in `backend/vercel.json`) to sit next to the Neon database in ap-southeast-1 — keep them in the same region or every query pays a cross-region round trip.
 
+### Scheduled jobs (Vercel Cron)
+
+`backend/vercel.json` schedules two jobs; set `CRON_SECRET` in the API project and Vercel sends it automatically:
+
+| Job | Schedule | Does |
+|---|---|---|
+| `/cron/hourly` | every hour at :05 | expires unpaid booking holds; 24 h and 2 h appointment reminders |
+| `/cron/daily` | 09:00 IST | marks lapsed PMS subscriptions overdue; reminders 3 days before due |
+
+The Hobby plan runs cron jobs at most once a day — the hourly job needs Vercel Pro.
+
 ### Razorpay
 
 1. Put `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` in the API project's environment variables (test keys first).
@@ -93,6 +104,6 @@ The API project pins its functions to Vercel's Singapore region (`sin1`, in `bac
 ## Security notes
 
 - Secrets live only in `.env` files (git-ignored) and Vercel environment variables. Never commit them.
-- Physios and Super Admins sign in with a password plus an authenticator app (TOTP). Patients and staff use phone OTP.
+- Physios who register a clinic and Super Admins sign in with a password plus an authenticator app (TOTP). Patients, and team members added by a clinic owner (staff or physiotherapists), sign in with a phone OTP.
 - Every clinic-scoped endpoint must use `require_clinic_member()` (`backend/app/core/deps.py`) so clinics can never see each other's data.
 - Sensitive actions are written to `audit_logs`.

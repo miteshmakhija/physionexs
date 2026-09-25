@@ -64,7 +64,11 @@ class Invoice(UUIDPk, Timestamps, Base):
     tax_paise: Mapped[int] = mapped_column(Integer, default=0)  # healthcare services are GST-exempt by default
     total_paise: Mapped[int] = mapped_column(Integer, default=0)
     payment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payments.id"))
+    # Set for invoices generated from a paid app booking (one invoice per appointment).
+    appointment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("appointments.id"), unique=True)
     paid_via: Mapped[str | None] = mapped_column(String(30))
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     notes: Mapped[str | None] = mapped_column(Text)
 
 

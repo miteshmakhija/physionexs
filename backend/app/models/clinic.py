@@ -28,7 +28,8 @@ class Clinic(UUIDPk, Timestamps, Base):
     name: Mapped[str] = mapped_column(String(160))
     slug: Mapped[str] = mapped_column(String(160), unique=True)
     owner_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
-    logo_url: Mapped[str | None] = mapped_column(String(500))
+    # A small image as a data: URI (≤ ~300 KB) or an https URL.
+    logo_url: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(String(20))
     email: Mapped[str | None] = mapped_column(String(254))
     address: Mapped[str | None] = mapped_column(Text)

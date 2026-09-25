@@ -6,7 +6,11 @@ import { ComingSoon } from '@/components/ConsoleLayout'
 import { FullPageSpinner } from '@/components/ui'
 import AdminShell from '@/pages/admin/AdminShell'
 import { AdminExerciseEditor, AdminExerciseList } from '@/pages/admin/Exercises'
+import Analytics from '@/pages/clinic/Analytics'
+import { BillingList, InvoiceView, NewInvoice } from '@/pages/clinic/Billing'
 import CarePlanForm from '@/pages/clinic/CarePlanForm'
+import ClinicProfile from '@/pages/clinic/ClinicProfile'
+import Dashboard from '@/pages/clinic/Dashboard'
 import Consultation from '@/pages/clinic/Consultation'
 import PatientFile from '@/pages/clinic/PatientFile'
 import Patients from '@/pages/clinic/Patients'
@@ -14,8 +18,10 @@ import PrescribeExercises from '@/pages/clinic/PrescribeExercises'
 import PrescribeMedicines from '@/pages/clinic/PrescribeMedicines'
 import PrescriptionView from '@/pages/clinic/PrescriptionView'
 import QueuePage from '@/pages/clinic/Queue'
+import Staff, { MyLeave } from '@/pages/clinic/Staff'
 import CarePlan from '@/pages/patient/CarePlan'
 import Exercises from '@/pages/patient/Exercises'
+import { MyInvoice, MyInvoices } from '@/pages/patient/Invoices'
 import PrescriptionPage from '@/pages/patient/PrescriptionPage'
 import Progress from '@/pages/patient/Progress'
 import Verification from '@/pages/admin/Verification'
@@ -54,6 +60,8 @@ const router = createBrowserRouter([
       { path: 'appointments/:id', element: <AppointmentDetail /> },
       { path: 'plan', element: <CarePlan /> },
       { path: 'prescriptions/:id', element: <PrescriptionPage /> },
+      { path: 'invoices', element: <MyInvoices /> },
+      { path: 'invoices/:id', element: <MyInvoice /> },
       { path: 'exercises', element: <Exercises /> },
       { path: 'progress', element: <Progress /> },
     ],
@@ -62,7 +70,7 @@ const router = createBrowserRouter([
     path: '/clinic',
     element: <RequireRole roles={['physio', 'staff']}><ClinicShell /></RequireRole>,
     children: [
-      { index: true, element: soon('Dashboard', ['Appointments today, tokens waiting, active patients', 'Branch breakdown', 'Today’s schedule', 'Patients needing attention'], 'Here’s how your clinic is doing today.') },
+      { index: true, element: <Dashboard /> },
       { path: 'queue', element: <QueuePage /> },
       { path: 'schedule', element: <Schedule /> },
       { path: 'hours', element: <ProfileHours /> },
@@ -73,10 +81,13 @@ const router = createBrowserRouter([
       { path: 'patients/:id/exercises', element: <PrescribeExercises /> },
       { path: 'patients/:id/medicines', element: <PrescribeMedicines /> },
       { path: 'prescriptions/:id', element: <PrescriptionView /> },
-      { path: 'billing', element: soon('Billing & invoices', ['Invoices on your letterhead', 'Collections and dues', 'PDF / print']) },
-      { path: 'analytics', element: soon('Analytics', ['Revenue, appointments, adherence, no-shows', 'Conditions treated', 'Online vs in-clinic']) },
-      { path: 'profile', element: soon('Clinic profile', ['Logo & letterhead', 'Contact details & GSTIN', 'Branches', 'PMS subscription']) },
-      { path: 'staff', element: soon('Staff management', ['Payroll', 'Attendance', 'Leave approvals']) },
+      { path: 'billing', element: <BillingList /> },
+      { path: 'billing/new', element: <NewInvoice /> },
+      { path: 'billing/:id', element: <InvoiceView /> },
+      { path: 'analytics', element: <Analytics /> },
+      { path: 'profile', element: <ClinicProfile /> },
+      { path: 'staff', element: <Staff /> },
+      { path: 'leave', element: <MyLeave /> },
     ],
   },
   {

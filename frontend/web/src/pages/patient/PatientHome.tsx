@@ -92,11 +92,12 @@ export default function PatientHome() {
         )}
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { to: '/app/plan', label: 'My care plan' },
           { to: '/app/exercises', label: "Today's exercises" },
           { to: '/app/progress', label: 'My progress' },
+          { to: '/app/invoices', label: 'Payment history' },
         ].map((l) => (
           <Link key={l.to} to={l.to} className="border border-line p-5 text-[14.5px] font-semibold hover:border-ink">{l.label} →</Link>
         ))}

@@ -25,7 +25,7 @@ export default function ClinicShell() {
           : []),
       ],
     },
-    ...(isOwner ? [{ title: 'STAFF MANAGEMENT', items: [{ to: '/clinic/staff', label: 'Staff' }] }] : []),
+    { title: 'STAFF MANAGEMENT', items: [...(isOwner ? [{ to: '/clinic/staff', label: 'Staff' }] : []), { to: '/clinic/leave', label: 'My leave' }] },
   ]
 
   const banner =

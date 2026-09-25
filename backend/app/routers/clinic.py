@@ -18,12 +18,12 @@ from app.schemas.booking import (
     AppointmentStatusIn,
     AvailabilityIn,
     AvailabilityItem,
-    BranchBrief,
     ClinicAppointmentOut,
     PhysioProfileIn,
     PhysioProfileOut,
 )
 from app.services import audit
+from app.services.billing import void_booking_invoice
 
 router = APIRouter(prefix="/clinic", tags=["clinic"])
 
@@ -80,12 +80,6 @@ def update_profile(body: PhysioProfileIn, member: Clinician, user: CurrentUser, 
     audit.record(db, action="update", entity="physio_profile", entity_id=profile.id, actor_user_id=user.id, clinic_id=member.clinic_id, request=request)
     db.commit()
     return _profile_out(profile)
-
-
-@router.get("/branches", response_model=list[BranchBrief])
-def branches(member: Member, db: DB) -> list[BranchBrief]:
-    rows = db.scalars(select(Branch).where(Branch.clinic_id == member.clinic_id, Branch.is_active.is_(True)).order_by(Branch.name))
-    return [BranchBrief(id=b.id, name=b.name, area=b.area, city=b.city, address=b.address) for b in rows]
 
 
 @router.get("/availability", response_model=list[AvailabilityItem])
@@ -171,6 +165,7 @@ def update_appointment(appointment_id: uuid.UUID, body: AppointmentStatusIn, mem
         payment = db.get(Payment, appt.payment_id)
         if payment and payment.status == PaymentStatus.PAID and payment.amount_paise > 0:
             payment.meta = {**payment.meta, "refund_required": True, "refund_reason": "cancelled by clinic"}
+        void_booking_invoice(db, appt.id, "cancelled by clinic")
     audit.record(db, action="update", entity="appointment", entity_id=appt.id, actor_user_id=user.id, clinic_id=member.clinic_id, changes={"status": [previous.value, body.status.value]}, request=request)
     db.commit()
     patient = db.get(Patient, appt.patient_id)

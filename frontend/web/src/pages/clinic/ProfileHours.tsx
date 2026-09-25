@@ -19,7 +19,7 @@ export default function ProfileHours() {
   const { clinicId } = useClinic()
   const profile = useQuery({ queryKey: ['physio-profile'], queryFn: () => api<Profile>('/clinic/physio-profile', { clinicId }) })
   const hours = useQuery({ queryKey: ['availability'], queryFn: () => api<Schemas['AvailabilityItem'][]>('/clinic/availability', { clinicId }) })
-  const branches = useQuery({ queryKey: ['branches'], queryFn: () => api<Schemas['BranchBrief'][]>('/clinic/branches', { clinicId }) })
+  const branches = useQuery({ queryKey: ['branches'], queryFn: () => api<Schemas['BranchOut'][]>('/clinic/branches', { clinicId }) })
 
   if (profile.isLoading || hours.isLoading || branches.isLoading) return <div className="grid place-items-center py-20 text-muted"><Spinner /></div>
   if (profile.isError) return <Alert>{(profile.error as Error).message}</Alert>
@@ -146,7 +146,7 @@ function FeeToggle(props: { label: string; checked: boolean; onToggle: (v: boole
   )
 }
 
-function HoursForm({ initial, branches, clinicId }: { initial: Schemas['AvailabilityItem'][]; branches: Schemas['BranchBrief'][]; clinicId: string }) {
+function HoursForm({ initial, branches, clinicId }: { initial: Schemas['AvailabilityItem'][]; branches: Schemas['BranchOut'][]; clinicId: string }) {
   const qc = useQueryClient()
   const [pickedBranch, setBranchId] = useState(initial[0]?.branch_id ?? '')
   const branchId = pickedBranch || branches[0]?.id || ''

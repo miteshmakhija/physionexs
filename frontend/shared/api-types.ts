@@ -387,23 +387,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/clinic/branches": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Branches */
-        get: operations["branches_clinic_branches_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/clinic/availability": {
         parameters: {
             query?: never;
@@ -1098,6 +1081,432 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Invoices */
+        get: operations["list_invoices_clinic_invoices_get"];
+        put?: never;
+        /** New Invoice */
+        post: operations["new_invoice_clinic_invoices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Invoice */
+        get: operations["get_invoice_clinic_invoices__invoice_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/invoices/{invoice_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay Invoice */
+        post: operations["pay_invoice_clinic_invoices__invoice_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/invoices/{invoice_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void Invoice */
+        post: operations["void_invoice_clinic_invoices__invoice_id__void_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Invoices */
+        get: operations["my_invoices_me_invoices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Invoice */
+        get: operations["my_invoice_me_invoices__invoice_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard */
+        get: operations["dashboard_clinic_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Analytics */
+        get: operations["analytics_clinic_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_clinic_profile_get"];
+        /** Update Profile */
+        put: operations["update_profile_clinic_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Branches */
+        get: operations["branches_clinic_branches_get"];
+        put?: never;
+        /** Add Branch */
+        post: operations["add_branch_clinic_branches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/branches/{branch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Branch */
+        put: operations["update_branch_clinic_branches__branch_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Subscription */
+        get: operations["get_subscription_clinic_subscription_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/subscription/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subscription Checkout
+         * @description Start paying the next period. The price is the clinic's own (set by the Super Admin) unless the plan changes.
+         */
+        post: operations["subscription_checkout_clinic_subscription_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/subscription/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscription Verify */
+        post: operations["subscription_verify_clinic_subscription_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Staff */
+        get: operations["list_staff_clinic_staff_get"];
+        put?: never;
+        /**
+         * Add Staff
+         * @description Add a team member. They sign in with an OTP to their mobile number.
+         */
+        post: operations["add_staff_clinic_staff_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/staff/{member_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Staff */
+        put: operations["update_staff_clinic_staff__member_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attendance */
+        get: operations["attendance_clinic_attendance_get"];
+        /** Mark Attendance */
+        put: operations["mark_attendance_clinic_attendance_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/attendance/check-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check In
+         * @description A team member checks themselves in (from the practice console or the app).
+         */
+        post: operations["check_in_clinic_attendance_check_in_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Leave */
+        get: operations["list_leave_clinic_leave_get"];
+        put?: never;
+        /** Request Leave */
+        post: operations["request_leave_clinic_leave_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/leave/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Leave */
+        get: operations["my_leave_clinic_leave_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/leave/{leave_id}/{decision}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide Leave */
+        post: operations["decide_leave_clinic_leave__leave_id___decision__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/payroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payroll */
+        get: operations["payroll_clinic_payroll_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/payroll/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Payroll
+         * @description Generate (or refresh unpaid) payslips for every salaried active member.
+         */
+        post: operations["run_payroll_clinic_payroll_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/payroll/{payslip_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay Slip */
+        post: operations["pay_slip_clinic_payroll__payslip_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/razorpay": {
         parameters: {
             query?: never;
@@ -1122,6 +1531,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnalyticsOut */
+        AnalyticsOut: {
+            /** Days */
+            days: number;
+            /** Revenue Paise */
+            revenue_paise: number;
+            /** Revenue Prev Paise */
+            revenue_prev_paise: number;
+            /** Appointments */
+            appointments: number;
+            /** Appointments Prev */
+            appointments_prev: number;
+            /** Avg Adherence */
+            avg_adherence: number | null;
+            /** No Show Pct */
+            no_show_pct: number | null;
+            /** Revenue By Day */
+            revenue_by_day: components["schemas"]["SeriesPoint"][];
+            /** Conditions */
+            conditions: components["schemas"]["Share"][];
+            /** Returning Pct */
+            returning_pct: number | null;
+            /** New Patients */
+            new_patients: number;
+            /** Online Pct */
+            online_pct: number | null;
+            /** Rating Avg */
+            rating_avg: number | null;
+            /** Reviews */
+            reviews: number;
+        };
         /**
          * AppointmentKind
          * @enum {string}
@@ -1170,6 +1610,63 @@ export interface components {
         /** AppointmentStatusIn */
         AppointmentStatusIn: {
             status: components["schemas"]["AppointmentStatus"];
+        };
+        /** AttendanceDay */
+        AttendanceDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Present */
+            present: number;
+            /** Half Day */
+            half_day: number;
+            /** On Leave */
+            on_leave: number;
+            /** Absent */
+            absent: number;
+            /** Unmarked */
+            unmarked: number;
+            /** Rows */
+            rows: components["schemas"]["StaffOut"][];
+        };
+        /** AttendanceIn */
+        AttendanceIn: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            status: components["schemas"]["AttendanceStatus"];
+            /** Check In */
+            check_in?: string | null;
+            /** Check Out */
+            check_out?: string | null;
+        };
+        /**
+         * AttendanceStatus
+         * @enum {string}
+         */
+        AttendanceStatus: "present" | "half_day" | "on_leave" | "absent";
+        /** AttentionItem */
+        AttentionItem: {
+            /**
+             * Clinic Patient Id
+             * Format: uuid
+             */
+            clinic_patient_id: string;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string;
+            /** Adherence */
+            adherence: number;
         };
         /** AvailabilityIn */
         AvailabilityIn: {
@@ -1235,6 +1732,21 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
+        /** BillingSummary */
+        BillingSummary: {
+            /** Collected Today Paise */
+            collected_today_paise: number;
+            /** Collected Today Count */
+            collected_today_count: number;
+            /** Outstanding Paise */
+            outstanding_paise: number;
+            /** Outstanding Count */
+            outstanding_count: number;
+            /** Month Paise */
+            month_paise: number;
+            /** Prev Month Paise */
+            prev_month_paise: number;
+        };
         /** BookingIn */
         BookingIn: {
             /**
@@ -1271,6 +1783,97 @@ export interface components {
             city: string;
             /** Address */
             address?: string | null;
+        };
+        /** BranchIn */
+        BranchIn: {
+            /** Name */
+            name: string;
+            /** Area */
+            area?: string | null;
+            /** City */
+            city: string;
+            /** Address */
+            address?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
+            /** Hours */
+            hours?: string | null;
+            /**
+             * Therapy Rooms
+             * @default 1
+             */
+            therapy_rooms: number;
+            /** Lead User Id */
+            lead_user_id?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /** BranchOut */
+        BranchOut: {
+            /** Name */
+            name: string;
+            /** Area */
+            area?: string | null;
+            /** City */
+            city: string;
+            /** Address */
+            address?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
+            /** Hours */
+            hours?: string | null;
+            /**
+             * Therapy Rooms
+             * @default 1
+             */
+            therapy_rooms: number;
+            /** Lead User Id */
+            lead_user_id?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lead Name */
+            lead_name: string | null;
+            /** Staff Count */
+            staff_count: number;
+            /** Timezone */
+            timezone: string;
+        };
+        /** BranchStat */
+        BranchStat: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Area */
+            area: string | null;
+            /** Lead Name */
+            lead_name: string | null;
+            /** Today */
+            today: number;
+            /** Waiting */
+            waiting: number;
+            /** Patients */
+            patients: number;
+            /** Revenue Week Paise */
+            revenue_week_paise: number | null;
         };
         /** CarePlanIn */
         CarePlanIn: {
@@ -1332,6 +1935,10 @@ export interface components {
          * @enum {string}
          */
         CarePlanStatus: "active" | "completed" | "cancelled";
+        /** CheckoutIn */
+        CheckoutIn: {
+            plan?: components["schemas"]["SubscriptionPlan"] | null;
+        };
         /** CheckoutOut */
         CheckoutOut: {
             /**
@@ -1394,6 +2001,45 @@ export interface components {
          * @enum {string}
          */
         ClinicPatientStatus: "active" | "discharged";
+        /** ClinicProfileIn */
+        ClinicProfileIn: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Gstin */
+            gstin?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
+        };
+        /** ClinicProfileOut */
+        ClinicProfileOut: {
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Gstin */
+            gstin?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /** Platform Fee Bps */
+            platform_fee_bps: number;
+        };
         /**
          * ConsultMode
          * @enum {string}
@@ -1463,6 +2109,26 @@ export interface components {
          * @enum {string}
          */
         CoreGrade: "poor" | "fair" | "good" | "strong";
+        /** DashboardOut */
+        DashboardOut: {
+            /** Appointments Today */
+            appointments_today: number;
+            /** Tokens Waiting */
+            tokens_waiting: number;
+            /** Active Patients */
+            active_patients: number;
+            /** Staff On Roll */
+            staff_on_roll: number;
+            /** Revenue Week Paise */
+            revenue_week_paise: number | null;
+            /** Branches */
+            branches: components["schemas"]["BranchStat"][];
+            /** Schedule */
+            schedule: components["schemas"]["ScheduleItem"][];
+            /** Attention */
+            attention: components["schemas"]["AttentionItem"][];
+            subscription: components["schemas"]["SubscriptionOut"] | null;
+        };
         /** DayOut */
         DayOut: {
             /**
@@ -1678,6 +2344,218 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** InvoiceIn */
+        InvoiceIn: {
+            /**
+             * Clinic Patient Id
+             * Format: uuid
+             */
+            clinic_patient_id: string;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Items */
+            items: components["schemas"]["InvoiceLineIn"][];
+            /** Due On */
+            due_on?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Paid Via */
+            paid_via?: ("cash" | "upi" | "card" | "netbanking" | "other") | null;
+        };
+        /** InvoiceLineIn */
+        InvoiceLineIn: {
+            /** Description */
+            description: string;
+            /** Detail */
+            detail?: string | null;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number;
+            /** Rate Paise */
+            rate_paise: number;
+        };
+        /** InvoiceLineOut */
+        InvoiceLineOut: {
+            /** Description */
+            description: string;
+            /** Detail */
+            detail?: string | null;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number;
+            /** Rate Paise */
+            rate_paise: number;
+            /** Amount Paise */
+            amount_paise: number;
+        };
+        /** InvoiceListItem */
+        InvoiceListItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /** Patient Name */
+            patient_name: string;
+            /**
+             * Clinic Patient Id
+             * Format: uuid
+             */
+            clinic_patient_id: string;
+            /** Service */
+            service: string;
+            /**
+             * Issued On
+             * Format: date
+             */
+            issued_on: string;
+            /** Due On */
+            due_on: string | null;
+            /** Total Paise */
+            total_paise: number;
+            status: components["schemas"]["InvoiceStatus"];
+            /** Paid Via */
+            paid_via: string | null;
+            /** Paid At */
+            paid_at: string | null;
+            /** From App */
+            from_app: boolean;
+        };
+        /** InvoiceOut */
+        InvoiceOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /** Patient Name */
+            patient_name: string;
+            /**
+             * Clinic Patient Id
+             * Format: uuid
+             */
+            clinic_patient_id: string;
+            /** Service */
+            service: string;
+            /**
+             * Issued On
+             * Format: date
+             */
+            issued_on: string;
+            /** Due On */
+            due_on: string | null;
+            /** Total Paise */
+            total_paise: number;
+            status: components["schemas"]["InvoiceStatus"];
+            /** Paid Via */
+            paid_via: string | null;
+            /** Paid At */
+            paid_at: string | null;
+            /** From App */
+            from_app: boolean;
+            /** Subtotal Paise */
+            subtotal_paise: number;
+            /** Tax Paise */
+            tax_paise: number;
+            /** Notes */
+            notes: string | null;
+            /** Items */
+            items: components["schemas"]["InvoiceLineOut"][];
+            /** Patient */
+            patient: {
+                [key: string]: unknown;
+            };
+            /** Clinic */
+            clinic: {
+                [key: string]: unknown;
+            };
+        };
+        /** InvoicePage */
+        InvoicePage: {
+            summary: components["schemas"]["BillingSummary"];
+            /** Items */
+            items: components["schemas"]["InvoiceListItem"][];
+        };
+        /**
+         * InvoiceStatus
+         * @enum {string}
+         */
+        InvoiceStatus: "draft" | "due" | "paid" | "void";
+        /** LeaveIn */
+        LeaveIn: {
+            leave_type: components["schemas"]["LeaveType"];
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Half Day
+             * @default false
+             */
+            half_day: boolean;
+        };
+        /** LeaveOut */
+        LeaveOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Name */
+            name: string;
+            leave_type: components["schemas"]["LeaveType"];
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+            /** Days */
+            days: number;
+            /** Reason */
+            reason: string | null;
+            status: components["schemas"]["LeaveStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * LeaveStatus
+         * @enum {string}
+         */
+        LeaveStatus: "pending" | "approved" | "rejected";
+        /**
+         * LeaveType
+         * @enum {string}
+         */
+        LeaveType: "casual" | "sick" | "earned" | "unpaid";
         /** LoginIn */
         LoginIn: {
             /** Identifier */
@@ -1917,6 +2795,64 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** PayIn */
+        PayIn: {
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "cash" | "upi" | "card" | "netbanking" | "other";
+        };
+        /** PayrollOut */
+        PayrollOut: {
+            /**
+             * Period
+             * Format: date
+             */
+            period: string;
+            /** Total Net Paise */
+            total_net_paise: number;
+            /** Pending Net Paise */
+            pending_net_paise: number;
+            /** Pending Count */
+            pending_count: number;
+            /** Rows */
+            rows: components["schemas"]["PayslipOut"][];
+        };
+        /** PayslipOut */
+        PayslipOut: {
+            /** Id */
+            id: string | null;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Name */
+            name: string;
+            /** Employee Code */
+            employee_code: string | null;
+            /** Role */
+            role: string;
+            /** Department */
+            department: string | null;
+            /** Gross Paise */
+            gross_paise: number;
+            /** Deductions Paise */
+            deductions_paise: number;
+            /** Net Paise */
+            net_paise: number;
+            /** Unpaid Days */
+            unpaid_days: number;
+            status: components["schemas"]["PayslipStatus"] | null;
+            /** Paid At */
+            paid_at: string | null;
+        };
+        /**
+         * PayslipStatus
+         * @enum {string}
+         */
+        PayslipStatus: "pending" | "paid";
         /** PhysioBrief */
         PhysioBrief: {
             /**
@@ -2342,11 +3278,51 @@ export interface components {
              */
             created_at: string;
         };
+        /** ScheduleItem */
+        ScheduleItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Patient Name */
+            patient_name: string;
+            /** Reason */
+            reason: string | null;
+            /** Mode */
+            mode: string;
+            /** Status */
+            status: string;
+        };
+        /** SeriesPoint */
+        SeriesPoint: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Value */
+            value: number;
+        };
         /**
          * Sex
          * @enum {string}
          */
         Sex: "M" | "F" | "O";
+        /** Share */
+        Share: {
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+            /** Pct */
+            pct: number;
+        };
         /** SlotOut */
         SlotOut: {
             /**
@@ -2367,11 +3343,112 @@ export interface components {
             /** Available */
             available: boolean;
         };
+        /** StaffIn */
+        StaffIn: {
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string;
+            /**
+             * Role
+             * @default staff
+             * @enum {string}
+             */
+            role: "staff" | "physio";
+            /** Job Title */
+            job_title?: string | null;
+            /** Department */
+            department?: string | null;
+            /** Monthly Salary Paise */
+            monthly_salary_paise?: number | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Joined On */
+            joined_on?: string | null;
+            /** Employee Code */
+            employee_code?: string | null;
+            /** Registration No */
+            registration_no?: string | null;
+        };
+        /** StaffOut */
+        StaffOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string | null;
+            role: components["schemas"]["MembershipRole"];
+            /** Job Title */
+            job_title: string | null;
+            /** Department */
+            department: string | null;
+            /** Employee Code */
+            employee_code: string | null;
+            /** Monthly Salary Paise */
+            monthly_salary_paise: number | null;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Branch Name */
+            branch_name: string | null;
+            /** Joined On */
+            joined_on: string | null;
+            /** Is Active */
+            is_active: boolean;
+            today: components["schemas"]["AttendanceStatus"] | null;
+            /** Check In */
+            check_in: string | null;
+        };
+        /** StaffUpdate */
+        StaffUpdate: {
+            /** Role */
+            role?: ("staff" | "physio") | null;
+            /** Job Title */
+            job_title?: string | null;
+            /** Department */
+            department?: string | null;
+            /** Monthly Salary Paise */
+            monthly_salary_paise?: number | null;
+            /** Branch Id */
+            branch_id?: string | null;
+            /** Employee Code */
+            employee_code?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /** SubscriptionOut */
+        SubscriptionOut: {
+            plan: components["schemas"]["SubscriptionPlan"];
+            /** Price Paise */
+            price_paise: number;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Trial Ends At */
+            trial_ends_at: string | null;
+            /** Current Period End */
+            current_period_end: string | null;
+            /** Days Left */
+            days_left: number | null;
+            /** Due Soon */
+            due_soon: boolean;
+        };
         /**
          * SubscriptionPlan
          * @enum {string}
          */
         SubscriptionPlan: "monthly" | "yearly";
+        /**
+         * SubscriptionStatus
+         * @enum {string}
+         */
+        SubscriptionStatus: "trial" | "active" | "overdue" | "cancelled";
         /** SupportOut */
         SupportOut: {
             /** Email */
@@ -3311,37 +4388,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhysioProfileOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    branches_clinic_branches_get: {
-        parameters: {
-            query?: never;
-            header: {
-                "X-Clinic-Id": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BranchBrief"][];
                 };
             };
             /** @description Validation Error */
@@ -4884,6 +5930,1005 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrescriptionOut"][];
+                };
+            };
+        };
+    };
+    list_invoices_clinic_invoices_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["InvoiceStatus"] | null;
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    new_invoice_clinic_invoices_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_invoice_clinic_invoices__invoice_id__get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_invoice_clinic_invoices__invoice_id__pay_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    void_invoice_clinic_invoices__invoice_id__void_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_invoices_me_invoices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceListItem"][];
+                };
+            };
+        };
+    };
+    my_invoice_me_invoices__invoice_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dashboard_clinic_dashboard_get: {
+        parameters: {
+            query?: {
+                branch_id?: string | null;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analytics_clinic_analytics_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_clinic_profile_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_clinic_profile_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicProfileIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    branches_clinic_branches_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_branch_clinic_branches_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_branch_clinic_branches__branch_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                branch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subscription_clinic_subscription_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subscription_checkout_clinic_subscription_checkout_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RazorpayCheckout"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subscription_verify_clinic_subscription_verify_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyPaymentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_staff_clinic_staff_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_staff_clinic_staff_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_staff_clinic_staff__member_id__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attendance_clinic_attendance_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDay"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_attendance_clinic_attendance_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_in_clinic_attendance_check_in_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_leave_clinic_leave_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["LeaveStatus"] | null;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_leave_clinic_leave_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_leave_clinic_leave_mine_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_leave_clinic_leave__leave_id___decision__post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                leave_id: string;
+                decision: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payroll_clinic_payroll_get: {
+        parameters: {
+            query?: {
+                month?: string | null;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_payroll_clinic_payroll_run_post: {
+        parameters: {
+            query?: {
+                month?: string | null;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayrollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_slip_clinic_payroll__payslip_id__pay_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                payslip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayslipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

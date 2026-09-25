@@ -35,7 +35,7 @@ function useWidth() {
   return { setRef, w }
 }
 
-function tickLabel(day: string, i: number, n: number) {
+export function tickLabel(day: string, i: number, n: number) {
   const p = dayParts(day)
   if (n <= 7) return p.weekday
   return i % 5 === 0 || i === n - 1 ? String(p.date) : ''
@@ -51,54 +51,55 @@ function Tooltip({ x, y, value, label, width }: { x: number; y: number; value: s
   )
 }
 
-export function AdherenceBars({ days }: { days: DayPoint[] }) {
+export interface BarPoint {
+  key: string
+  label: string // axis label ('' to skip)
+  value: number | null // null = no data (a faint dot on the baseline)
+  readout: string // tooltip value, e.g. "67%" or "₹4,200"
+  detail: string // tooltip secondary line
+}
+
+/** Single-series column chart. `max` fixes the scale (e.g. 100 for percentages); otherwise it's the data max. */
+export function BarChart({ points, max, ticks, title, color = BLUE }: { points: BarPoint[]; max?: number; ticks: (m: number) => { v: number; label: string }[]; title: string; color?: string }) {
   const { setRef, w } = useWidth()
   const [hover, setHover] = useState<number | null>(null)
   const titleId = useId()
   const plotW = w - PAD.left - PAD.right
   const plotH = H - PAD.top - PAD.bottom
-  const band = plotW / days.length
-  const barW = Math.min(24, Math.max(4, band - 2)) // ≥2px surface gap between neighbours
-  const y = (pct: number) => PAD.top + plotH * (1 - pct / 100)
+  const band = plotW / points.length
+  const barW = Math.min(24, Math.max(3, band - 2)) // ≥2px surface gap between neighbours
+  const top = max ?? niceMax(Math.max(0, ...points.map((p) => p.value ?? 0)))
+  const y = (v: number) => PAD.top + plotH * (1 - (top ? v / top : 0))
 
   return (
     <div ref={setRef} className="relative">
       <svg width={w} height={H} role="img" aria-labelledby={titleId} className="block">
-        <title id={titleId}>Daily exercise completion, percent</title>
-        {[0, 50, 100].map((t) => (
-          <g key={t}>
-            <line x1={PAD.left} x2={w - PAD.right} y1={y(t)} y2={y(t)} stroke={GRID} strokeWidth={1} />
-            <text x={PAD.left - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted text-[11px] tabular-nums">{t}%</text>
+        <title id={titleId}>{title}</title>
+        {ticks(top).map((t) => (
+          <g key={t.v}>
+            <line x1={PAD.left} x2={w - PAD.right} y1={y(t.v)} y2={y(t.v)} stroke={GRID} strokeWidth={1} />
+            <text x={PAD.left - 6} y={y(t.v)} dy="0.32em" textAnchor="end" className="fill-muted text-[11px] tabular-nums">{t.label}</text>
           </g>
         ))}
-        {days.map((d, i) => {
+        {points.map((d, i) => {
           const cx0 = PAD.left + band * i + band / 2
-          const h = d.pct == null ? 0 : Math.max(d.pct > 0 ? 2 : 0, (plotH * d.pct) / 100)
+          const h = d.value == null || !top ? 0 : Math.max(d.value > 0 ? 2 : 0, (plotH * d.value) / top)
           const x0 = cx0 - barW / 2
-          const top = PAD.top + plotH - h
+          const barTop = PAD.top + plotH - h
           const r = Math.min(4, h, barW / 2)
           // Rounded data-end, square at the baseline.
           const path = h > 0
-            ? `M${x0},${PAD.top + plotH} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + barW - r} Q${x0 + barW},${top} ${x0 + barW},${top + r} V${PAD.top + plotH} Z`
+            ? `M${x0},${PAD.top + plotH} V${barTop + r} Q${x0},${barTop} ${x0 + r},${barTop} H${x0 + barW - r} Q${x0 + barW},${barTop} ${x0 + barW},${barTop + r} V${PAD.top + plotH} Z`
             : ''
-          const label = tickLabel(d.day, i, days.length)
           return (
-            <g key={d.day}>
-              {path && <path d={path} fill={BLUE} opacity={hover == null || hover === i ? 1 : 0.55} />}
-              {d.pct == null && <circle cx={cx0} cy={PAD.top + plotH - 3} r={1.5} fill={GRID} />}
-              {label && <text x={cx0} y={H - 8} textAnchor="middle" className="fill-muted text-[11px]">{label}</text>}
+            <g key={d.key}>
+              {path && <path d={path} fill={color} opacity={hover == null || hover === i ? 1 : 0.55} />}
+              {d.value == null && <circle cx={cx0} cy={PAD.top + plotH - 3} r={1.5} fill={GRID} />}
+              {d.label && <text x={cx0} y={H - 8} textAnchor="middle" className="fill-muted text-[11px]">{d.label}</text>}
               <rect
-                x={PAD.left + band * i}
-                y={PAD.top}
-                width={band}
-                height={plotH}
-                fill="transparent"
-                tabIndex={0}
-                aria-label={`${dayParts(d.day).long}: ${d.pct == null ? 'rest day' : `${d.pct}% (${d.done} of ${d.scheduled})`}`}
-                onPointerEnter={() => setHover(i)}
-                onPointerLeave={() => setHover(null)}
-                onFocus={() => setHover(i)}
-                onBlur={() => setHover(null)}
+                x={PAD.left + band * i} y={PAD.top} width={band} height={plotH} fill="transparent" tabIndex={0}
+                aria-label={`${d.detail}: ${d.readout}`}
+                onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)}
                 className="outline-none"
               />
             </g>
@@ -106,15 +107,32 @@ export function AdherenceBars({ days }: { days: DayPoint[] }) {
         })}
       </svg>
       {hover != null && (
-        <Tooltip
-          width={w}
-          x={PAD.left + band * hover + band / 2}
-          y={days[hover].pct == null ? PAD.top + plotH : y(days[hover].pct!)}
-          value={days[hover].pct == null ? 'Rest day' : `${days[hover].pct}%`}
-          label={`${dayParts(days[hover].day).long}${days[hover].pct != null ? ` · ${days[hover].done}/${days[hover].scheduled}` : ''}`}
-        />
+        <Tooltip width={w} x={PAD.left + band * hover + band / 2} y={points[hover].value == null ? PAD.top + plotH : y(points[hover].value!)} value={points[hover].readout} label={points[hover].detail} />
       )}
     </div>
+  )
+}
+
+function niceMax(v: number) {
+  if (v <= 0) return 1
+  const mag = 10 ** Math.floor(Math.log10(v))
+  return Math.ceil(v / mag / 2) * 2 * mag
+}
+
+export function AdherenceBars({ days }: { days: DayPoint[] }) {
+  return (
+    <BarChart
+      title="Daily exercise completion, percent"
+      max={100}
+      ticks={() => [0, 50, 100].map((v) => ({ v, label: `${v}%` }))}
+      points={days.map((d, i) => ({
+        key: d.day,
+        label: tickLabel(d.day, i, days.length),
+        value: d.pct,
+        readout: d.pct == null ? 'Rest day' : `${d.pct}%`,
+        detail: `${dayParts(d.day).long}${d.pct != null ? ` · ${d.done}/${d.scheduled}` : ''}`,
+      }))}
+    />
   )
 }
 

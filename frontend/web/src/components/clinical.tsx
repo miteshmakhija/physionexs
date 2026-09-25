@@ -1,6 +1,6 @@
 import { cx, Logo } from '@/components/ui'
 import type { Schemas } from '@/lib/api'
-import { dayLabel } from '@shared/format'
+import { dayLabel, shortDate } from '@shared/format'
 
 export function Adherence({ pct }: { pct: number | null | undefined }) {
   if (pct == null) return <span className="text-subtle">—</span>
@@ -129,5 +129,69 @@ function Meta({ label, value }: { label: string; value: string }) {
       <p className="eyebrow">{label}</p>
       <p className="mt-0.5 font-medium">{value}</p>
     </div>
+  )
+}
+
+/** An invoice on the clinic letterhead. Printable like the prescription. */
+export function InvoiceDocument({ inv }: { inv: Schemas['InvoiceOut'] }) {
+  const c = inv.clinic as { name: string; logo_url?: string | null; address?: string | null; phone?: string | null; email?: string | null; gstin?: string | null }
+  const p = inv.patient as { name: string; phone?: string | null }
+  const money = (v: number) => '₹' + (v / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+  return (
+    <article className="rx-document mx-auto max-w-[800px] border border-line bg-white p-8 text-[13.5px] text-ink print:border-0 print:p-0 sm:p-12">
+      <header className="flex items-start justify-between gap-6 border-b-2 border-ink pb-5">
+        <div>
+          {c.logo_url ? <img src={c.logo_url} alt="" className="mb-2 h-12 w-auto" /> : <Logo className="mb-2 h-8" />}
+          <p className="text-[18px] font-bold">{c.name}</p>
+          <p className="text-muted">Physiotherapy &amp; Rehabilitation · on Physionexs</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[22px] font-bold tracking-[0.12em]">INVOICE</p>
+          <p className="font-semibold">{inv.number}</p>
+          <p className="eyebrow mt-2">{inv.status === 'paid' ? 'Paid' : inv.status === 'void' ? 'Void' : 'Payment due'}</p>
+        </div>
+      </header>
+      <section className="grid grid-cols-2 gap-4 border-b border-line py-4 sm:grid-cols-3">
+        <div><p className="eyebrow">Billed to</p><p className="mt-0.5 font-semibold">{p.name}</p>{p.phone && <p className="text-muted">{p.phone}</p>}</div>
+        <div><p className="eyebrow">Issue date</p><p className="mt-0.5">{shortDate(inv.issued_on)}</p></div>
+        <div><p className="eyebrow">{inv.status === 'paid' ? 'Paid' : 'Due'}</p><p className="mt-0.5">{inv.status === 'paid' ? (inv.paid_at ? dayLabel(inv.paid_at) : '—') : (inv.due_on ? shortDate(inv.due_on) : 'On receipt')}</p></div>
+      </section>
+      <table className="mt-4 w-full text-left">
+        <thead>
+          <tr className="border-b border-ink">
+            <th className="eyebrow py-2 font-semibold">Description</th>
+            <th className="eyebrow py-2 text-right font-semibold">Qty</th>
+            <th className="eyebrow py-2 text-right font-semibold">Rate</th>
+            <th className="eyebrow py-2 text-right font-semibold">Amount</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line tabular-nums">
+          {inv.items.map((it, i) => (
+            <tr key={i}>
+              <td className="py-2.5"><span className="font-medium">{it.description}</span>{it.detail && <span className="block text-[12px] text-muted">{it.detail}</span>}</td>
+              <td className="text-right">{it.quantity}</td>
+              <td className="text-right">{money(it.rate_paise)}</td>
+              <td className="text-right">{money(it.amount_paise)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="ml-auto mt-4 w-full max-w-xs space-y-1.5 tabular-nums">
+        <div className="flex justify-between"><span className="text-muted">Subtotal</span><span>{money(inv.subtotal_paise)}</span></div>
+        <div className="flex justify-between"><span className="text-muted">GST</span><span>{inv.tax_paise ? money(inv.tax_paise) : 'Exempt · healthcare'}</span></div>
+        <div className="flex justify-between border-t border-ink pt-2 text-[16px] font-bold"><span>Total</span><span>{money(inv.total_paise)}</span></div>
+        {inv.paid_via && <p className="text-right text-[12px] text-muted">Paid via {inv.paid_via.toUpperCase()}</p>}
+      </div>
+      {inv.notes && <p className="mt-6 whitespace-pre-line text-muted">{inv.notes}</p>}
+      <footer className="mt-10 flex items-end justify-between gap-6 border-t border-line pt-5 text-[12px] text-muted">
+        <div>
+          {c.gstin && <p>GSTIN {c.gstin}</p>}
+          {c.address && <p>{c.address}</p>}
+          <p>{[c.phone, c.email].filter(Boolean).join(' · ')}</p>
+          <p className="mt-2">Thank you for choosing {c.name}. This is a computer-generated invoice.</p>
+        </div>
+        <p className="text-right">Authorised signatory</p>
+      </footer>
+    </article>
   )
 }

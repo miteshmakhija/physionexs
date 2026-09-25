@@ -1,6 +1,6 @@
 """Demo data for development and integration tests. Every demo account uses the DEMO_DOMAIN email domain."""
 
-from datetime import time
+from datetime import UTC, datetime, time, timedelta
 
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
@@ -17,8 +17,13 @@ from app.models import (
     ClinicMember,
     ClinicPatient,
     Consultation,
+    Attendance,
     Exercise,
     ExerciseLog,
+    Invoice,
+    InvoiceItem,
+    LeaveRequest,
+    Payslip,
     MedicalBackground,
     Medication,
     MedicationLog,
@@ -91,7 +96,7 @@ def seed_demo(db: Session) -> list[User]:
         db.add(branch)
         db.flush()
         db.add(ClinicMember(clinic_id=clinic.id, user_id=user.id, branch_id=branch.id, role=MembershipRole.OWNER, job_title="Physiotherapist"))
-        db.add(Subscription(clinic_id=clinic.id, status=SubscriptionStatus.ACTIVE))
+        db.add(Subscription(clinic_id=clinic.id, status=SubscriptionStatus.ACTIVE, current_period_end=datetime.now(UTC) + timedelta(days=30)))
         for weekday in range(6):  # Mon–Sat
             db.add(Availability(physio_user_id=user.id, branch_id=branch.id, weekday=weekday, start_time=time(9), end_time=time(13), slot_minutes=30))
             db.add(Availability(physio_user_id=user.id, branch_id=branch.id, weekday=weekday, start_time=time(15), end_time=time(19), slot_minutes=30))
@@ -124,6 +129,13 @@ def purge_users(db: Session, user_ids: list, phones: list[str] = ()) -> None:
     branch_ids = list(db.scalars(select(Branch.id).where(Branch.clinic_id.in_(clinic_ids))))
     db.execute(delete(QueueToken).where(or_(QueueToken.branch_id.in_(branch_ids), QueueToken.patient_id.in_(patient_ids))))
     db.execute(delete(Exercise).where(Exercise.owner_clinic_id.in_(clinic_ids)))
+    inv_ids = list(db.scalars(select(Invoice.id).where(or_(Invoice.clinic_id.in_(clinic_ids), Invoice.clinic_patient_id.in_(cp_ids)))))
+    db.execute(delete(InvoiceItem).where(InvoiceItem.invoice_id.in_(inv_ids)))
+    db.execute(delete(Invoice).where(Invoice.id.in_(inv_ids)))
+    member_ids = list(db.scalars(select(ClinicMember.id).where(or_(ClinicMember.clinic_id.in_(clinic_ids), ClinicMember.user_id.in_(user_ids)))))
+    db.execute(delete(Attendance).where(Attendance.member_id.in_(member_ids)))
+    db.execute(delete(LeaveRequest).where(LeaveRequest.member_id.in_(member_ids)))
+    db.execute(delete(Payslip).where(Payslip.member_id.in_(member_ids)))
     db.execute(delete(Appointment).where(appt_filter))
     db.execute(delete(PointsLedger).where(PointsLedger.patient_id.in_(patient_ids)))
     db.execute(delete(Payment).where(or_(Payment.id.in_(payment_ids), Payment.clinic_id.in_(clinic_ids), Payment.patient_id.in_(patient_ids))))
