@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, View } from 'react-native'
 
 import { useSession } from '@/auth/session'
+import { Approach } from '@/components/Approach'
 import { Button, Card, Chip, ErrorText, Field, Screen, Text } from '@/components/ui'
 import { ApiError } from '@/lib/api'
 import { colors, font } from '@shared/tokens'
@@ -128,6 +129,8 @@ export default function SignIn() {
         <Link href="/physio-sign-in" style={{ alignSelf: 'center', padding: 8 }}>
           <Text variant="eyebrow" style={{ color: colors.ink }}>I’m a physiotherapist →</Text>
         </Link>
+
+        <Approach />
       </Screen>
     </KeyboardAvoidingView>
   )
