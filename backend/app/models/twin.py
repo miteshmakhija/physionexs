@@ -9,7 +9,7 @@ from decimal import Decimal
 from enum import StrEnum
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Numeric, SmallInteger, String, Text, UniqueConstraint, func, text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Timestamps, UUIDPk
@@ -118,3 +118,46 @@ class Consent(UUIDPk, Base):
     version: Mapped[str] = mapped_column(String(20))
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class FlagSeverity(StrEnum):
+    INFO = "info"
+    WATCH = "watch"
+    ACT = "act"
+
+
+class FlagStatus(StrEnum):
+    OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"  # seen by the physio, still active
+    RESOLVED = "resolved"
+    DISMISSED = "dismissed"
+
+
+ACTIVE_FLAG_STATUSES = (FlagStatus.OPEN, FlagStatus.ACKNOWLEDGED)
+
+
+class TwinFlag(UUIDPk, Timestamps, Base):
+    """A rule firing for one care plan (services/twin_rules.py). At most one active flag per plan and rule."""
+
+    __tablename__ = "twin_flags"
+    __table_args__ = (
+        Index("uq_twin_flags_active", "care_plan_id", "rule", unique=True, postgresql_where=text("status IN ('open', 'acknowledged')")),
+    )
+
+    clinic_patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_patients.id", ondelete="CASCADE"), index=True)
+    care_plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("care_plans.id", ondelete="CASCADE"), index=True)
+    rule: Mapped[str] = mapped_column(String(40))  # e.g. pain_rising, rom_plateau:right
+    # Event rules key each occurrence (e.g. the day of a red flag); condition rules use the rule itself.
+    key: Mapped[str] = mapped_column(String(60))
+    severity: Mapped[FlagSeverity] = mapped_column(str_enum(FlagSeverity))
+    status: Mapped[FlagStatus] = mapped_column(str_enum(FlagStatus), default=FlagStatus.OPEN, index=True)
+    summary: Mapped[str] = mapped_column(String(300))
+    evidence: Mapped[dict] = mapped_column(JSONB, default=dict)  # the exact numbers behind the flag
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    clear_since: Mapped[date | None] = mapped_column(Date)  # first day the condition stopped holding (auto-resolve)
+    cleared: Mapped[bool] = mapped_column(Boolean, default=False)  # closed flag whose condition has since cleared
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+    explanation: Mapped[str | None] = mapped_column(Text)  # reserved for GenAI explanations

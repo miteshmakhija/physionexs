@@ -1,35 +1,31 @@
-"""Practice console: the patient's digital twin — measurements, targets, check-ins and red flags.
+"""Practice console: the patient's digital twin — measurements, targets, check-ins and flags.
 
-Milestones A1–A2 of docs/digital-twin/A-knee-twin.md. Rules and suggestions come in later milestones.
+Milestones A1–A3 of docs/digital-twin/A-knee-twin.md. Plan suggestions come in A4.
 """
 
 import uuid
-from datetime import date, timedelta
-from typing import Annotated
+from datetime import UTC, datetime
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from sqlalchemy import delete, func, select
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import DB, CurrentUser, require_clinic_member
 from app.models.clinic import ClinicMember, MembershipRole
-from app.models.clinical import CarePlan, CarePlanStatus, Consultation
-from app.models.patient import ClinicPatient, Patient
-from app.models.twin import CarePlanTarget, DailyCheckin, Measurement, MeasurementSource
-from app.schemas.twin import MeasurementIn, MeasurementOut, MeasurementUpdate, OptionOut, RedFlagReportOut, TargetIn, TargetOut, TwinOut
+from app.models.clinical import Consultation
+from app.models.patient import ClinicPatient
+from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, FlagStatus, Measurement, MeasurementSource, TwinFlag
+from app.schemas.twin import FlagCloseIn, FlagDismissIn, FlagOut, MeasurementIn, MeasurementOut, MeasurementUpdate, TargetIn, TargetOut, TwinOut
 from app.services import audit
-from app.services.checkins import RED_FLAGS
 from app.services.clinical import care_plan_or_404, clinic_patient_or_404
-from app.services.twin import check, is_plausible, last_trusted, measured_at_or_now, measurement_out, targets_out, twin_out, user_names
+from app.services.twin import check, flag_out, is_plausible, last_trusted, measured_at_or_now, measurement_out, targets_out, twin_out, user_names
+from app.services.twin_rules import SEVERITY_ORDER, active_plan_for, evaluate_plan
 
 router = APIRouter(prefix="/clinic", tags=["twin"])
 
 Member = Annotated[ClinicMember, Depends(require_clinic_member())]
 Clinician = Annotated[ClinicMember, Depends(require_clinic_member(MembershipRole.OWNER, MembershipRole.PHYSIO))]
-
-
-def _active_plan(db: Session, cp_id: uuid.UUID) -> CarePlan | None:
-    return db.scalar(select(CarePlan).where(CarePlan.clinic_patient_id == cp_id, CarePlan.status == CarePlanStatus.ACTIVE).order_by(CarePlan.created_at.desc()).limit(1))
 
 
 def _measurement_or_404(db: Session, clinic_id: uuid.UUID, measurement_id: uuid.UUID) -> Measurement:
@@ -42,7 +38,7 @@ def _measurement_or_404(db: Session, clinic_id: uuid.UUID, measurement_id: uuid.
 @router.get("/patients/{cp_id}/twin", response_model=TwinOut)
 def get_twin(cp_id: uuid.UUID, member: Member, db: DB) -> TwinOut:
     cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
-    return twin_out(db, cp, _active_plan(db, cp.id))
+    return twin_out(db, cp, active_plan_for(db, cp.id))
 
 
 @router.post("/patients/{cp_id}/measurements", response_model=list[MeasurementOut], status_code=status.HTTP_201_CREATED)
@@ -56,7 +52,7 @@ def record_measurements(
 ) -> list[MeasurementOut]:
     """Record clinic readings (goniometer, tape, pain). A big jump from the last reading is saved but held for confirmation."""
     cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
-    plan = _active_plan(db, cp.id)
+    plan = active_plan_for(db, cp.id)
     consult_ids = {i.consultation_id for i in items if i.consultation_id}
     if consult_ids:
         found = set(db.scalars(select(Consultation.id).where(Consultation.id.in_(consult_ids), Consultation.clinic_patient_id == cp.id)))
@@ -79,6 +75,7 @@ def record_measurements(
     db.flush()
     audit.record(db, action="create", entity="measurements", entity_id=cp.id, actor_user_id=user.id, clinic_id=member.clinic_id,
                  summary=", ".join(f"{m.code} {m.side.value} {m.value}" for m in created)[:200], request=request)
+    evaluate_plan(db, plan)
     db.commit()
     names = user_names(db, created)
     return [measurement_out(m, names) for m in created]
@@ -89,6 +86,8 @@ def confirm_measurement(measurement_id: uuid.UUID, body: MeasurementUpdate, memb
     m = _measurement_or_404(db, member.clinic_id, measurement_id)
     m.trusted = body.trusted
     audit.record(db, action="confirm", entity="measurement", entity_id=m.id, actor_user_id=user.id, clinic_id=member.clinic_id, request=request)
+    db.flush()
+    evaluate_plan(db, active_plan_for(db, m.clinic_patient_id))
     db.commit()
     return measurement_out(m, user_names(db, [m]))
 
@@ -98,7 +97,10 @@ def discard_measurement(measurement_id: uuid.UUID, member: Clinician, user: Curr
     m = _measurement_or_404(db, member.clinic_id, measurement_id)
     audit.record(db, action="delete", entity="measurement", entity_id=m.id, actor_user_id=user.id, clinic_id=member.clinic_id,
                  summary=f"{m.code} {m.side.value} {m.value}", request=request)
+    cp_id = m.clinic_patient_id
     db.delete(m)
+    db.flush()
+    evaluate_plan(db, active_plan_for(db, cp_id))
     db.commit()
 
 
@@ -122,24 +124,61 @@ def set_targets(
         db.add(CarePlanTarget(care_plan_id=plan.id, **item.model_dump()))
     audit.record(db, action="update", entity="care_plan_targets", entity_id=plan.id, actor_user_id=user.id, clinic_id=member.clinic_id,
                  summary=", ".join(f"{i.code} {i.side.value} {i.target_value:g}" for i in items)[:200], request=request)
+    db.flush()
+    evaluate_plan(db, plan)
     db.commit()
     return targets_out(db, plan.id)
 
 
-@router.get("/red-flags", response_model=list[RedFlagReportOut])
-def recent_red_flags(member: Member, db: DB) -> list[RedFlagReportOut]:
-    """Warning signs patients reported in their check-ins over the last 7 days, newest first."""
-    rows = db.execute(
-        select(DailyCheckin, ClinicPatient.id, Patient.full_name)
-        .join(CarePlan, CarePlan.id == DailyCheckin.care_plan_id)
-        .join(ClinicPatient, ClinicPatient.id == CarePlan.clinic_patient_id)
-        .join(Patient, Patient.id == ClinicPatient.patient_id)
-        .where(ClinicPatient.clinic_id == member.clinic_id, func.cardinality(DailyCheckin.red_flags) > 0, DailyCheckin.day > date.today() - timedelta(days=7))
-        .order_by(DailyCheckin.day.desc(), DailyCheckin.updated_at.desc())
-        .limit(50)
-    ).all()
-    return [
-        RedFlagReportOut(clinic_patient_id=cp_id, patient_name=name, day=c.day, pain=c.pain,
-                         red_flags=[OptionOut(code=f, label=RED_FLAGS.get(f, f)) for f in c.red_flags])
-        for c, cp_id, name in rows
-    ]
+# ── Flags ───────────────────────────────────────────────────────────────────
+
+
+def _flag_or_404(db: Session, clinic_id: uuid.UUID, flag_id: uuid.UUID) -> TwinFlag:
+    f = db.get(TwinFlag, flag_id)
+    if f is None or db.get(ClinicPatient, f.clinic_patient_id).clinic_id != clinic_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Flag not found")
+    return f
+
+
+@router.get("/flags", response_model=list[FlagOut])
+def list_flags(member: Member, db: DB, state: Annotated[Literal["active", "closed"], Query()] = "active") -> list[FlagOut]:
+    """The clinic's flags inbox: active flags (unseen and most severe first), or the 100 most recently closed."""
+    stmt = select(TwinFlag).join(ClinicPatient, ClinicPatient.id == TwinFlag.clinic_patient_id).where(ClinicPatient.clinic_id == member.clinic_id)
+    if state == "active":
+        rows = list(db.scalars(stmt.where(TwinFlag.status.in_(ACTIVE_FLAG_STATUSES))))
+        rows.sort(key=lambda f: (f.status != FlagStatus.OPEN, -SEVERITY_ORDER[f.severity.value], -f.last_seen_at.timestamp()))
+    else:
+        rows = list(db.scalars(stmt.where(TwinFlag.status.not_in(ACTIVE_FLAG_STATUSES)).order_by(TwinFlag.resolved_at.desc()).limit(100)))
+    return [flag_out(db, f) for f in rows]
+
+
+def _close(db: Session, f: TwinFlag, new: FlagStatus, note: str | None, member: ClinicMember, user_id: uuid.UUID, request: Request) -> FlagOut:
+    if f.status not in ACTIVE_FLAG_STATUSES:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This flag is already closed")
+    f.status, f.resolved_at, f.resolved_by, f.resolution_note, f.cleared = new, datetime.now(UTC), user_id, note, False
+    audit.record(db, action=new.value, entity="twin_flag", entity_id=f.id, actor_user_id=user_id, clinic_id=member.clinic_id,
+                 summary=f"{f.rule}: {note or '-'}"[:200], request=request)
+    db.commit()
+    return flag_out(db, f)
+
+
+@router.post("/flags/{flag_id}/acknowledge", response_model=FlagOut)
+def acknowledge_flag(flag_id: uuid.UUID, member: Clinician, db: DB) -> FlagOut:
+    """Seen, still active: it stays on the patient until it resolves."""
+    f = _flag_or_404(db, member.clinic_id, flag_id)
+    if f.status == FlagStatus.OPEN:
+        f.status = FlagStatus.ACKNOWLEDGED
+        db.commit()
+    return flag_out(db, f)
+
+
+@router.post("/flags/{flag_id}/resolve", response_model=FlagOut)
+def resolve_flag(flag_id: uuid.UUID, body: FlagCloseIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> FlagOut:
+    """Handled, e.g. called the patient. It won't re-open for the same episode."""
+    return _close(db, _flag_or_404(db, member.clinic_id, flag_id), FlagStatus.RESOLVED, body.note, member, user.id, request)
+
+
+@router.post("/flags/{flag_id}/dismiss", response_model=FlagOut)
+def dismiss_flag(flag_id: uuid.UUID, body: FlagDismissIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> FlagOut:
+    """Not a concern: needs a one-line reason. It won't re-open for the same episode."""
+    return _close(db, _flag_or_404(db, member.clinic_id, flag_id), FlagStatus.DISMISSED, body.note, member, user.id, request)

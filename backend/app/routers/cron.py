@@ -17,6 +17,7 @@ from app.models.engagement import Notification
 from app.models.patient import Patient
 from app.models.scheduling import Appointment, AppointmentStatus
 from app.models.user import User
+from app.services.twin_rules import evaluate_all
 
 router = APIRouter(prefix="/cron", tags=["cron"], include_in_schema=False)
 settings = get_settings()
@@ -86,4 +87,7 @@ def daily(db: DB, authorization: Annotated[str | None, Header()] = None) -> dict
             sub.last_reminder_at = now
             reminded += 1
     db.commit()
-    return {"overdue": overdue, "reminders": reminded}
+    # Digital twin: time-based flag rules (missed exercises, no check-ins), auto-resolve, ended plans.
+    twin = evaluate_all(db)
+    db.commit()
+    return {"overdue": overdue, "reminders": reminded, "twin": twin}

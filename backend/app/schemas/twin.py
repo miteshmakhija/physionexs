@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from app.models.clinical import AffectedSide
-from app.models.twin import CheckinSource, ExercisesDone, MeasurementSource, Side, Sleep, Swelling
+from app.models.twin import CheckinSource, ExercisesDone, FlagSeverity, FlagStatus, MeasurementSource, Side, Sleep, Swelling
 
 Code = Annotated[str, Field(min_length=2, max_length=40)]
 Value = Annotated[float, Field(ge=-999, le=9999)]  # range per code is checked in services/twin.py
@@ -150,12 +150,29 @@ class CheckinResultOut(BaseModel):
     advice: AdviceOut | None
 
 
-class RedFlagReportOut(BaseModel):
+class FlagOut(BaseModel):
+    id: uuid.UUID
     clinic_patient_id: uuid.UUID
     patient_name: str
-    day: date
-    red_flags: list[OptionOut]
-    pain: int
+    rule: str
+    rule_label: str
+    severity: FlagSeverity
+    status: FlagStatus
+    summary: str
+    evidence: dict
+    opened_at: datetime
+    last_seen_at: datetime
+    resolved_at: datetime | None
+    resolved_by_name: str | None
+    resolution_note: str | None
+
+
+class FlagCloseIn(BaseModel):
+    note: Annotated[str, Field(max_length=300)] | None = None
+
+
+class FlagDismissIn(BaseModel):
+    note: Annotated[str, Field(min_length=3, max_length=300)]  # why it isn't a concern
 
 
 class TwinOut(BaseModel):
@@ -170,3 +187,4 @@ class TwinOut(BaseModel):
     codes: list[CodeOut]  # what the console can record
     checkins: list[CheckinOut] = Field(default_factory=list)  # last 30 days, newest first
     red_flag_labels: dict[str, str] = Field(default_factory=dict)
+    flags: list[FlagOut] = Field(default_factory=list)  # active, plus closed in the last 30 days

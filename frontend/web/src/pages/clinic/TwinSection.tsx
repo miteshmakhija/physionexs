@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { MeasureTrend } from '@/components/charts'
+import { FlagList } from '@/components/flags'
 import { Alert, Button, Field, Input, Select, Stat, cx } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { EXERCISES, SLEEP, SWELLING, labelOf } from '@shared/checkin'
@@ -39,6 +40,8 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
             : 'Set the care plan’s protocol to Knee replacement to track knee recovery.'}
         </p>
       </div>
+
+      <TwinFlags twin={t} canWrite={canWrite} clinicId={clinicId} />
 
       {t.measures.length > 0 && (
         <div className="grid gap-6 md:grid-cols-[150px_1fr]">
@@ -243,19 +246,12 @@ function Checkins({ twin }: { twin: Twin }) {
   const c = twin.checkins ?? []
   if (!twin.protocol && c.length === 0) return null
   const weekAgo = isoDay(new Date(Date.now() - 6 * 86_400_000))
-  const flagged = c.filter((x) => x.red_flags.length > 0 && x.day >= weekAgo)
   const last = c[0]
   const seven = c.filter((x) => x.day >= weekAgo)
 
   return (
     <div className="mt-8">
       <h3 className="mb-3 text-[14px] font-semibold">Daily check-ins</h3>
-      {flagged.map((x) => (
-        <div key={x.id} role="alert" className="mb-3 rounded-md border-2 border-danger bg-danger-tint px-4 py-3 text-[14px]">
-          <b className="text-danger">Red flag · {dayLabel(x.day)}:</b> {x.red_flags.map((f) => twin.red_flag_labels?.[f] ?? f).join(', ')}.
-          <span className="text-ink-2"> The patient was shown advice to contact the clinic{x.red_flags.includes('chest_breathless') ? ' and call 112' : ''}. Please follow up.</span>
-        </div>
-      ))}
       {!last ? (
         <p className="text-[13.5px] text-muted">No check-ins yet. The patient is asked to check in daily from their app once they agree to share.</p>
       ) : (
@@ -278,6 +274,24 @@ function Checkins({ twin }: { twin: Twin }) {
             </div>
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+function TwinFlags({ twin, canWrite, clinicId }: { twin: Twin; canWrite: boolean; clinicId: string }) {
+  const [showClosed, setShowClosed] = useState(false)
+  const flags = twin.flags ?? []
+  const active = flags.filter((f) => f.status === 'open' || f.status === 'acknowledged')
+  const closed = flags.filter((f) => !active.includes(f))
+  if (!flags.length) return null
+  return (
+    <div className="mb-8">
+      {active.length > 0 && <FlagList flags={active} clinicId={clinicId} canWrite={canWrite} showPatient={false} />}
+      {closed.length > 0 && (
+        showClosed
+          ? <div className="mt-3"><FlagList flags={closed} clinicId={clinicId} canWrite={false} showPatient={false} /></div>
+          : <button className="eyebrow mt-3 !text-ink hover:underline" onClick={() => setShowClosed(true)}>Show {closed.length} closed flag{closed.length > 1 ? 's' : ''} (30 days)</button>
       )}
     </div>
   )

@@ -4087,20 +4087,34 @@
         }
       }
     },
-    "/clinic/red-flags": {
+    "/clinic/flags": {
       "get": {
         "tags": [
           "twin"
         ],
-        "summary": "Recent Red Flags",
-        "description": "Warning signs patients reported in their check-ins over the last 7 days, newest first.",
-        "operationId": "recent_red_flags_clinic_red_flags_get",
+        "summary": "List Flags",
+        "description": "The clinic's flags inbox: active flags (unseen and most severe first), or the 100 most recently closed.",
+        "operationId": "list_flags_clinic_flags_get",
         "security": [
           {
             "HTTPBearer": []
           }
         ],
         "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "active",
+                "closed"
+              ],
+              "type": "string",
+              "default": "active",
+              "title": "State"
+            }
+          },
           {
             "name": "X-Clinic-Id",
             "in": "header",
@@ -4120,9 +4134,206 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/RedFlagReportOut"
+                    "$ref": "#/components/schemas/FlagOut"
                   },
-                  "title": "Response Recent Red Flags Clinic Red Flags Get"
+                  "title": "Response List Flags Clinic Flags Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/flags/{flag_id}/acknowledge": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Acknowledge Flag",
+        "description": "Seen, still active: it stays on the patient until it resolves.",
+        "operationId": "acknowledge_flag_clinic_flags__flag_id__acknowledge_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "flag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Flag Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/flags/{flag_id}/resolve": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Resolve Flag",
+        "description": "Handled, e.g. called the patient. It won't re-open for the same episode.",
+        "operationId": "resolve_flag_clinic_flags__flag_id__resolve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "flag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Flag Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagCloseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/flags/{flag_id}/dismiss": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Dismiss Flag",
+        "description": "Not a concern: needs a one-line reason. It won't re-open for the same episode.",
+        "operationId": "dismiss_flag_clinic_flags__flag_id__dismiss_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "flag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Flag Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagDismissIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagOut"
                 }
               }
             }
@@ -10700,6 +10911,161 @@
         ],
         "title": "Feel"
       },
+      "FlagCloseIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "FlagCloseIn"
+      },
+      "FlagDismissIn": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "FlagDismissIn"
+      },
+      "FlagOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "clinic_patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Clinic Patient Id"
+          },
+          "patient_name": {
+            "type": "string",
+            "title": "Patient Name"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "rule_label": {
+            "type": "string",
+            "title": "Rule Label"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/FlagSeverity"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FlagStatus"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Evidence"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opened At"
+          },
+          "last_seen_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By Name"
+          },
+          "resolution_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "clinic_patient_id",
+          "patient_name",
+          "rule",
+          "rule_label",
+          "severity",
+          "status",
+          "summary",
+          "evidence",
+          "opened_at",
+          "last_seen_at",
+          "resolved_at",
+          "resolved_by_name",
+          "resolution_note"
+        ],
+        "title": "FlagOut"
+      },
+      "FlagSeverity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "watch",
+          "act"
+        ],
+        "title": "FlagSeverity"
+      },
+      "FlagStatus": {
+        "type": "string",
+        "enum": [
+          "open",
+          "acknowledged",
+          "resolved",
+          "dismissed"
+        ],
+        "title": "FlagStatus"
+      },
       "ForgotPasswordIn": {
         "properties": {
           "identifier": {
@@ -13991,44 +14357,6 @@
         ],
         "title": "RecordsPage"
       },
-      "RedFlagReportOut": {
-        "properties": {
-          "clinic_patient_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Clinic Patient Id"
-          },
-          "patient_name": {
-            "type": "string",
-            "title": "Patient Name"
-          },
-          "day": {
-            "type": "string",
-            "format": "date",
-            "title": "Day"
-          },
-          "red_flags": {
-            "items": {
-              "$ref": "#/components/schemas/OptionOut"
-            },
-            "type": "array",
-            "title": "Red Flags"
-          },
-          "pain": {
-            "type": "integer",
-            "title": "Pain"
-          }
-        },
-        "type": "object",
-        "required": [
-          "clinic_patient_id",
-          "patient_name",
-          "day",
-          "red_flags",
-          "pain"
-        ],
-        "title": "RedFlagReportOut"
-      },
       "RefreshIn": {
         "properties": {
           "refresh_token": {
@@ -15808,6 +16136,13 @@
             },
             "type": "object",
             "title": "Red Flag Labels"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/FlagOut"
+            },
+            "type": "array",
+            "title": "Flags"
           }
         },
         "type": "object",

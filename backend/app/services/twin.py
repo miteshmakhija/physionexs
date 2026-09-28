@@ -8,14 +8,14 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.clinical import AffectedSide, CarePlan
-from app.models.patient import ClinicPatient
-from app.models.twin import CarePlanTarget, DailyCheckin, Measurement, Side
+from app.models.patient import ClinicPatient, Patient
+from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, DailyCheckin, Measurement, Side, TwinFlag
 from app.models.user import User
-from app.schemas.twin import CodeOut, MeasurementOut, TargetOut, TwinMeasureOut, TwinOut
+from app.schemas.twin import CodeOut, FlagOut, MeasurementOut, TargetOut, TwinMeasureOut, TwinOut
 from app.services.checkins import RED_FLAGS, checkin_out
 
 
@@ -175,4 +175,31 @@ def twin_out(db: Session, cp: ClinicPatient, plan: CarePlan | None) -> TwinOut:
         codes=[CodeOut(code=k, label=c.label, unit=c.unit, sided=c.sided, min=c.lo, max=c.hi, higher_is_better=c.higher_is_better) for k, c in CODES.items()],
         checkins=[checkin_out(c) for c in checkins],
         red_flag_labels=RED_FLAGS,
+        flags=[flag_out(db, f) for f in db.scalars(
+            select(TwinFlag).where(TwinFlag.clinic_patient_id == cp.id,
+                                   or_(TwinFlag.status.in_(ACTIVE_FLAG_STATUSES), TwinFlag.resolved_at >= datetime.now(UTC) - timedelta(days=30)))
+            .order_by(TwinFlag.last_seen_at.desc())
+        )],
+    )
+
+
+RULE_LABELS = {
+    "pain_rising": "Pain rising",
+    "pain_high": "High pain",
+    "rom_plateau": "Knee bend plateau",
+    "rom_drop": "Knee bend dropped",
+    "missed_sessions": "Missed exercises",
+    "no_checkin": "No check-ins",
+    "red_flag": "Red flag",
+}
+
+
+def flag_out(db: Session, f: TwinFlag) -> FlagOut:
+    cp = db.get(ClinicPatient, f.clinic_patient_id)
+    by = db.get(User, f.resolved_by) if f.resolved_by else None
+    return FlagOut(
+        id=f.id, clinic_patient_id=f.clinic_patient_id, patient_name=db.get(Patient, cp.patient_id).full_name, rule=f.rule,
+        rule_label=RULE_LABELS.get(f.rule.split(":", 1)[0], f.rule), severity=f.severity, status=f.status, summary=f.summary,
+        evidence=f.evidence or {}, opened_at=f.opened_at, last_seen_at=f.last_seen_at, resolved_at=f.resolved_at,
+        resolved_by_name=by.full_name if by else None, resolution_note=f.resolution_note,
     )

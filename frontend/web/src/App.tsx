@@ -13,6 +13,7 @@ import { BillingList, InvoiceView, NewInvoice } from '@/pages/clinic/Billing'
 import CarePlanForm from '@/pages/clinic/CarePlanForm'
 import ClinicProfile from '@/pages/clinic/ClinicProfile'
 import Dashboard from '@/pages/clinic/Dashboard'
+import Flags from '@/pages/clinic/Flags'
 import Consultation from '@/pages/clinic/Consultation'
 import PatientFile from '@/pages/clinic/PatientFile'
 import Patients from '@/pages/clinic/Patients'
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
       { path: 'schedule', element: <Schedule /> },
       { path: 'hours', element: <ProfileHours /> },
       { path: 'patients', element: <Patients /> },
+      { path: 'flags', element: <Flags /> },
       { path: 'patients/:id', element: <PatientFile /> },
       { path: 'patients/:id/consult', element: <Consultation /> },
       { path: 'patients/:id/plan', element: <CarePlanForm /> },

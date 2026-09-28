@@ -19,7 +19,7 @@ from app.models.hr import Attendance, LeaveRequest, Payslip
 from app.models.patient import ClinicPatient, MedicalBackground, Patient
 from app.models.platform import AuditLog, PlatformSetting
 from app.models.scheduling import Appointment, Availability, QueueToken
-from app.models.twin import CarePlanTarget, Consent, DailyCheckin, Measurement
+from app.models.twin import CarePlanTarget, Consent, DailyCheckin, Measurement, TwinFlag
 from app.models.user import DeviceToken, OtpRequest, RefreshToken, User
 
 __all__ = [name for name in dir() if not name.startswith("_")]

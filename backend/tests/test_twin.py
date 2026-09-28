@@ -1,4 +1,4 @@
-"""Digital twin, milestones A1–A2: measurements, targets, the twin view, consent and daily check-ins.
+"""Digital twin, milestones A1–A3: measurements, targets, the twin view, consent, daily check-ins and flag rules.
 
 Unit tests always run. The API test is opt-in (PNX_INTEGRATION=1) and runs inside one database transaction that is
 rolled back at the end, so it leaves nothing behind — safe even on a shared database.
@@ -12,7 +12,11 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.twin import Side
+from app.models.twin import DailyCheckin, FlagSeverity
+from app.services.adherence import DayStat
 from app.services.checkins import advice_for
+from app.services.settings import DEFAULT_SETTINGS
+from app.services.twin_rules import Reading, Timeline, evaluate, missed_sessions, no_checkin, pain_high, pain_rising, red_flag, rom_drop, rom_plateau
 from app.services.twin import CODES, check, is_plausible, progress, weeks_since
 
 # ── Unit ────────────────────────────────────────────────────────────────────
@@ -65,11 +69,65 @@ def test_red_flag_advice_is_fixed_and_escalates():
     assert a.level == "emergency" and a.call_number == "112"
 
 
+# ── Flag rules (pure) ─
+
+CFG = DEFAULT_SETTINGS["twin_rules"]
+TODAY = date(2026, 9, 28)
+
+
+def ck(days_ago: int, pain: int, flags: list[str] | None = None) -> DailyCheckin:
+    return DailyCheckin(day=TODAY - timedelta(days=days_ago), pain=pain, stiffness=3, red_flags=flags or [])
+
+
+def test_pain_rules():
+    steady = Timeline(TODAY, checkins=[ck(d, 3) for d in range(9, -1, -1)])
+    assert pain_rising(steady, CFG) is None and pain_high(steady, CFG) is None
+    rising = Timeline(TODAY, checkins=[ck(d, 3) for d in range(9, 2, -1)] + [ck(1, 5), ck(0, 6)])
+    h = pain_rising(rising, CFG)
+    assert h and h.severity == FlagSeverity.WATCH and h.evidence == {"avg_3d": 5.5, "avg_prev_7d": 3.0, "threshold": 2}
+    assert pain_rising(Timeline(TODAY, checkins=[ck(1, 9), ck(0, 9)]), CFG) is None  # not enough history to compare
+    high = pain_high(Timeline(TODAY, checkins=[ck(4, 9), ck(1, 8)]), CFG)
+    assert high.key == (TODAY - timedelta(days=1)).isoformat() and high.severity == FlagSeverity.ACT
+    assert pain_high(Timeline(TODAY, checkins=[ck(3, 9)]), CFG) is None  # older than the window
+
+
+def test_red_flag_rule_keys_by_day():
+    assert red_flag(Timeline(TODAY, checkins=[ck(2, 4, ["fever"])]), CFG) is None
+    h = red_flag(Timeline(TODAY, checkins=[ck(1, 4, ["fever"]), ck(0, 4)]), CFG)
+    assert h.key == (TODAY - timedelta(days=1)).isoformat() and "Fever or chills" in h.summary
+
+
+def test_rom_rules():
+    R = Side.RIGHT
+    flat = Timeline(TODAY, flexion={R: [Reading(80, TODAY - timedelta(days=8)), Reading(81, TODAY - timedelta(days=4)), Reading(82, TODAY)]}, targets={R: 120})
+    assert rom_plateau(flat, CFG, R).rule == "rom_plateau:right"
+    assert rom_plateau(Timeline(TODAY, flexion=flat.flexion), CFG, R) is None  # no target, no plateau flag
+    assert rom_plateau(Timeline(TODAY, flexion={R: flat.flexion[R][1:] + [Reading(90, TODAY)]}, targets={R: 120}), CFG, R) is None
+    short = Timeline(TODAY, flexion={R: [Reading(80, TODAY - timedelta(days=3)), Reading(81, TODAY - timedelta(days=2)), Reading(82, TODAY)]}, targets={R: 120})
+    assert rom_plateau(short, CFG, R) is None  # readings span < 7 days
+    drop = Timeline(TODAY, flexion={R: [Reading(95, TODAY - timedelta(days=5)), Reading(84, TODAY)]})
+    assert rom_drop(drop, CFG, R).evidence["best"] == 95
+    assert rom_drop(Timeline(TODAY, flexion={R: [Reading(95, TODAY - timedelta(days=5)), Reading(88, TODAY)]}), CFG, R) is None
+
+
+def test_adherence_and_checkin_gap_rules():
+    days = lambda done: [DayStat(TODAY - timedelta(days=d), 1, x) for d, x in zip(range(5, 0, -1), done)]  # noqa: E731
+    assert missed_sessions(Timeline(TODAY, days=days([1, 1, 0, 0, 0])), CFG).evidence["days"][0] == (TODAY - timedelta(days=3)).isoformat()
+    assert missed_sessions(Timeline(TODAY, days=days([0, 0, 0, 1, 0])), CFG) is None
+    rest = [DayStat(TODAY - timedelta(days=d), 0 if d % 2 else 1, 0) for d in range(8, 0, -1)]  # rest days don't count
+    assert missed_sessions(Timeline(TODAY, days=rest), CFG) is not None
+    assert no_checkin(Timeline(TODAY, checkins=[ck(3, 2)], consent_since=TODAY - timedelta(days=10)), CFG).evidence["days"] == 3
+    assert no_checkin(Timeline(TODAY, checkins=[ck(2, 2)], consent_since=TODAY - timedelta(days=10)), CFG) is None
+    assert no_checkin(Timeline(TODAY, checkins=[ck(9, 2)]), CFG) is None  # no consent, nothing expected
+    hits, evaluated = evaluate(Timeline(TODAY, targets={Side.LEFT: 110}), CFG)
+    assert hits == [] and {"rom_plateau:left", "rom_drop:left", "red_flag"} <= evaluated
+
+
 # ── API (rolled back) ───────────────────────────────────────────────────────
 
 
 @pytest.fixture
-def client():  # yields (TestClient, physio headers, clinic_patient id, patient headers)
+def client():  # yields (TestClient, physio headers, clinic_patient id, patient headers, db session)
     if os.getenv("PNX_INTEGRATION") != "1":
         pytest.skip("set PNX_INTEGRATION=1 to run")
     from fastapi.testclient import TestClient
@@ -108,7 +166,7 @@ def client():  # yields (TestClient, physio headers, clinic_patient id, patient 
     h = {"Authorization": f"Bearer {create_access_token(physio.id, physio.role.value)}", "X-Clinic-Id": str(clinic.id)}
     try:
         ph = {"Authorization": f"Bearer {create_access_token(patient_user.id, patient_user.role.value)}"}
-        yield TestClient(app), h, str(cp.id), ph
+        yield TestClient(app), h, str(cp.id), ph, db
     finally:
         app.dependency_overrides.pop(get_db, None)
         db.close()
@@ -117,7 +175,7 @@ def client():  # yields (TestClient, physio headers, clinic_patient id, patient 
 
 
 def test_twin_flow(client):
-    c, h, cp_id, _ = client
+    c, h, cp_id, _, _ = client
 
     # A TKA plan on the right knee, surgery 3 weeks ago.
     surgery = (date.today() - timedelta(days=21)).isoformat()
@@ -178,7 +236,7 @@ def test_twin_flow(client):
 
 
 def test_checkin_flow(client):
-    c, h, cp_id, ph = client
+    c, h, cp_id, ph, _ = client
     today = date.today().isoformat()
     answers = {"day": today, "pain": 4, "stiffness": 5, "swelling": "mild", "sleep": "ok", "exercises": "all"}
 
@@ -214,12 +272,92 @@ def test_checkin_flow(client):
     assert c.post("/me/checkins", headers=ph, json={**answers, "pain": 11}).status_code == 422
     assert c.post("/me/checkins", headers=ph, json={**answers, "day": (date.today() - timedelta(days=5)).isoformat()}).status_code == 400
 
-    # The clinic sees the check-in in the twin and on the red-flag feed.
+    # The clinic sees the check-in in the twin and a red flag in its flags inbox.
     twin = c.get(f"/clinic/patients/{cp_id}/twin", headers=h).json()
     assert len(twin["checkins"]) == 1 and twin["checkins"][0]["red_flags"] == ["fever", "chest_breathless"]
-    flags = c.get("/clinic/red-flags", headers=h).json()
-    assert flags[0]["clinic_patient_id"] == cp_id and [f["code"] for f in flags[0]["red_flags"]] == ["fever", "chest_breathless"]
+    red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
+    assert red["clinic_patient_id"] == cp_id and red["severity"] == "act" and red["evidence"]["red_flags"] == ["fever", "chest_breathless"]
 
     # Withdrawing consent stops new check-ins.
     assert c.delete("/me/consents/twin_tracking", headers=ph).status_code == 204
     assert c.post("/me/checkins", headers=ph, json=answers).status_code == 403
+
+
+def test_flag_flow(client):
+    from sqlalchemy import select
+
+    from app.models import CarePlan, Patient
+    from app.models.twin import FlagStatus, TwinFlag
+    from app.services.twin_rules import evaluate_all, evaluate_plan, local_today
+
+    c, h, cp_id, ph, db = client
+    today = local_today()
+    plan = c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Right TKA", "protocol": "tka", "affected_side": "right"}).json()
+    c.put(f"/clinic/care-plans/{plan['id']}/targets", headers=h, json=[{"code": "knee_flexion", "side": "right", "target_value": 120}])
+    version = c.get("/me/checkin", headers=ph).json()["consent"]["version"]
+    c.post("/me/consents", headers=ph, json={"purpose": "twin_tracking", "version": version})
+    pid = c.get("/me/checkin", headers=ph).json()["plan"]["care_plan_id"]
+
+    # A week of low pain (backdated), then 6 yesterday and 9 today.
+    patient_id = db.scalar(select(Patient.id).where(Patient.full_name == "PNX TEST Twin Patient"))
+    for d in range(9, 2, -1):
+        db.add(DailyCheckin(patient_id=patient_id, care_plan_id=uuid.UUID(pid), day=today - timedelta(days=d), pain=3, stiffness=3,
+                            swelling="mild", sleep="ok", exercises="all", red_flags=[], source="app"))
+    db.flush()
+    base = {"stiffness": 4, "swelling": "mild", "sleep": "ok", "exercises": "all"}
+    c.post("/me/checkins", headers=ph, json={**base, "day": (today - timedelta(days=1)).isoformat(), "pain": 6})
+    c.post("/me/checkins", headers=ph, json={**base, "day": today.isoformat(), "pain": 9})
+    flags = c.get("/clinic/flags", headers=h).json()
+    assert [(f["rule"], f["severity"]) for f in flags] == [("pain_high", "act"), ("pain_rising", "watch")]
+    assert flags[0]["summary"].startswith("9/10 reported")
+
+    # A red flag opens an act flag; a physio must close it, and the same day's report doesn't re-open it.
+    c.post("/me/checkins", headers=ph, json={**base, "day": today.isoformat(), "pain": 9, "red_flags": ["fever"]})
+    red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
+    assert c.post(f"/clinic/flags/{red['id']}/dismiss", headers=h, json={"note": ""}).status_code == 422  # needs a reason
+    r = c.post(f"/clinic/flags/{red['id']}/resolve", headers=h, json={"note": "Called patient, GP visit booked"})
+    assert r.json()["status"] == "resolved" and r.json()["resolved_by_name"] == "PNX TEST Physio"
+    assert c.post(f"/clinic/flags/{red['id']}/resolve", headers=h, json={}).status_code == 409
+    c.post("/me/checkins", headers=ph, json={**base, "day": today.isoformat(), "pain": 9, "red_flags": ["fever"]})
+    assert "red_flag" not in [f["rule"] for f in c.get("/clinic/flags", headers=h).json()]
+
+    # Dismissing quiets a condition flag while the condition persists.
+    rising = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "pain_rising")
+    c.post(f"/clinic/flags/{rising['id']}/dismiss", headers=h, json={"note": "Expected after manipulation under anaesthesia"})
+    c.post("/me/checkins", headers=ph, json={**base, "day": today.isoformat(), "pain": 9})
+    assert "pain_rising" not in [f["rule"] for f in c.get("/clinic/flags", headers=h).json()]
+
+    # Knee readings: a plateau below target, then a drop.
+    at = lambda d: (datetime.now(UTC) - timedelta(days=d)).isoformat()  # noqa: E731
+    for d, v in [(8, 80), (4, 81), (0, 82)]:
+        c.post(f"/clinic/patients/{cp_id}/measurements", headers=h, json=[{"code": "knee_flexion", "side": "right", "value": v, "measured_at": at(d)}])
+    assert "rom_plateau:right" in [f["rule"] for f in c.get("/clinic/flags", headers=h).json()]
+    c.post(f"/clinic/patients/{cp_id}/measurements", headers=h, json=[{"code": "knee_flexion", "side": "right", "value": 65}])
+    rules = {f["rule"]: f for f in c.get("/clinic/flags", headers=h).json()}
+    assert rules["rom_drop:right"]["severity"] == "act" and "rom_plateau:right" in rules
+
+    # Acknowledged flags stay active, listed after unseen ones.
+    c.post(f"/clinic/flags/{rules['pain_high']['id']}/acknowledge", headers=h)
+    flags = c.get("/clinic/flags", headers=h).json()
+    assert flags[-1]["rule"] == "pain_high" and flags[-1]["status"] == "acknowledged"
+
+    # The plateau no longer holds (65 broke it): it resolves itself after 3 clear days; the twin shows it closed.
+    plan_row = db.get(CarePlan, uuid.UUID(pid))
+    evaluate_plan(db, plan_row, today + timedelta(days=3))
+    db.flush()
+    plateau = db.scalar(select(TwinFlag).where(TwinFlag.rule == "rom_plateau:right", TwinFlag.care_plan_id == uuid.UUID(pid)))
+    assert plateau.status == FlagStatus.RESOLVED and plateau.resolved_by is None and "automatically" in plateau.resolution_note
+    twin = c.get(f"/clinic/patients/{cp_id}/twin", headers=h).json()
+    assert any(f["rule"] == "rom_plateau:right" and f["status"] == "resolved" for f in twin["flags"])
+    assert any(f["rule"] == "red_flag" and f["status"] == "resolved" for f in c.get("/clinic/flags", headers=h, params={"state": "closed"}).json())
+
+    # Daily cron evaluates active plans; ending the plan closes its flags.
+    assert evaluate_all(db, today)["plans_evaluated"] >= 1
+    c.post(f"/clinic/care-plans/{pid}/complete", headers=h)
+    evaluate_all(db, today)
+    db.flush()
+    assert c.get("/clinic/flags", headers=h).json() == []
+
+    # Other clinics can't touch flags.
+    other = {**h, "X-Clinic-Id": str(uuid.uuid4())}
+    assert c.post(f"/clinic/flags/{rules['rom_drop:right']['id']}/acknowledge", headers=other).status_code == 403

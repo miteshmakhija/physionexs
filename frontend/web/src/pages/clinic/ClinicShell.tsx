@@ -15,6 +15,7 @@ export default function ClinicShell() {
         { to: '/clinic/queue', label: 'Token queue' },
         { to: '/clinic/schedule', label: 'Schedule' },
         { to: '/clinic/patients', label: 'Patients' },
+        { to: '/clinic/flags', label: 'Flags' },
         ...(isClinician ? [{ to: '/clinic/hours', label: 'Profile & hours' }] : []),
         ...(isOwner
           ? [

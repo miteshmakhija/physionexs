@@ -27,6 +27,7 @@ from app.services.checkins import (
     red_flag_options,
     withdraw,
 )
+from app.services.twin_rules import evaluate_plan
 
 router = APIRouter(prefix="/me", tags=["checkins"])
 
@@ -132,6 +133,8 @@ def submit_checkin(
     if new_flags:
         notify_physio(db, plan, patient, new_flags)
     try:
+        db.flush()
+        evaluate_plan(db, plan)
         db.commit()
     except IntegrityError:
         db.rollback()

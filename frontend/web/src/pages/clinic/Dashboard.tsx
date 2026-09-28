@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { useClinic } from '@/auth/useClinic'
 import { Adherence } from '@/components/clinical'
 import { PageHeader } from '@/components/ConsoleLayout'
+import { FlagList } from '@/components/flags'
 import { Avatar, Button, cx, Loader, Select, Stat } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { payWithRazorpay } from '@/lib/razorpay'
@@ -18,7 +19,7 @@ function greeting(d = new Date()) {
 
 export default function Dashboard() {
   const { me } = useAuth()
-  const { clinicId, isOwner } = useClinic()
+  const { clinicId, isOwner, role } = useClinic()
   const [branchId, setBranchId] = useState('')
   const q = useQuery({
     queryKey: ['dashboard', branchId],
@@ -49,7 +50,7 @@ export default function Dashboard() {
       />
       {!d ? <Loader /> : (
         <div className={cx('space-y-8 transition-opacity', q.isFetching && 'opacity-70')}>
-          <RedFlags clinicId={clinicId} />
+          <FlagsCard clinicId={clinicId} canWrite={isOwner || role === 'physio'} />
           {isOwner && d.subscription?.due_soon && <SubscriptionBanner sub={d.subscription} clinicId={clinicId} />}
 
           <div className={cx('grid gap-3 sm:grid-cols-2', isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4')}>
@@ -176,25 +177,18 @@ function CheckIn({ clinicId }: { clinicId: string }) {
   return <Button variant="secondary" onClick={() => check.mutate()} loading={check.isPending}>Check in</Button>
 }
 
-/** Warning signs patients reported in daily check-ins (last 7 days). Shown only when there are any. */
-function RedFlags({ clinicId }: { clinicId: string }) {
-  const q = useQuery({ queryKey: ['red-flags'], queryFn: () => api<Schemas['RedFlagReportOut'][]>('/clinic/red-flags', { clinicId }), refetchInterval: 60_000 })
+/** Active flags from the recovery-twin rules. "Act" flags (red flags, high pain, knee bend dropping) come first. */
+function FlagsCard({ clinicId, canWrite }: { clinicId: string; canWrite: boolean }) {
+  const q = useQuery({ queryKey: ['flags', 'active'], queryFn: () => api<Schemas['FlagOut'][]>('/clinic/flags', { clinicId, query: { state: 'active' } }), refetchInterval: 60_000 })
   if (!q.data?.length) return null
+  const urgent = q.data.some((f) => f.severity === 'act' && f.status === 'open')
   return (
-    <section className="rounded-md border-2 border-danger p-5">
-      <h2 className="eyebrow !text-danger">Red flags reported · last 7 days</h2>
-      <p className="mt-1 text-[13px] text-muted">Patients were told to contact the clinic. Please follow up.</p>
-      <ul className="mt-3 divide-y divide-line">
-        {q.data.map((r) => (
-          <li key={`${r.clinic_patient_id}-${r.day}`}>
-            <Link to={`/clinic/patients/${r.clinic_patient_id}`} className="flex flex-wrap items-baseline gap-x-3 py-2.5 text-[14px] hover:bg-surface-2">
-              <span className="font-semibold">{r.patient_name}</span>
-              <span className="text-danger">{r.red_flags.map((f) => f.label).join(', ')}</span>
-              <span className="ml-auto text-[12.5px] text-muted">{dayLabel(r.day)} · pain {r.pain}/10</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <section className={cx('rounded-md border p-5', urgent ? 'border-2 border-danger' : 'border-line')}>
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className={cx('eyebrow', urgent && '!text-danger')}>Flags · {q.data.length} active</h2>
+        <Link to="/clinic/flags" className="eyebrow !text-ink hover:underline">Open inbox →</Link>
+      </div>
+      <FlagList flags={q.data.slice(0, 5)} clinicId={clinicId} canWrite={canWrite} />
     </section>
   )
 }

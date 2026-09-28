@@ -15,6 +15,11 @@ DEFAULT_SETTINGS: dict[str, dict] = {
     "pms_pricing": {"monthly_paise": 50_000, "yearly_paise": 500_000, "trial_days": 14, "commission_bps": 300},
     # Per-clinic overrides the Super Admin may set.
     "platform_fee": {"default_bps": 0, "allowed_bps": [0, 300, 500, 1000]},
+    # Digital twin flag thresholds (services/twin_rules.py). Starting points — to be confirmed by the clinical lead.
+    "twin_rules": {
+        "pain_rising_delta": 2, "pain_high": 8, "plateau_min_change_deg": 5, "plateau_min_span_days": 7,
+        "rom_drop_deg": 10, "missed_days": 3, "no_checkin_days": 3, "auto_resolve_days": 3,
+    },
 }
 
 

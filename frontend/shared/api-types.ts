@@ -1186,7 +1186,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/clinic/red-flags": {
+    "/clinic/flags": {
         parameters: {
             query?: never;
             header?: never;
@@ -1194,12 +1194,72 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Recent Red Flags
-         * @description Warning signs patients reported in their check-ins over the last 7 days, newest first.
+         * List Flags
+         * @description The clinic's flags inbox: active flags (unseen and most severe first), or the 100 most recently closed.
          */
-        get: operations["recent_red_flags_clinic_red_flags_get"];
+        get: operations["list_flags_clinic_flags_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/flags/{flag_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge Flag
+         * @description Seen, still active: it stays on the patient until it resolves.
+         */
+        post: operations["acknowledge_flag_clinic_flags__flag_id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/flags/{flag_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Flag
+         * @description Handled, e.g. called the patient. It won't re-open for the same episode.
+         */
+        post: operations["resolve_flag_clinic_flags__flag_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/flags/{flag_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Flag
+         * @description Not a concern: needs a one-line reason. It won't re-open for the same episode.
+         */
+        post: operations["dismiss_flag_clinic_flags__flag_id__dismiss_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3090,6 +3150,69 @@ export interface components {
          * @enum {string}
          */
         Feel: "easy" | "ok" | "hard";
+        /** FlagCloseIn */
+        FlagCloseIn: {
+            /** Note */
+            note?: string | null;
+        };
+        /** FlagDismissIn */
+        FlagDismissIn: {
+            /** Note */
+            note: string;
+        };
+        /** FlagOut */
+        FlagOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Clinic Patient Id
+             * Format: uuid
+             */
+            clinic_patient_id: string;
+            /** Patient Name */
+            patient_name: string;
+            /** Rule */
+            rule: string;
+            /** Rule Label */
+            rule_label: string;
+            severity: components["schemas"]["FlagSeverity"];
+            status: components["schemas"]["FlagStatus"];
+            /** Summary */
+            summary: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
+            last_seen_at: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Resolved By Name */
+            resolved_by_name: string | null;
+            /** Resolution Note */
+            resolution_note: string | null;
+        };
+        /**
+         * FlagSeverity
+         * @enum {string}
+         */
+        FlagSeverity: "info" | "watch" | "act";
+        /**
+         * FlagStatus
+         * @enum {string}
+         */
+        FlagStatus: "open" | "acknowledged" | "resolved" | "dismissed";
         /** ForgotPasswordIn */
         ForgotPasswordIn: {
             /** Identifier */
@@ -4162,25 +4285,6 @@ export interface components {
             /** Actions */
             actions: string[];
         };
-        /** RedFlagReportOut */
-        RedFlagReportOut: {
-            /**
-             * Clinic Patient Id
-             * Format: uuid
-             */
-            clinic_patient_id: string;
-            /** Patient Name */
-            patient_name: string;
-            /**
-             * Day
-             * Format: date
-             */
-            day: string;
-            /** Red Flags */
-            red_flags: components["schemas"]["OptionOut"][];
-            /** Pain */
-            pain: number;
-        };
         /** RefreshIn */
         RefreshIn: {
             /** Refresh Token */
@@ -4736,6 +4840,8 @@ export interface components {
             red_flag_labels?: {
                 [key: string]: string;
             };
+            /** Flags */
+            flags?: components["schemas"]["FlagOut"][];
         };
         /**
          * UserRole
@@ -7162,9 +7268,11 @@ export interface operations {
             };
         };
     };
-    recent_red_flags_clinic_red_flags_get: {
+    list_flags_clinic_flags_get: {
         parameters: {
-            query?: never;
+            query?: {
+                state?: "active" | "closed";
+            };
             header: {
                 "X-Clinic-Id": string;
             };
@@ -7179,7 +7287,114 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RedFlagReportOut"][];
+                    "application/json": components["schemas"]["FlagOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_flag_clinic_flags__flag_id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                flag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_flag_clinic_flags__flag_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                flag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagCloseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_flag_clinic_flags__flag_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                flag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagDismissIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagOut"];
                 };
             };
             /** @description Validation Error */
