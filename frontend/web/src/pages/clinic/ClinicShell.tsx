@@ -16,7 +16,7 @@ export default function ClinicShell() {
         { to: '/clinic/schedule', label: 'Schedule' },
         { to: '/clinic/patients', label: 'Patients' },
         { to: '/clinic/flags', label: 'Flags' },
-        ...(isClinician ? [{ to: '/clinic/hours', label: 'Profile & hours' }] : []),
+        ...(isClinician ? [{ to: '/clinic/hours', label: 'Profile & hours' }, { to: '/clinic/validation', label: 'Camera validation' }] : []),
         ...(isOwner
           ? [
               { to: '/clinic/billing', label: 'Billing' },

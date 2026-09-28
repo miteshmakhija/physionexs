@@ -10,6 +10,7 @@ import { AdminAnalytics, AdminDashboard, AdminSubscriptions } from '@/pages/admi
 import Security from '@/pages/Security'
 import Analytics from '@/pages/clinic/Analytics'
 import { BillingList, InvoiceView, NewInvoice } from '@/pages/clinic/Billing'
+import CameraMeasure from '@/pages/clinic/CameraMeasure'
 import CarePlanForm from '@/pages/clinic/CarePlanForm'
 import ClinicProfile from '@/pages/clinic/ClinicProfile'
 import Dashboard from '@/pages/clinic/Dashboard'
@@ -21,6 +22,7 @@ import PrescribeExercises from '@/pages/clinic/PrescribeExercises'
 import PrescribeMedicines from '@/pages/clinic/PrescribeMedicines'
 import PrescriptionView from '@/pages/clinic/PrescriptionView'
 import QueuePage from '@/pages/clinic/Queue'
+import Validation from '@/pages/clinic/Validation'
 import Staff, { MyLeave } from '@/pages/clinic/Staff'
 import CarePlan from '@/pages/patient/CarePlan'
 import Exercises from '@/pages/patient/Exercises'
@@ -80,9 +82,11 @@ const router = createBrowserRouter([
       { path: 'hours', element: <ProfileHours /> },
       { path: 'patients', element: <Patients /> },
       { path: 'flags', element: <Flags /> },
+      { path: 'validation', element: <Validation /> },
       { path: 'patients/:id', element: <PatientFile /> },
       { path: 'patients/:id/consult', element: <Consultation /> },
       { path: 'patients/:id/plan', element: <CarePlanForm /> },
+      { path: 'patients/:id/camera', element: <CameraMeasure /> },
       { path: 'patients/:id/exercises', element: <PrescribeExercises /> },
       { path: 'patients/:id/medicines', element: <PrescribeMedicines /> },
       { path: 'prescriptions/:id', element: <PrescriptionView /> },

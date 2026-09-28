@@ -774,6 +774,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/twin/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Twin Validation
+         * @description Camera-vs-goniometer agreement across all clinics, without patient names (design B1 acceptance).
+         */
+        get: operations["twin_validation_admin_twin_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/queue": {
         parameters: {
             query?: never;
@@ -1300,6 +1320,46 @@ export interface paths {
          * @description Decline the change. The flag stays open for the physio to handle.
          */
         post: operations["reject_suggestion_clinic_suggestions__suggestion_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}/camera-measurements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Camera Measurement
+         * @description Save a camera angle and the goniometer reading taken with it. Only the numbers arrive here; no video.
+         */
+        post: operations["record_camera_measurement_clinic_patients__cp_id__camera_measurements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clinic Validation
+         * @description This clinic's camera-vs-goniometer pairs and agreement.
+         */
+        get: operations["clinic_validation_clinic_validation_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2181,6 +2241,32 @@ export interface components {
          * @enum {string}
          */
         AffectedSide: "left" | "right" | "both";
+        /**
+         * AgreementOut
+         * @description Bland–Altman agreement, camera − goniometer, in degrees.
+         */
+        AgreementOut: {
+            /** Code */
+            code: string;
+            /** Posture */
+            posture: string;
+            /** N */
+            n: number;
+            /** Patients */
+            patients: number;
+            /** Bias */
+            bias: number | null;
+            /** Sd */
+            sd: number | null;
+            /** Lower */
+            lower: number | null;
+            /** Upper */
+            upper: number | null;
+            /** Bias 3D */
+            bias_3d: number | null;
+            /** Sd 3D */
+            sd_3d: number | null;
+        };
         /** AnalyticsOut */
         AnalyticsOut: {
             /** Days */
@@ -2564,6 +2650,61 @@ export interface components {
             patients: number;
             /** Revenue Week Paise */
             revenue_week_paise: number | null;
+        };
+        /**
+         * CameraMeasurementIn
+         * @description A camera angle captured in clinic, with the goniometer reading taken at the same moment.
+         */
+        CameraMeasurementIn: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "knee_flexion" | "knee_extension_lag";
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "left" | "right";
+            /**
+             * Posture
+             * @enum {string}
+             */
+            posture: "supine" | "seated" | "standing";
+            /** Camera Value */
+            camera_value: number;
+            /** Camera Value 3D */
+            camera_value_3d?: number | null;
+            /** Confidence */
+            confidence: number;
+            /** Frames */
+            frames: number;
+            /** Spread */
+            spread: number;
+            /** Fps */
+            fps?: number | null;
+            /** Model */
+            model: string;
+            /** Goniometer Value */
+            goniometer_value: number;
+            /** Lighting */
+            lighting?: ("good" | "dim" | "mixed") | null;
+            /** Clothing */
+            clothing?: ("shorts" | "fitted" | "loose") | null;
+            /** Note */
+            note?: string | null;
+            /**
+             * Patient Consented
+             * @constant
+             */
+            patient_consented: true;
+        };
+        /** CameraMeasurementOut */
+        CameraMeasurementOut: {
+            camera: components["schemas"]["MeasurementOut"];
+            goniometer: components["schemas"]["MeasurementOut"];
+            /** Difference */
+            difference: number;
         };
         /** CarePlanIn */
         CarePlanIn: {
@@ -4999,6 +5140,55 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** ValidationOut */
+        ValidationOut: {
+            /** Summary */
+            summary: components["schemas"]["AgreementOut"][];
+            /** Pairs */
+            pairs: components["schemas"]["ValidationPairOut"][];
+        };
+        /** ValidationPairOut */
+        ValidationPairOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Patient Name */
+            patient_name: string | null;
+            /** Code */
+            code: string;
+            side: components["schemas"]["Side"];
+            /** Posture */
+            posture: string;
+            /** Camera Value */
+            camera_value: number;
+            /** Camera Value 3D */
+            camera_value_3d: number | null;
+            /** Reference Value */
+            reference_value: number;
+            /** Confidence */
+            confidence: number;
+            /** Frames */
+            frames: number;
+            /** Spread */
+            spread: number;
+            /** Fps */
+            fps: number | null;
+            /** Model */
+            model: string;
+            /** Lighting */
+            lighting: string | null;
+            /** Clothing */
+            clothing: string | null;
+            /** Note */
+            note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** VerificationItem */
         VerificationItem: {
             /**
@@ -6505,6 +6695,26 @@ export interface operations {
             };
         };
     };
+    twin_validation_admin_twin_validation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationOut"];
+                };
+            };
+        };
+    };
     get_queue_clinic_queue_get: {
         parameters: {
             query: {
@@ -7607,6 +7817,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuggestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_camera_measurement_clinic_patients__cp_id__camera_measurements_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraMeasurementIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraMeasurementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clinic_validation_clinic_validation_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationOut"];
                 };
             };
             /** @description Validation Error */

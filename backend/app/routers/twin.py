@@ -15,8 +15,21 @@ from app.core.deps import DB, CurrentUser, require_clinic_member
 from app.models.clinic import ClinicMember, MembershipRole
 from app.models.clinical import Consultation
 from app.models.patient import ClinicPatient
-from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, FlagStatus, Measurement, MeasurementSource, PlanSuggestion, SuggestionStatus, TwinFlag
+from app.models.twin import (
+    ACTIVE_FLAG_STATUSES,
+    CarePlanTarget,
+    FlagStatus,
+    Measurement,
+    MeasurementSource,
+    PlanSuggestion,
+    Side,
+    SuggestionStatus,
+    TwinFlag,
+    ValidationPair,
+)
 from app.schemas.twin import (
+    CameraMeasurementIn,
+    CameraMeasurementOut,
     FlagCloseIn,
     FlagDismissIn,
     FlagOut,
@@ -29,8 +42,10 @@ from app.schemas.twin import (
     TargetIn,
     TargetOut,
     TwinOut,
+    ValidationOut,
 )
 from app.services import audit
+from app.services.camera import CAMERA_METHOD, is_camera, validation_out
 from app.services.clinical import care_plan_or_404, clinic_patient_or_404, targets_out
 from app.services.twin import check, flag_out, is_plausible, last_trusted, measured_at_or_now, measurement_out, twin_out, user_names
 from app.services.suggestions import InvalidChange, StaleSuggestion, approve, expire_for_flag, reject, suggestion_out
@@ -98,6 +113,8 @@ def record_measurements(
 @router.patch("/measurements/{measurement_id}", response_model=MeasurementOut)
 def confirm_measurement(measurement_id: uuid.UUID, body: MeasurementUpdate, member: Clinician, user: CurrentUser, db: DB, request: Request) -> MeasurementOut:
     m = _measurement_or_404(db, member.clinic_id, measurement_id)
+    if is_camera(m):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Camera readings can't be used clinically until camera accuracy has been validated")
     m.trusted = body.trusted
     audit.record(db, action="confirm", entity="measurement", entity_id=m.id, actor_user_id=user.id, clinic_id=member.clinic_id, request=request)
     db.flush()
@@ -239,3 +256,50 @@ def reject_suggestion(suggestion_id: uuid.UUID, body: SuggestionRejectIn, member
                  summary=f"{s.title}: {body.note or '-'}"[:200], request=request)
     db.commit()
     return suggestion_out(db, s)
+
+
+# ── Camera validation (design B1) ───────────────────────────────────────────
+
+
+@router.post("/patients/{cp_id}/camera-measurements", response_model=CameraMeasurementOut, status_code=status.HTTP_201_CREATED)
+def record_camera_measurement(cp_id: uuid.UUID, body: CameraMeasurementIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CameraMeasurementOut:
+    """Save a camera angle and the goniometer reading taken with it. Only the numbers arrive here; no video."""
+    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    side = Side(body.side)
+    spec = check(body.code, side, body.goniometer_value)
+    check(body.code, side, body.camera_value)
+    plan = active_plan_for(db, cp.id)
+    now = datetime.now(UTC)
+    common = dict(patient_id=cp.patient_id, clinic_patient_id=cp.id, care_plan_id=plan.id if plan else None, code=body.code, side=side,
+                  unit=spec.unit, measured_at=now, recorded_by=user.id)
+    camera = Measurement(**common, value=body.camera_value, source=MeasurementSource.CAMERA, method=CAMERA_METHOD, trusted=False,
+                         confidence=body.confidence, note=f"Camera estimate ({body.posture}) — not validated")
+    prev = last_trusted(db, cp.id, body.code, side, now)
+    gonio = Measurement(**common, value=body.goniometer_value, source=MeasurementSource.CLINIC, method="goniometer",
+                        trusted=is_plausible(spec, body.goniometer_value, float(prev.value) if prev else None), note=body.note)
+    db.add_all([camera, gonio])
+    db.flush()
+    db.add(ValidationPair(
+        clinic_patient_id=cp.id, camera_measurement_id=camera.id, reference_measurement_id=gonio.id, code=body.code, side=side,
+        posture=body.posture, camera_value=body.camera_value, camera_value_3d=body.camera_value_3d, reference_value=body.goniometer_value,
+        confidence=body.confidence, frames=body.frames, spread=body.spread, fps=body.fps, model=body.model,
+        device=(request.headers.get("user-agent") or "")[:200] or None, lighting=body.lighting, clothing=body.clothing, note=body.note,
+        recorded_by=user.id,
+    ))
+    audit.record(db, action="create", entity="camera_measurement", entity_id=cp.id, actor_user_id=user.id, clinic_id=member.clinic_id,
+                 summary=f"{body.code} {body.side} camera {body.camera_value:g} vs goniometer {body.goniometer_value:g} (patient consented)", request=request)
+    evaluate_plan(db, plan)
+    db.commit()
+    names = user_names(db, [camera, gonio])
+    return CameraMeasurementOut(camera=measurement_out(camera, names), goniometer=measurement_out(gonio, names),
+                                difference=round(body.camera_value - body.goniometer_value, 1))
+
+
+@router.get("/validation", response_model=ValidationOut)
+def clinic_validation(member: Member, db: DB) -> ValidationOut:
+    """This clinic's camera-vs-goniometer pairs and agreement."""
+    pairs = list(db.scalars(
+        select(ValidationPair).join(ClinicPatient, ClinicPatient.id == ValidationPair.clinic_patient_id)
+        .where(ClinicPatient.clinic_id == member.clinic_id).order_by(ValidationPair.created_at.desc())
+    ))
+    return validation_out(db, pairs, with_names=True)

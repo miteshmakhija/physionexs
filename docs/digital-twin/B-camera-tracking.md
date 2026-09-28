@@ -114,8 +114,8 @@ down may be worse. B0 tests this first. If it fails, we use a seated knee-bend v
 
 | # | Deliverable | Size |
 |---|---|---|
-| B0 | Spike: one exercise (heel slide + seated variant) in the browser; measure speed on low-end Android + iPhone; check lying-down accuracy informally | S |
-| B1 | Clinic validation mode, `validation_pairs`, Bland–Altman export | M |
+| B0 ◐ | Spike: one exercise (heel slide + seated variant) in the browser; measure speed on low-end Android + iPhone; check lying-down accuracy informally. **Done on a laptop (see results below); phones and lying-down accuracy still to test** | S |
+| B1 ✅ | Clinic validation mode, `validation_pairs`, Bland–Altman export | M |
 | B2a | Patient web tracking behind a per-clinic feature flag | M |
 | B2b | Mobile (native or WebView, whichever wins the spike) + EAS build | M–L |
 
@@ -124,3 +124,33 @@ down may be worse. B0 tests this first. If it fails, we use a seated knee-bend v
 1. The acceptance rule (±X°) and who signs it off.
 2. Which clinic(s) will collect validation pairs.
 3. The legal review before B2.
+
+## B0 spike results (2026-09-28)
+
+Run in headless Chrome on the development laptop, with MediaPipe's sample photo (warrior II pose, front view) as the camera:
+
+| | Right knee (bent) | Left knee (straight) |
+|---|---|---|
+| 2D angle | 74° | 5° |
+| 3D (world landmarks) angle | 82° | 25° |
+| Frames passing the quality gate | 100% | 100% |
+| Speed | 29 frames/s (GPU) | 31 frames/s (GPU) |
+| First load (model ~9 MB + WASM) | ~21 s | ~20 s |
+
+- The pipeline works end to end: model download → pose → quality gate → angle → capture → saved pair.
+- The photo is front-on, so these are plausibility checks, not accuracy: a front view flattens knee flexion, which is
+  why set-up asks for a side-on camera. 3D angles differ noticeably from 2D; B1 logs both to find out which agrees
+  better with the goniometer.
+- **Still to do:** the ≥15 frames/s check on a ₹10–15k Android phone and an iPhone, and lying-down (heel slide)
+  accuracy, which needs real people. First load is slow on a cold cache; it's cached afterwards.
+
+## What B1 built
+
+- Console → patient file → **Measure with camera (validation)**: consent checkbox, set-up guidance, live angle and
+  overlay, quality messages, frame rate; **Capture** takes the median of the last second of good frames and warns if
+  the patient wasn't holding still; the physio enters the goniometer reading, light and clothing, and saves the pair.
+- Camera readings are stored as `camera_v1` measurements with `trusted = false`: excluded from targets, trends and
+  flag rules, labelled "camera estimate, not validated", and they can't be confirmed (409).
+- **Camera validation** page: agreement per measure and position (bias, 95% limits, 3D bias), Bland–Altman plot,
+  pair list, CSV export without patient names. Super Admin: `GET /admin/twin/validation` across clinics, no names.
+- Engine and model load from jsDelivr and Google's model bucket, version-pinned; frames never leave the browser.

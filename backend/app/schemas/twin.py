@@ -241,3 +241,69 @@ class TwinOut(BaseModel):
     checkins: list[CheckinOut] = Field(default_factory=list)  # last 30 days, newest first
     red_flag_labels: dict[str, str] = Field(default_factory=dict)
     flags: list[FlagOut] = Field(default_factory=list)  # active, plus closed in the last 30 days
+
+
+class CameraMeasurementIn(BaseModel):
+    """A camera angle captured in clinic, with the goniometer reading taken at the same moment."""
+
+    code: Literal["knee_flexion", "knee_extension_lag"]
+    side: Literal["left", "right"]
+    posture: Literal["supine", "seated", "standing"]
+    camera_value: Annotated[float, Field(ge=-30, le=200)]
+    camera_value_3d: Annotated[float, Field(ge=-30, le=200)] | None = None
+    confidence: Annotated[float, Field(ge=0, le=1)]
+    frames: Annotated[int, Field(ge=1, le=10000)]
+    spread: Annotated[float, Field(ge=0, le=200)]
+    fps: Annotated[float, Field(ge=0, le=240)] | None = None
+    model: Annotated[str, Field(min_length=2, max_length=60)]
+    goniometer_value: Value
+    lighting: Literal["good", "dim", "mixed"] | None = None
+    clothing: Literal["shorts", "fitted", "loose"] | None = None
+    note: Annotated[str, Field(max_length=500)] | None = None
+    patient_consented: Literal[True]  # the physio confirms the patient agreed to camera measurement
+
+
+class ValidationPairOut(BaseModel):
+    id: uuid.UUID
+    patient_name: str | None  # omitted in the Physionexs-wide view
+    code: str
+    side: Side
+    posture: str
+    camera_value: float
+    camera_value_3d: float | None
+    reference_value: float
+    confidence: float
+    frames: int
+    spread: float
+    fps: float | None
+    model: str
+    lighting: str | None
+    clothing: str | None
+    note: str | None
+    created_at: datetime
+
+
+class AgreementOut(BaseModel):
+    """Bland–Altman agreement, camera − goniometer, in degrees."""
+
+    code: str
+    posture: str
+    n: int
+    patients: int
+    bias: float | None
+    sd: float | None
+    lower: float | None  # 95% limits of agreement
+    upper: float | None
+    bias_3d: float | None
+    sd_3d: float | None
+
+
+class ValidationOut(BaseModel):
+    summary: list[AgreementOut]
+    pairs: list[ValidationPairOut]
+
+
+class CameraMeasurementOut(BaseModel):
+    camera: MeasurementOut
+    goniometer: MeasurementOut
+    difference: float  # camera − goniometer

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { MeasureTrend } from '@/components/charts'
 import { FlagList } from '@/components/flags'
@@ -13,6 +14,7 @@ type Measure = Schemas['TwinMeasureOut']
 type Reading = Schemas['MeasurementOut']
 
 const SIDE: Record<string, string> = { left: 'Left', right: 'Right', none: '' }
+const isCamera = (r: Reading) => r.method === 'camera_v1' // unvalidated estimates (design B1)
 
 function fmtValue(v: number, unit: string) {
   return unit === 'deg' ? `${v}°` : unit === 'score' ? `${v}/10` : `${v} ${unit}`
@@ -28,7 +30,8 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
   if (!q.data) return null
   const t = q.data
   const knees = t.measures.filter((m) => m.code === 'knee_flexion')
-  const trends = t.measures.filter((m) => t.measurements.some((r) => r.code === m.code && r.side === m.side))
+  const clinical = t.measurements.filter((r) => !isCamera(r))
+  const trends = t.measures.filter((m) => clinical.some((r) => r.code === m.code && r.side === m.side))
 
   return (
     <section className="mt-8 border-t border-line pt-6">
@@ -65,7 +68,7 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
                   lo={code.min}
                   hi={code.max}
                   target={m.target}
-                  points={t.measurements.filter((r) => r.code === m.code && r.side === m.side).map((r) => ({ at: r.measured_at, value: r.value, trusted: r.trusted }))}
+                  points={clinical.filter((r) => r.code === m.code && r.side === m.side).map((r) => ({ at: r.measured_at, value: r.value, trusted: r.trusted }))}
                 />
               </div>
             )
@@ -76,6 +79,9 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
       <Checkins twin={t} />
 
       {canWrite && <AddReading twin={t} cpId={cpId} clinicId={clinicId} />}
+      {canWrite && t.protocol && (
+        <Link to={`/clinic/patients/${cpId}/camera`} className="eyebrow mt-3 inline-block !text-ink hover:underline">Measure with camera (validation) →</Link>
+      )}
       <Readings twin={t} cpId={cpId} canWrite={canWrite} clinicId={clinicId} />
     </section>
   )
@@ -212,13 +218,13 @@ function Readings({ twin, cpId, canWrite, clinicId }: { twin: Twin; cpId: string
         </thead>
         <tbody className="divide-y divide-line tabular-nums">
           {rows.map((r) => (
-            <tr key={r.id} className={cx(!r.trusted && 'bg-amber-tint/50')}>
+            <tr key={r.id} className={cx(!r.trusted && !isCamera(r) && 'bg-amber-tint/50')}>
               <td className="py-1.5">{dayLabel(r.measured_at)}</td>
               <td>{measureName(r)}</td>
-              <td className={cx(!r.trusted && 'text-muted')}>{fmtValue(r.value, r.unit)}<span className="text-muted"> · {r.method.replace('_', ' ')}</span></td>
+              <td className={cx(!r.trusted && 'text-muted')}>{fmtValue(r.value, r.unit)}<span className="text-muted"> · {isCamera(r) ? 'camera estimate, not validated' : r.method.replace('_', ' ')}</span></td>
               <td className="text-muted">{r.recorded_by_name ?? '—'}</td>
               <td className="text-right">
-                {!r.trusted && (
+                {!r.trusted && !isCamera(r) && (
                   <span className="text-[12.5px]">
                     <span className="text-amber">Big jump — held. </span>
                     {canWrite && (

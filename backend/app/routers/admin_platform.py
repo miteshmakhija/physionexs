@@ -19,6 +19,7 @@ from app.models.exercise import Exercise
 from app.models.patient import ClinicPatient, Patient
 from app.models.platform import AuditLog, PlatformSetting
 from app.models.scheduling import Appointment, AppointmentStatus
+from app.models.twin import ValidationPair
 from app.models.user import RefreshToken, User, UserRole
 from app.schemas.admin import (
     SETTINGS_MODELS,
@@ -39,7 +40,9 @@ from app.schemas.admin import (
     SubscriptionRow,
     SubscriptionUpdate,
 )
+from app.schemas.twin import ValidationOut
 from app.services import audit
+from app.services.camera import validation_out
 from app.services.reviews import recompute_rating
 from app.services.settings import get_setting
 
@@ -452,3 +455,9 @@ def record_action(key: str, record_id: uuid.UUID, body: RecordAction, admin: Adm
     audit.record(db, action=body.action, entity=key.rstrip("s"), entity_id=record_id, actor_user_id=admin.id, summary=summary, request=request)
     db.commit()
     return {"ok": True, "summary": summary}
+
+
+@router.get("/twin/validation", response_model=ValidationOut)
+def twin_validation(admin: AdminUser, db: DB) -> ValidationOut:
+    """Camera-vs-goniometer agreement across all clinics, without patient names (design B1 acceptance)."""
+    return validation_out(db, list(db.scalars(select(ValidationPair).order_by(ValidationPair.created_at.desc()))), with_names=False)

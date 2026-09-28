@@ -196,3 +196,33 @@ class PlanSuggestion(UUIDPk, Timestamps, Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decision_note: Mapped[str | None] = mapped_column(Text)
     applied_changes: Mapped[list | None] = mapped_column(JSONB)  # what was applied, if the physio edited it
+
+
+class ValidationPair(UUIDPk, Base):
+    """A camera reading and a goniometer reading of the same movement, taken together (design B1).
+
+    These decide whether camera angles are accurate enough to use clinically (Bland–Altman agreement).
+    """
+
+    __tablename__ = "validation_pairs"
+
+    clinic_patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_patients.id", ondelete="CASCADE"), index=True)
+    camera_measurement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("measurements.id", ondelete="CASCADE"))
+    reference_measurement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("measurements.id", ondelete="CASCADE"))
+    code: Mapped[str] = mapped_column(String(40))
+    side: Mapped[Side] = mapped_column(str_enum(Side))
+    posture: Mapped[str] = mapped_column(String(20))  # supine, seated, standing
+    camera_value: Mapped[Decimal] = mapped_column(Numeric(6, 1))
+    camera_value_3d: Mapped[Decimal | None] = mapped_column(Numeric(6, 1))  # from 3D world landmarks, for comparison
+    reference_value: Mapped[Decimal] = mapped_column(Numeric(6, 1))  # goniometer
+    confidence: Mapped[Decimal] = mapped_column(Numeric(3, 2))
+    frames: Mapped[int] = mapped_column(SmallInteger)
+    spread: Mapped[Decimal] = mapped_column(Numeric(5, 1))
+    fps: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    model: Mapped[str] = mapped_column(String(60))
+    device: Mapped[str | None] = mapped_column(String(200))  # browser user agent
+    lighting: Mapped[str | None] = mapped_column(String(20))
+    clothing: Mapped[str | None] = mapped_column(String(20))
+    note: Mapped[str | None] = mapped_column(Text)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

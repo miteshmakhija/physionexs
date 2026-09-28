@@ -454,3 +454,49 @@ def test_suggestion_flow(client):
     db.flush()
     red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
     assert red["status"] == "open" and red["suggestion"] is None  # not re-proposed for the same occurrence
+
+
+def test_camera_validation_flow(client):
+    from app.core.security import create_access_token
+    from app.models import User
+    from app.models.user import UserRole
+
+    c, h, cp_id, _, db = client
+    c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Right TKA", "protocol": "tka", "affected_side": "right"})
+    base = {"code": "knee_flexion", "side": "right", "posture": "supine", "confidence": 0.93, "frames": 28, "spread": 2.1, "fps": 24.5,
+            "model": "mediapipe-pose-full-f16-v1", "lighting": "good", "clothing": "shorts", "patient_consented": True}
+
+    # Pairs: camera saved as an unvalidated estimate, goniometer as a normal clinic reading.
+    r = c.post(f"/clinic/patients/{cp_id}/camera-measurements", headers=h, json={**base, "camera_value": 92.0, "camera_value_3d": 95.0, "goniometer_value": 90})
+    assert r.status_code == 201, r.text
+    out = r.json()
+    assert out["difference"] == 2.0
+    assert (out["camera"]["source"], out["camera"]["method"], out["camera"]["trusted"], out["camera"]["confidence"]) == ("camera", "camera_v1", False, 0.93)
+    assert (out["goniometer"]["source"], out["goniometer"]["trusted"]) == ("clinic", True)
+    for cam, gon in [(84.5, 86), (101.0, 98)]:
+        c.post(f"/clinic/patients/{cp_id}/camera-measurements", headers=h, json={**base, "camera_value": cam, "goniometer_value": gon})
+
+    # Camera readings never become clinical data, and the twin uses the goniometer.
+    assert c.patch(f"/clinic/measurements/{out['camera']['id']}", headers=h, json={"trusted": True}).status_code == 409
+    flex = next(m for m in c.get(f"/clinic/patients/{cp_id}/twin", headers=h).json()["measures"] if m["code"] == "knee_flexion")
+    assert flex["latest"]["method"] == "goniometer" and flex["latest"]["value"] == 98
+
+    # Consent is required; impossible angles are refused.
+    assert c.post(f"/clinic/patients/{cp_id}/camera-measurements", headers=h, json={**base, "patient_consented": False, "camera_value": 90, "goniometer_value": 90}).status_code == 422
+    assert c.post(f"/clinic/patients/{cp_id}/camera-measurements", headers=h, json={**base, "camera_value": 175, "goniometer_value": 90}).status_code == 422
+
+    # Agreement: differences +2, −1.5, +3 → bias 1.2, SD 2.36, limits −3.5 … 5.8.
+    v = c.get("/clinic/validation", headers=h).json()
+    s = v["summary"][0]
+    assert (s["code"], s["posture"], s["n"], s["patients"], s["bias"], s["sd"], s["lower"], s["upper"]) == ("knee_flexion", "supine", 3, 1, 1.2, 2.4, -3.5, 5.8)
+    assert s["bias_3d"] is None  # only one pair has a 3D value
+    assert len(v["pairs"]) == 3 and v["pairs"][0]["patient_name"] == "PNX TEST Twin Patient"
+
+    # Physionexs-wide view for the Super Admin, without patient names.
+    admin = User(full_name="PNX TEST Admin", email=f"pnx-twin-admin-{uuid.uuid4().hex[:8]}@test.physionexs.com", role=UserRole.SUPER_ADMIN, totp_enabled=True)
+    db.add(admin)
+    db.flush()
+    ah = {"Authorization": f"Bearer {create_access_token(admin.id, admin.role.value)}"}
+    allv = c.get("/admin/twin/validation", headers=ah).json()
+    assert any(p["id"] == v["pairs"][0]["id"] and p["patient_name"] is None for p in allv["pairs"])
+    assert c.get("/admin/twin/validation", headers=h).status_code == 403

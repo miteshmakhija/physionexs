@@ -2419,6 +2419,33 @@
         }
       }
     },
+    "/admin/twin/validation": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Twin Validation",
+        "description": "Camera-vs-goniometer agreement across all clinics, without patient names (design B1 acceptance).",
+        "operationId": "twin_validation_admin_twin_validation_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/clinic/queue": {
       "get": {
         "tags": [
@@ -4472,6 +4499,124 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SuggestionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/patients/{cp_id}/camera-measurements": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Record Camera Measurement",
+        "description": "Save a camera angle and the goniometer reading taken with it. Only the numbers arrive here; no video.",
+        "operationId": "record_camera_measurement_clinic_patients__cp_id__camera_measurements_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cp_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cp Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraMeasurementIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraMeasurementOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/validation": {
+      "get": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Clinic Validation",
+        "description": "This clinic's camera-vs-goniometer pairs and agreement.",
+        "operationId": "clinic_validation_clinic_validation_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationOut"
                 }
               }
             }
@@ -7862,6 +8007,107 @@
         ],
         "title": "AffectedSide"
       },
+      "AgreementOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "posture": {
+            "type": "string",
+            "title": "Posture"
+          },
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "patients": {
+            "type": "integer",
+            "title": "Patients"
+          },
+          "bias": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias"
+          },
+          "sd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sd"
+          },
+          "lower": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lower"
+          },
+          "upper": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upper"
+          },
+          "bias_3d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias 3D"
+          },
+          "sd_3d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sd 3D"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "posture",
+          "n",
+          "patients",
+          "bias",
+          "sd",
+          "lower",
+          "upper",
+          "bias_3d",
+          "sd_3d"
+        ],
+        "title": "AgreementOut",
+        "description": "Bland\u2013Altman agreement, camera \u2212 goniometer, in degrees."
+      },
       "AnalyticsOut": {
         "properties": {
           "days": {
@@ -9021,6 +9267,182 @@
           "revenue_week_paise"
         ],
         "title": "BranchStat"
+      },
+      "CameraMeasurementIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "knee_flexion",
+              "knee_extension_lag"
+            ],
+            "title": "Code"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "left",
+              "right"
+            ],
+            "title": "Side"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "supine",
+              "seated",
+              "standing"
+            ],
+            "title": "Posture"
+          },
+          "camera_value": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": -30.0,
+            "title": "Camera Value"
+          },
+          "camera_value_3d": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 200.0,
+                "minimum": -30.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Camera Value 3D"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "frames": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Frames"
+          },
+          "spread": {
+            "type": "number",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Spread"
+          },
+          "fps": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 240.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fps"
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "Model"
+          },
+          "goniometer_value": {
+            "type": "number",
+            "maximum": 9999.0,
+            "minimum": -999.0,
+            "title": "Goniometer Value"
+          },
+          "lighting": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "good",
+                  "dim",
+                  "mixed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lighting"
+          },
+          "clothing": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "shorts",
+                  "fitted",
+                  "loose"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clothing"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "patient_consented": {
+            "type": "boolean",
+            "const": true,
+            "title": "Patient Consented"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "side",
+          "posture",
+          "camera_value",
+          "confidence",
+          "frames",
+          "spread",
+          "model",
+          "goniometer_value",
+          "patient_consented"
+        ],
+        "title": "CameraMeasurementIn",
+        "description": "A camera angle captured in clinic, with the goniometer reading taken at the same moment."
+      },
+      "CameraMeasurementOut": {
+        "properties": {
+          "camera": {
+            "$ref": "#/components/schemas/MeasurementOut"
+          },
+          "goniometer": {
+            "$ref": "#/components/schemas/MeasurementOut"
+          },
+          "difference": {
+            "type": "number",
+            "title": "Difference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "camera",
+          "goniometer",
+          "difference"
+        ],
+        "title": "CameraMeasurementOut"
       },
       "CarePlanIn": {
         "properties": {
@@ -16643,6 +17065,166 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "ValidationOut": {
+        "properties": {
+          "summary": {
+            "items": {
+              "$ref": "#/components/schemas/AgreementOut"
+            },
+            "type": "array",
+            "title": "Summary"
+          },
+          "pairs": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationPairOut"
+            },
+            "type": "array",
+            "title": "Pairs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "pairs"
+        ],
+        "title": "ValidationOut"
+      },
+      "ValidationPairOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "patient_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Name"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "posture": {
+            "type": "string",
+            "title": "Posture"
+          },
+          "camera_value": {
+            "type": "number",
+            "title": "Camera Value"
+          },
+          "camera_value_3d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Camera Value 3D"
+          },
+          "reference_value": {
+            "type": "number",
+            "title": "Reference Value"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "frames": {
+            "type": "integer",
+            "title": "Frames"
+          },
+          "spread": {
+            "type": "number",
+            "title": "Spread"
+          },
+          "fps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fps"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "lighting": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lighting"
+          },
+          "clothing": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clothing"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "patient_name",
+          "code",
+          "side",
+          "posture",
+          "camera_value",
+          "camera_value_3d",
+          "reference_value",
+          "confidence",
+          "frames",
+          "spread",
+          "fps",
+          "model",
+          "lighting",
+          "clothing",
+          "note",
+          "created_at"
+        ],
+        "title": "ValidationPairOut"
       },
       "VerificationItem": {
         "properties": {
