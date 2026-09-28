@@ -157,7 +157,7 @@ def client():  # yields (TestClient, physio headers, clinic_patient id, patient 
     physio = User(full_name="PNX TEST Physio", email=f"pnx-twin-{tag}@test.physionexs.com", role=UserRole.PHYSIO)
     db.add(physio)
     db.flush()
-    clinic = Clinic(name="PNX TEST Twin Clinic", slug=f"pnx-twin-{tag}", owner_user_id=physio.id)
+    clinic = Clinic(name="PNX TEST Twin Clinic", slug=f"pnx-twin-{tag}", owner_user_id=physio.id, twin_pilot=True)
     db.add(clinic)
     db.flush()
     db.add(ClinicMember(clinic_id=clinic.id, user_id=physio.id, role=MembershipRole.OWNER))
@@ -500,3 +500,41 @@ def test_camera_validation_flow(client):
     allv = c.get("/admin/twin/validation", headers=ah).json()
     assert any(p["id"] == v["pairs"][0]["id"] and p["patient_name"] is None for p in allv["pairs"])
     assert c.get("/admin/twin/validation", headers=h).status_code == 403
+
+
+def test_pilot_switch(client):
+    from app.core.security import create_access_token
+    from app.models import Clinic, User
+    from app.models.user import UserRole
+
+    c, h, cp_id, ph, db = client
+    clinic = db.get(Clinic, uuid.UUID(h["X-Clinic-Id"]))
+    plan = c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Right TKA", "protocol": "tka", "affected_side": "right"}).json()
+    version = c.get("/me/checkin", headers=ph).json()["consent"]["version"]
+    c.post("/me/consents", headers=ph, json={"purpose": "twin_tracking", "version": version})
+
+    # Super Admin switches the pilot off for this clinic (audited action in Records → Clinics).
+    admin = User(full_name="PNX TEST Admin", email=f"pnx-twin-admin-{uuid.uuid4().hex[:8]}@test.physionexs.com", role=UserRole.SUPER_ADMIN, totp_enabled=True)
+    db.add(admin)
+    db.flush()
+    ah = {"Authorization": f"Bearer {create_access_token(admin.id, admin.role.value)}"}
+    assert c.post(f"/admin/records/clinics/{clinic.id}/action", headers=ah, json={"action": "pilot_off"}).status_code == 200
+    db.refresh(clinic)
+    assert clinic.twin_pilot is False
+
+    # Everything recovery-twin is refused or hidden for the clinic and its patients.
+    assert c.get(f"/clinic/patients/{cp_id}/twin", headers=h).status_code == 403
+    assert c.get("/clinic/flags", headers=h).status_code == 403
+    assert c.get("/clinic/validation", headers=h).status_code == 403
+    assert c.post(f"/clinic/patients/{cp_id}/measurements", headers=h, json=[{"code": "knee_flexion", "side": "right", "value": 90}]).status_code == 403
+    assert c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Left TKA", "protocol": "tka"}).status_code == 403
+    assert c.put(f"/clinic/care-plans/{plan['id']}", headers=h, json={"condition": "Right TKA", "goal": "Stairs"}).status_code == 200  # other edits still work
+    assert c.get("/me/checkin", headers=ph).json()["eligible"] is False
+    me = c.get("/auth/me", headers=h).json()
+    assert me["memberships"][0]["twin_pilot"] is False
+
+    # Switched back on, it all works again.
+    c.post(f"/admin/records/clinics/{clinic.id}/action", headers=ah, json={"action": "pilot_on"})
+    assert c.get(f"/clinic/patients/{cp_id}/twin", headers=h).status_code == 200
+    assert c.get("/me/checkin", headers=ph).json()["eligible"] is True
+    assert c.get("/auth/me", headers=h).json()["memberships"][0]["twin_pilot"] is True

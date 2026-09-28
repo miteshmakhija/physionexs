@@ -7,6 +7,7 @@ export default function ClinicShell() {
   const membership = me?.memberships[0]
   const isOwner = membership?.role === 'owner'
   const isClinician = isOwner || membership?.role === 'physio'
+  const twinPilot = membership?.twin_pilot ?? false
 
   const sections: NavSection[] = [
     {
@@ -15,8 +16,9 @@ export default function ClinicShell() {
         { to: '/clinic/queue', label: 'Token queue' },
         { to: '/clinic/schedule', label: 'Schedule' },
         { to: '/clinic/patients', label: 'Patients' },
-        { to: '/clinic/flags', label: 'Flags' },
-        ...(isClinician ? [{ to: '/clinic/hours', label: 'Profile & hours' }, { to: '/clinic/validation', label: 'Camera validation' }] : []),
+        ...(twinPilot ? [{ to: '/clinic/flags', label: 'Flags' }] : []),
+        ...(isClinician ? [{ to: '/clinic/hours', label: 'Profile & hours' }] : []),
+        ...(isClinician && twinPilot ? [{ to: '/clinic/validation', label: 'Camera validation' }] : []),
         ...(isOwner
           ? [
               { to: '/clinic/billing', label: 'Billing' },

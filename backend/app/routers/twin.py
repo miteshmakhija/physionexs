@@ -12,7 +12,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import DB, CurrentUser, require_clinic_member
-from app.models.clinic import ClinicMember, MembershipRole
+from app.models.clinic import Clinic, ClinicMember, MembershipRole
 from app.models.clinical import Consultation
 from app.models.patient import ClinicPatient
 from app.models.twin import (
@@ -53,8 +53,19 @@ from app.services.twin_rules import SEVERITY_ORDER, active_plan_for, evaluate_pl
 
 router = APIRouter(prefix="/clinic", tags=["twin"])
 
-Member = Annotated[ClinicMember, Depends(require_clinic_member())]
-Clinician = Annotated[ClinicMember, Depends(require_clinic_member(MembershipRole.OWNER, MembershipRole.PHYSIO))]
+def _pilot(dep):
+    """Recovery-twin endpoints only work for clinics in the pilot (Super Admin → Records → Clinics)."""
+
+    def dependency(member: Annotated[ClinicMember, Depends(dep)], db: DB) -> ClinicMember:
+        if not db.get(Clinic, member.clinic_id).twin_pilot:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Recovery tracking isn't switched on for this clinic")
+        return member
+
+    return dependency
+
+
+Member = Annotated[ClinicMember, Depends(_pilot(require_clinic_member()))]
+Clinician = Annotated[ClinicMember, Depends(_pilot(require_clinic_member(MembershipRole.OWNER, MembershipRole.PHYSIO)))]
 
 
 def _measurement_or_404(db: Session, clinic_id: uuid.UUID, measurement_id: uuid.UUID) -> Measurement:

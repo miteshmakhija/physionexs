@@ -114,7 +114,7 @@ def env(monkeypatch):
     pu = User(full_name="PNX TEST Asha Rao", email=f"pnx-wa-pt-{tag}@test.physionexs.com", role=UserRole.PATIENT)
     db.add_all([physio, pu])
     db.flush()
-    clinic = Clinic(name="PNX TEST Knee Clinic", slug=f"pnx-wa-{tag}", owner_user_id=physio.id, phone="+912000000000")
+    clinic = Clinic(name="PNX TEST Knee Clinic", slug=f"pnx-wa-{tag}", owner_user_id=physio.id, phone="+912000000000", twin_pilot=True)
     db.add(clinic)
     db.flush()
     db.add(ClinicMember(clinic_id=clinic.id, user_id=physio.id, role=MembershipRole.OWNER))

@@ -37,6 +37,8 @@ class Clinic(UUIDPk, Timestamps, Base):
     # Platform fee on patient app bookings, in basis points (300 = 3%). 0 on subscription plans.
     platform_fee_bps: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Recovery-twin pilot (knee tracking, check-ins, flags, camera, WhatsApp). Switched on per clinic by the Super Admin.
+    twin_pilot: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class Branch(UUIDPk, Timestamps, Base):

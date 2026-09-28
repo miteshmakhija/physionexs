@@ -217,10 +217,16 @@ def update_consultation(consultation_id: uuid.UUID, body: ConsultationIn, member
 # ── Care plans ──────────────────────────────────────────────────────────────
 
 
+def _check_protocol(db: Session, clinic_id: uuid.UUID, body: CarePlanIn) -> None:
+    if body.protocol and not db.get(Clinic, clinic_id).twin_pilot:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Recovery tracking isn't switched on for this clinic")
+
+
 @router.post("/patients/{cp_id}/care-plans", response_model=CarePlanOut, status_code=status.HTTP_201_CREATED)
 def create_plan(cp_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
     """Start a new plan. Any current plan at this clinic is marked completed."""
     cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    _check_protocol(db, member.clinic_id, body)
     db.execute(update(CarePlan).where(CarePlan.clinic_patient_id == cp.id, CarePlan.status == CarePlanStatus.ACTIVE).values(status=CarePlanStatus.COMPLETED))
     plan = CarePlan(clinic_patient_id=cp.id, physio_user_id=user.id, **body.model_dump())
     db.add(plan)
@@ -233,6 +239,7 @@ def create_plan(cp_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: Cur
 @router.put("/care-plans/{plan_id}", response_model=CarePlanOut)
 def update_plan(plan_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
     plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    _check_protocol(db, member.clinic_id, body)
     for k, v in body.model_dump().items():
         if k in TWIN_PLAN_FIELDS and k not in body.model_fields_set:
             continue  # older clients (e.g. the medicines screen) don't send these

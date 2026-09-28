@@ -20,7 +20,7 @@ REFRESH_COOKIE = "pnx_refresh"
 
 def build_me(db: Session, user: User) -> MeOut:
     rows = db.execute(
-        select(ClinicMember, Clinic.name)
+        select(ClinicMember, Clinic.name, Clinic.twin_pilot)
         .join(Clinic, Clinic.id == ClinicMember.clinic_id)
         .where(ClinicMember.user_id == user.id, ClinicMember.is_active.is_(True))
     ).all()
@@ -37,7 +37,7 @@ def build_me(db: Session, user: User) -> MeOut:
         patient_id=patient_id,
         physio_verification=verification,
         memberships=[
-            MembershipOut(clinic_id=m.clinic_id, clinic_name=name, role=m.role, branch_id=m.branch_id) for m, name in rows
+            MembershipOut(clinic_id=m.clinic_id, clinic_name=name, role=m.role, branch_id=m.branch_id, twin_pilot=pilot) for m, name, pilot in rows
         ],
     )
 

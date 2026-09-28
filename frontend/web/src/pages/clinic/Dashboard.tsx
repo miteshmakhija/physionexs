@@ -19,7 +19,7 @@ function greeting(d = new Date()) {
 
 export default function Dashboard() {
   const { me } = useAuth()
-  const { clinicId, isOwner, role } = useClinic()
+  const { clinicId, isOwner, role, twinPilot } = useClinic()
   const [branchId, setBranchId] = useState('')
   const q = useQuery({
     queryKey: ['dashboard', branchId],
@@ -50,7 +50,7 @@ export default function Dashboard() {
       />
       {!d ? <Loader /> : (
         <div className={cx('space-y-8 transition-opacity', q.isFetching && 'opacity-70')}>
-          <FlagsCard clinicId={clinicId} canWrite={isOwner || role === 'physio'} />
+          {twinPilot && <FlagsCard clinicId={clinicId} canWrite={isOwner || role === 'physio'} />}
           {isOwner && d.subscription?.due_soon && <SubscriptionBanner sub={d.subscription} clinicId={clinicId} />}
 
           <div className={cx('grid gap-3 sm:grid-cols-2', isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4')}>

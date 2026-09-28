@@ -14,7 +14,7 @@ type Plan = Schemas['CarePlanOut']
 
 export default function PatientFile() {
   const { id } = useParams()
-  const { clinicId, isOwner, role } = useClinic()
+  const { clinicId, isOwner, role, twinPilot } = useClinic()
   const canWrite = isOwner || role === 'physio'
   const q = useQuery({ queryKey: ['patient-file', id], queryFn: () => api<File>(`/clinic/patients/${id}`, { clinicId }) })
   const rx = useQuery({ queryKey: ['patient-rx', id], queryFn: () => api<Schemas['PrescriptionOut'][]>(`/clinic/patients/${id}/prescriptions`, { clinicId }) })
@@ -60,7 +60,7 @@ export default function PatientFile() {
         </Section>
       )}
 
-      <TwinSection cpId={p.id} canWrite={canWrite} clinicId={clinicId} />
+      {twinPilot && <TwinSection cpId={p.id} canWrite={canWrite} clinicId={clinicId} />}
 
       <Section title="Visit history">
         {p.consultations.length === 0 ? (

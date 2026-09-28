@@ -12992,6 +12992,11 @@
               }
             ],
             "title": "Branch Id"
+          },
+          "twin_pilot": {
+            "type": "boolean",
+            "title": "Twin Pilot",
+            "default": false
           }
         },
         "type": "object",

@@ -20,7 +20,7 @@ export default function Consultation() {
   const { id } = useParams()
   const [params] = useSearchParams()
   const draftId = params.get('note')
-  const { clinicId } = useClinic()
+  const { clinicId, twinPilot } = useClinic()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const file = useQuery({ queryKey: ['patient-file', id], queryFn: () => api<Schemas['PatientFileOut']>(`/clinic/patients/${id}`, { clinicId }) })
@@ -39,11 +39,12 @@ export default function Consultation() {
         if (signed) navigate(`/clinic/patients/${id}`)
       }}
       clinicId={clinicId}
+      twinPilot={twinPilot}
     />
   )
 }
 
-function NoteForm({ patient, draft, onSaved, clinicId }: { patient: Schemas['PatientFileOut']; draft?: Note; onSaved: (signed: boolean) => void; clinicId: string }) {
+function NoteForm({ patient, draft, onSaved, clinicId, twinPilot }: { patient: Schemas['PatientFileOut']; draft?: Note; onSaved: (signed: boolean) => void; clinicId: string; twinPilot: boolean }) {
   const [noteId, setNoteId] = useState(draft?.id ?? null)
   const [soap, setSoap] = useState({
     subjective: draft?.subjective ?? '',
@@ -56,7 +57,7 @@ function NoteForm({ patient, draft, onSaved, clinicId }: { patient: Schemas['Pat
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   // Structured knee readings for a TKA plan; posted to the recovery twin with the note.
   const plan = patient.active_plan
-  const kneeSides: ('left' | 'right')[] = plan?.protocol === 'tka' ? (plan.affected_side === 'both' ? ['right', 'left'] : plan.affected_side ? [plan.affected_side] : []) : []
+  const kneeSides: ('left' | 'right')[] = twinPilot && plan?.protocol === 'tka' ? (plan.affected_side === 'both' ? ['right', 'left'] : plan.affected_side ? [plan.affected_side] : []) : []
   const [knee, setKnee] = useState<Record<string, string>>({})
   const [recorded, setRecorded] = useState<string[]>([])
 

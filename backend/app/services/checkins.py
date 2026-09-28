@@ -63,7 +63,9 @@ def eligible_plan(db: Session, patient_id: uuid.UUID) -> CarePlan | None:
     return db.scalar(
         select(CarePlan)
         .join(ClinicPatient, ClinicPatient.id == CarePlan.clinic_patient_id)
-        .where(ClinicPatient.patient_id == patient_id, CarePlan.status == CarePlanStatus.ACTIVE, CarePlan.protocol.in_(CHECKIN_PROTOCOLS))
+        .join(Clinic, Clinic.id == ClinicPatient.clinic_id)
+        .where(ClinicPatient.patient_id == patient_id, CarePlan.status == CarePlanStatus.ACTIVE, CarePlan.protocol.in_(CHECKIN_PROTOCOLS),
+               Clinic.twin_pilot.is_(True))
         .order_by(CarePlan.created_at.desc())
         .limit(1)
     )

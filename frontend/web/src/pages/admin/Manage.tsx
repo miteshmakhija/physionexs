@@ -186,7 +186,7 @@ function FeeForm({ s }: { s?: Setting }) {
 
 // ── Records ─────────────────────────────────────────────────────────────────
 
-const ACTION_LABEL: Record<string, string> = { deactivate: 'Deactivate', activate: 'Activate', hide: 'Hide', unhide: 'Restore', set_fee: 'Set fee' }
+const ACTION_LABEL: Record<string, string> = { deactivate: 'Deactivate', activate: 'Activate', hide: 'Hide', unhide: 'Restore', set_fee: 'Set fee', pilot_on: 'Pilot on', pilot_off: 'Pilot off' }
 
 export function RecordsPage() {
   const qc = useQueryClient()
@@ -210,11 +210,17 @@ export function RecordsPage() {
       if (pct) act.mutate({ id: String(row.id), action, value: Math.round(Number(pct) * 100) })
       return
     }
-    if (window.confirm(`${ACTION_LABEL[action]} this record?`)) act.mutate({ id: String(row.id), action })
+    const ask = action === 'pilot_on'
+      ? `Switch on the recovery-twin pilot for ${row.name}? Its physios get knee tracking, check-ins, flags and camera validation.`
+      : action === 'pilot_off'
+        ? `Switch off the recovery-twin pilot for ${row.name}? Its patients stop getting check-ins; existing data is kept.`
+        : `${ACTION_LABEL[action]} this record?`
+    if (window.confirm(ask)) act.mutate({ id: String(row.id), action })
   }
   const d = list.data
   const applicable = (row: Record<string, unknown>, a: string) =>
-    (a === 'deactivate' && row.active !== false) || (a === 'activate' && row.active === false) || (a === 'hide' && !row.hidden) || (a === 'unhide' && row.hidden === true) || a === 'set_fee'
+    (a === 'deactivate' && row.active !== false) || (a === 'activate' && row.active === false) || (a === 'hide' && !row.hidden) || (a === 'unhide' && row.hidden === true) || a === 'set_fee' ||
+    (a === 'pilot_on' && row.twin_pilot === false) || (a === 'pilot_off' && row.twin_pilot === true)
 
   return (
     <div>

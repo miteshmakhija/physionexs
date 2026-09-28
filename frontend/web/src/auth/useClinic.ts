@@ -10,5 +10,7 @@ export function useClinic() {
     role: membership?.role ?? null,
     isOwner: membership?.role === 'owner',
     isClinician: membership?.role === 'owner' || membership?.role === 'physio',
+    // Recovery-twin pilot (knee tracking, check-ins, flags, camera), switched on per clinic by the Super Admin.
+    twinPilot: membership?.twin_pilot ?? false,
   }
 }

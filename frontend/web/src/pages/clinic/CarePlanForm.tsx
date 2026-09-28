@@ -20,14 +20,14 @@ function sidesOf(affected: string): ('left' | 'right')[] {
 
 export default function CarePlanForm() {
   const { id } = useParams()
-  const { clinicId } = useClinic()
+  const { clinicId, twinPilot } = useClinic()
   const file = useQuery({ queryKey: ['patient-file', id], queryFn: () => api<Schemas['PatientFileOut']>(`/clinic/patients/${id}`, { clinicId }) })
   if (file.isLoading) return <Loader />
   if (!file.data) return <Alert>Patient not found.</Alert>
-  return <Form key={file.data.active_plan?.id ?? 'new'} patient={file.data} clinicId={clinicId} />
+  return <Form key={file.data.active_plan?.id ?? 'new'} patient={file.data} clinicId={clinicId} twinPilot={twinPilot} />
 }
 
-function Form({ patient, clinicId }: { patient: Schemas['PatientFileOut']; clinicId: string }) {
+function Form({ patient, clinicId, twinPilot }: { patient: Schemas['PatientFileOut']; clinicId: string; twinPilot: boolean }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const plan = patient.active_plan
@@ -56,9 +56,7 @@ function Form({ patient, clinicId }: { patient: Schemas['PatientFileOut']; clini
         stage: f.stage || null,
         sessions_planned: f.sessions_planned ? Number(f.sessions_planned) : null,
         notes: f.notes || null,
-        protocol: f.protocol || null,
-        surgery_date: f.surgery_date || null,
-        affected_side: f.affected_side || null,
+        ...(twinPilot ? { protocol: f.protocol || null, surgery_date: f.surgery_date || null, affected_side: f.affected_side || null } : {}),
       }
       const saved = await (plan
         ? api<Plan>(`/clinic/care-plans/${plan.id}`, { method: 'PUT', clinicId, json })
@@ -66,7 +64,7 @@ function Form({ patient, clinicId }: { patient: Schemas['PatientFileOut']; clini
       const wanted = targetRows
         .filter((r) => target(r.key).value.trim())
         .map((r) => ({ code: r.code, side: r.side, target_value: Number(targets[r.key].value), by_week: targets[r.key].by_week ? Number(targets[r.key].by_week) : null }))
-      if (wanted.length || saved.targets?.length) await api(`/clinic/care-plans/${saved.id}/targets`, { method: 'PUT', clinicId, json: wanted })
+      if (twinPilot && (wanted.length || saved.targets?.length)) await api(`/clinic/care-plans/${saved.id}/targets`, { method: 'PUT', clinicId, json: wanted })
       return saved
     },
     onSuccess: () => {
@@ -101,47 +99,51 @@ function Form({ patient, clinicId }: { patient: Schemas['PatientFileOut']; clini
           </Field>
         </div>
 
-        <div className="border-t border-line pt-5 sm:col-span-2">
-          <p className="eyebrow">Recovery tracking</p>
-          <p className="mt-1 text-[13px] text-muted">For a knee replacement, record surgery date and side to track knee measurements against targets.</p>
-        </div>
-        <Field label="Protocol">
-          <Select value={f.protocol} onChange={set('protocol')}>
-            <option value="">None</option>
-            <option value="tka">Knee replacement (TKA)</option>
-          </Select>
-        </Field>
-        {f.protocol === 'tka' && (
+        {twinPilot && (
           <>
-            <Field label="Affected side">
-              <Select value={f.affected_side} onChange={set('affected_side')} required>
-                <option value="">Choose…</option>
-                <option value="right">Right</option>
-                <option value="left">Left</option>
-                <option value="both">Both</option>
-              </Select>
-            </Field>
-            <Field label="Surgery date"><Input type="date" value={f.surgery_date} onChange={set('surgery_date')} /></Field>
-          </>
-        )}
-        {targetRows.length > 0 && (
-          <div className="sm:col-span-2">
-            <p className="mb-2 text-[13px] font-semibold">Targets <span className="font-normal text-muted">(optional)</span></p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {targetRows.map((r) => (
-                <div key={r.key} className="flex items-end gap-2">
-                  <Field label={`${r.side === 'right' ? 'Right' : 'Left'} ${r.label.toLowerCase()} (°)`}>
-                    <Input type="number" min={0} max={160} step="1" placeholder={r.placeholder} value={target(r.key).value}
-                      onChange={(e) => setTargets({ ...targets, [r.key]: { ...target(r.key), value: e.target.value } })} />
-                  </Field>
-                  <Field label="By week">
-                    <Input type="number" min={1} max={104} value={target(r.key).by_week} className="!w-24"
-                      onChange={(e) => setTargets({ ...targets, [r.key]: { ...target(r.key), by_week: e.target.value } })} />
-                  </Field>
-                </div>
-              ))}
-            </div>
+          <div className="border-t border-line pt-5 sm:col-span-2">
+            <p className="eyebrow">Recovery tracking</p>
+            <p className="mt-1 text-[13px] text-muted">For a knee replacement, record surgery date and side to track knee measurements against targets.</p>
           </div>
+          <Field label="Protocol">
+            <Select value={f.protocol} onChange={set('protocol')}>
+              <option value="">None</option>
+              <option value="tka">Knee replacement (TKA)</option>
+            </Select>
+          </Field>
+          {f.protocol === 'tka' && (
+            <>
+              <Field label="Affected side">
+                <Select value={f.affected_side} onChange={set('affected_side')} required>
+                  <option value="">Choose…</option>
+                  <option value="right">Right</option>
+                  <option value="left">Left</option>
+                  <option value="both">Both</option>
+                </Select>
+              </Field>
+              <Field label="Surgery date"><Input type="date" value={f.surgery_date} onChange={set('surgery_date')} /></Field>
+            </>
+          )}
+          {targetRows.length > 0 && (
+            <div className="sm:col-span-2">
+              <p className="mb-2 text-[13px] font-semibold">Targets <span className="font-normal text-muted">(optional)</span></p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {targetRows.map((r) => (
+                  <div key={r.key} className="flex items-end gap-2">
+                    <Field label={`${r.side === 'right' ? 'Right' : 'Left'} ${r.label.toLowerCase()} (°)`}>
+                      <Input type="number" min={0} max={160} step="1" placeholder={r.placeholder} value={target(r.key).value}
+                        onChange={(e) => setTargets({ ...targets, [r.key]: { ...target(r.key), value: e.target.value } })} />
+                    </Field>
+                    <Field label="By week">
+                      <Input type="number" min={1} max={104} value={target(r.key).by_week} className="!w-24"
+                        onChange={(e) => setTargets({ ...targets, [r.key]: { ...target(r.key), by_week: e.target.value } })} />
+                    </Field>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          </>
         )}
 
         {save.error && <div className="sm:col-span-2"><Alert>{(save.error as Error).message}</Alert></div>}

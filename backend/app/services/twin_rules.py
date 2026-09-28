@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.models.clinic import Clinic
 from app.models.clinical import CarePlan, CarePlanStatus
 from app.models.patient import ClinicPatient
 from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, DailyCheckin, FlagSeverity, FlagStatus, Measurement, Side, TwinFlag
@@ -243,6 +244,8 @@ def evaluate_plan(db: Session, plan: CarePlan | None, today: date | None = None)
     """Re-run the rules for one plan. Call after flushing new data, inside the caller's transaction."""
     if plan is None or plan.status != CarePlanStatus.ACTIVE or plan.protocol not in CHECKIN_PROTOCOLS:
         return
+    if not db.get(Clinic, db.get(ClinicPatient, plan.clinic_patient_id).clinic_id).twin_pilot:
+        return
     today = today or local_today()
     cfg = _config(db)
     hits, evaluated = evaluate(build_timeline(db, plan, today), cfg)
@@ -251,7 +254,10 @@ def evaluate_plan(db: Session, plan: CarePlan | None, today: date | None = None)
 
 def evaluate_all(db: Session, today: date | None = None) -> dict:
     """Daily cron: time-based rules (missed sessions, no check-ins), auto-resolve, and closing flags of ended plans."""
-    plans = list(db.scalars(select(CarePlan).where(CarePlan.status == CarePlanStatus.ACTIVE, CarePlan.protocol.in_(CHECKIN_PROTOCOLS))))
+    plans = list(db.scalars(
+        select(CarePlan).join(ClinicPatient, ClinicPatient.id == CarePlan.clinic_patient_id).join(Clinic, Clinic.id == ClinicPatient.clinic_id)
+        .where(CarePlan.status == CarePlanStatus.ACTIVE, CarePlan.protocol.in_(CHECKIN_PROTOCOLS), Clinic.twin_pilot.is_(True))
+    ))
     for plan in plans:
         evaluate_plan(db, plan, today)
     ended = db.execute(

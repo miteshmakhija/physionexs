@@ -3841,6 +3841,11 @@ export interface components {
             role: components["schemas"]["MembershipRole"];
             /** Branch Id */
             branch_id: string | null;
+            /**
+             * Twin Pilot
+             * @default false
+             */
+            twin_pilot: boolean;
         };
         /**
          * MembershipRole

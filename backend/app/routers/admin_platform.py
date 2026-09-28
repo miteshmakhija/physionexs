@@ -312,7 +312,7 @@ def _physio_row(db: Session, p: PhysioProfile) -> dict:
 def _clinic_row(db: Session, c: Clinic) -> dict:
     city = db.scalar(select(Branch.city).where(Branch.clinic_id == c.id).limit(1))
     return {"id": str(c.id), "name": c.name, "owner": _actor(db, c.owner_user_id), "city": city, "platform_fee": f"{c.platform_fee_bps / 100:g}%",
-            "created": _fmt_dt(c.created_at), "active": c.is_active}
+            "twin_pilot": c.twin_pilot, "created": _fmt_dt(c.created_at), "active": c.is_active}
 
 
 def _appt_row(db: Session, a: Appointment) -> dict:
@@ -350,9 +350,9 @@ SPECS: dict[str, Spec] = {
     ),
     "staff": _users(UserRole.STAFF, "Clinic staff"),
     "clinics": Spec(
-        "Clinics", ["name", "owner", "city", "platform_fee", "created", "active"],
+        "Clinics", ["name", "owner", "city", "platform_fee", "twin_pilot", "created", "active"],
         lambda: select(Clinic).order_by(Clinic.created_at.desc()), lambda q: Clinic.name.ilike(f"%{q}%"),
-        _clinic_row, ["set_fee", "deactivate", "activate"], _count(Clinic),
+        _clinic_row, ["set_fee", "pilot_on", "pilot_off", "deactivate", "activate"], _count(Clinic),
     ),
     "appointments": Spec(
         "Appointments", ["starts_at", "patient", "physio", "clinic", "mode", "status", "fee"],
@@ -438,6 +438,9 @@ def record_action(key: str, record_id: uuid.UUID, body: RecordAction, admin: Adm
                 raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Fee must be one of {allowed} (basis points)")
             clinic.platform_fee_bps = body.value
             summary = f"{clinic.name} fee → {body.value / 100:g}%"
+        elif body.action in ("pilot_on", "pilot_off"):
+            clinic.twin_pilot = body.action == "pilot_on"
+            summary = f"{clinic.name} recovery-twin pilot {'on' if clinic.twin_pilot else 'off'}"
         else:
             clinic.is_active = body.action == "activate"
             summary = f"{clinic.name} {body.action}d"
