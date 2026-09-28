@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
 import { CheckinCard } from '@/components/CheckinCard'
+import { Updates } from '@/components/Updates'
 import { SupportCard } from '@/components/Support'
 import { Avatar, Card } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
@@ -34,6 +35,8 @@ export default function PatientHome() {
       </div>
 
       <CheckinCard />
+
+      <Updates />
 
       {tokens.data?.map((t) => (
         <Card key={t.label} className="p-6">

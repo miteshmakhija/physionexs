@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native'
 
 import { useSession } from '@/auth/session'
 import { CheckinCard } from '@/components/CheckinCard'
+import { Updates } from '@/components/Updates'
 import { SupportCard } from '@/components/Support'
 import { Avatar, Button, Card, Divider, Screen, Text } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
@@ -39,6 +40,8 @@ export default function PatientHome() {
       </View>
 
       <CheckinCard />
+
+      <Updates />
 
       {tokens.data?.map((t) => (
         <Card key={t.label} style={{ gap: 4 }}>

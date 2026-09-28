@@ -18,6 +18,7 @@ from app.models.patient import Patient
 from app.models.scheduling import Appointment, AppointmentStatus
 from app.models.user import User
 from app.services.twin_rules import evaluate_all, local_today
+from app.services.reminders import send_checkin_reminders
 from app.services.whatsapp import send_daily_invites
 
 router = APIRouter(prefix="/cron", tags=["cron"], include_in_schema=False)
@@ -93,4 +94,6 @@ def daily(db: DB, authorization: Annotated[str | None, Header()] = None) -> dict
     db.commit()
     # WhatsApp: morning check-in invites (the daily cron runs at 09:00 IST).
     invites = send_daily_invites(db, local_today()) if settings.whatsapp_enabled else 0
-    return {"overdue": overdue, "reminders": reminded, "twin": twin, "whatsapp_invites": invites}
+    # Push reminder for app users who haven't checked in (WhatsApp users get the invite above instead).
+    pushed = send_checkin_reminders(db, local_today())
+    return {"overdue": overdue, "reminders": reminded, "twin": twin, "whatsapp_invites": invites, "checkin_reminders": pushed}

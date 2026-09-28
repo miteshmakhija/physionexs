@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { api, applyTokens, logoutRequest, refreshSession, setSessionListener, type Me, type TokenOut } from '@/lib/api'
+import { unregisterPush } from '@/lib/push'
 
 type Status = 'loading' | 'signed-in' | 'signed-out'
 
@@ -46,6 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         signIn('/auth/login', { identifier, password, totp_code: totpCode || undefined }),
       registerPatient: (body) => signIn('/auth/register/patient', body),
       logout: async () => {
+        await unregisterPush()
         await logoutRequest()
         await applyTokens(null)
       },
