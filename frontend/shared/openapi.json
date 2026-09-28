@@ -3755,6 +3755,338 @@
         }
       }
     },
+    "/clinic/patients/{cp_id}/twin": {
+      "get": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Get Twin",
+        "operationId": "get_twin_clinic_patients__cp_id__twin_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cp_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cp Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwinOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/patients/{cp_id}/measurements": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Record Measurements",
+        "description": "Record clinic readings (goniometer, tape, pain). A big jump from the last reading is saved but held for confirmation.",
+        "operationId": "record_measurements_clinic_patients__cp_id__measurements_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cp_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cp Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MeasurementIn"
+                },
+                "minItems": 1,
+                "maxItems": 20,
+                "title": "Items"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeasurementOut"
+                  },
+                  "title": "Response Record Measurements Clinic Patients  Cp Id  Measurements Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/measurements/{measurement_id}": {
+      "patch": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Confirm Measurement",
+        "operationId": "confirm_measurement_clinic_measurements__measurement_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "measurement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Measurement Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeasurementUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasurementOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Discard Measurement",
+        "operationId": "discard_measurement_clinic_measurements__measurement_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "measurement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Measurement Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/care-plans/{plan_id}/targets": {
+      "put": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Set Targets",
+        "description": "Replace the plan's targets.",
+        "operationId": "set_targets_clinic_care_plans__plan_id__targets_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TargetIn"
+                },
+                "maxItems": 20,
+                "title": "Items"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TargetOut"
+                  },
+                  "title": "Response Set Targets Clinic Care Plans  Plan Id  Targets Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clinic/exercises": {
       "get": {
         "tags": [
@@ -6860,6 +7192,15 @@
         ],
         "title": "AdminDashboard"
       },
+      "AffectedSide": {
+        "type": "string",
+        "enum": [
+          "left",
+          "right",
+          "both"
+        ],
+        "title": "AffectedSide"
+      },
       "AnalyticsOut": {
         "properties": {
           "days": {
@@ -8100,6 +8441,40 @@
               }
             ],
             "title": "Ends On"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "tka"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "surgery_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Surgery Date"
+          },
+          "affected_side": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AffectedSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -8189,6 +8564,40 @@
             ],
             "title": "Ends On"
           },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "tka"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "surgery_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Surgery Date"
+          },
+          "affected_side": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AffectedSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -8230,6 +8639,13 @@
             },
             "type": "array",
             "title": "Tests"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetOut"
+            },
+            "type": "array",
+            "title": "Targets"
           }
         },
         "type": "object",
@@ -8617,6 +9033,49 @@
           "platform_fee_bps"
         ],
         "title": "ClinicProfileOut"
+      },
+      "CodeOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "sided": {
+            "type": "boolean",
+            "title": "Sided"
+          },
+          "min": {
+            "type": "number",
+            "title": "Min"
+          },
+          "max": {
+            "type": "number",
+            "title": "Max"
+          },
+          "higher_is_better": {
+            "type": "boolean",
+            "title": "Higher Is Better"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "label",
+          "unit",
+          "sided",
+          "min",
+          "max",
+          "higher_is_better"
+        ],
+        "title": "CodeOut"
       },
       "Collection": {
         "properties": {
@@ -10372,6 +10831,205 @@
           "totp_enabled"
         ],
         "title": "MeOut"
+      },
+      "MeasurementIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Code"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "value": {
+            "type": "number",
+            "maximum": 9999.0,
+            "minimum": -999.0,
+            "title": "Value"
+          },
+          "method": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 2,
+            "title": "Method",
+            "default": "goniometer"
+          },
+          "measured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured At"
+          },
+          "consultation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consultation Id"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "side",
+          "value"
+        ],
+        "title": "MeasurementIn"
+      },
+      "MeasurementOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MeasurementSource"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "measured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Measured At"
+          },
+          "trusted": {
+            "type": "boolean",
+            "title": "Trusted"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "consultation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consultation Id"
+          },
+          "recorded_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded By Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "label",
+          "unit",
+          "side",
+          "value",
+          "source",
+          "method",
+          "measured_at",
+          "trusted",
+          "confidence",
+          "note",
+          "consultation_id",
+          "recorded_by_name"
+        ],
+        "title": "MeasurementOut"
+      },
+      "MeasurementSource": {
+        "type": "string",
+        "enum": [
+          "clinic",
+          "self",
+          "camera"
+        ],
+        "title": "MeasurementSource"
+      },
+      "MeasurementUpdate": {
+        "properties": {
+          "trusted": {
+            "type": "boolean",
+            "const": true,
+            "title": "Trusted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trusted"
+        ],
+        "title": "MeasurementUpdate"
       },
       "MediaOut": {
         "properties": {
@@ -13003,6 +13661,15 @@
         ],
         "title": "Share"
       },
+      "Side": {
+        "type": "string",
+        "enum": [
+          "left",
+          "right",
+          "none"
+        ],
+        "title": "Side"
+      },
       "SlotOut": {
         "properties": {
           "starts_at": {
@@ -13688,6 +14355,90 @@
         ],
         "title": "SupportOut"
       },
+      "TargetIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Code"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "target_value": {
+            "type": "number",
+            "maximum": 9999.0,
+            "minimum": -999.0,
+            "title": "Target Value"
+          },
+          "by_week": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 104.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "side",
+          "target_value"
+        ],
+        "title": "TargetIn"
+      },
+      "TargetOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Code"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "target_value": {
+            "type": "number",
+            "maximum": 9999.0,
+            "minimum": -999.0,
+            "title": "Target Value"
+          },
+          "by_week": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 104.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Week"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "side",
+          "target_value",
+          "id"
+        ],
+        "title": "TargetOut"
+      },
       "TestOrderIn": {
         "properties": {
           "name": {
@@ -14123,6 +14874,214 @@
           "otpauth_uri"
         ],
         "title": "TotpSetupOut"
+      },
+      "TwinMeasureOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "higher_is_better": {
+            "type": "boolean",
+            "title": "Higher Is Better"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeasurementOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "by_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Week"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "no_data",
+              "no_target",
+              "in_progress",
+              "target_met"
+            ],
+            "title": "Status"
+          },
+          "progress_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "label",
+          "unit",
+          "side",
+          "higher_is_better",
+          "latest",
+          "baseline",
+          "target",
+          "by_week",
+          "status",
+          "progress_pct"
+        ],
+        "title": "TwinMeasureOut",
+        "description": "One tracked measure (e.g. right knee flexion): latest trusted value against the plan's target."
+      },
+      "TwinOut": {
+        "properties": {
+          "care_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Care Plan Id"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "protocol_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Label"
+          },
+          "surgery_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Surgery Date"
+          },
+          "affected_side": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AffectedSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weeks_since_surgery": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weeks Since Surgery"
+          },
+          "measures": {
+            "items": {
+              "$ref": "#/components/schemas/TwinMeasureOut"
+            },
+            "type": "array",
+            "title": "Measures"
+          },
+          "measurements": {
+            "items": {
+              "$ref": "#/components/schemas/MeasurementOut"
+            },
+            "type": "array",
+            "title": "Measurements"
+          },
+          "codes": {
+            "items": {
+              "$ref": "#/components/schemas/CodeOut"
+            },
+            "type": "array",
+            "title": "Codes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "care_plan_id",
+          "protocol",
+          "protocol_label",
+          "surgery_date",
+          "affected_side",
+          "weeks_since_surgery",
+          "measures",
+          "measurements",
+          "codes"
+        ],
+        "title": "TwinOut"
       },
       "UserRole": {
         "type": "string",

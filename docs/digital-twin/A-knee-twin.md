@@ -186,7 +186,7 @@ back to normal). Physios can also acknowledge or dismiss a flag, and dismissing 
 
 | # | Deliverable | Size |
 |---|---|---|
-| A1 | Migration; measurements + targets; console entry in Consultation and care plan form; Twin tab (read-only charts) | M |
+| A1 ✅ | Migration; measurements + targets; console entry in Consultation and care plan form; "Recovery twin" section on the patient file (body map, cards, trends, readings) | M |
 | A2 | Consent + daily check-in (patient web + mobile); R8 safety path | M |
 | A3 | Rules engine, flags inbox, dashboard card, cron rules, auto-resolve | M |
 | A4 | Suggestions + approve/edit/reject + guardrails + patient notification | M |

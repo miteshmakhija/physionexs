@@ -6,6 +6,7 @@ import { useClinic } from '@/auth/useClinic'
 import { Adherence } from '@/components/clinical'
 import { Alert, Avatar, Button, Field, Input, Loader, Select, Stat, Textarea } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
+import { TwinSection } from '@/pages/clinic/TwinSection'
 import { dayLabel } from '@shared/format'
 
 type File = Schemas['PatientFileOut']
@@ -58,6 +59,8 @@ export default function PatientFile() {
           <p className="text-[14px] text-muted">No active care plan. {canWrite && 'Start one to prescribe exercises and medicines to the patient app.'}</p>
         </Section>
       )}
+
+      <TwinSection cpId={p.id} canWrite={canWrite} clinicId={clinicId} />
 
       <Section title="Visit history">
         {p.consultations.length === 0 ? (

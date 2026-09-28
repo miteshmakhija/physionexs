@@ -54,16 +54,31 @@ function NoteForm({ patient, draft, onSaved, clinicId }: { patient: Schemas['Pat
   const [vitals, setVitals] = useState<Record<string, string>>(Object.fromEntries(Object.entries(draft?.vitals ?? {}).map(([k, v]) => [k, String(v)])))
   const [pain, setPain] = useState<number | null>(draft?.pain_vas ?? null)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
+  // Structured knee readings for a TKA plan; posted to the recovery twin with the note.
+  const plan = patient.active_plan
+  const kneeSides: ('left' | 'right')[] = plan?.protocol === 'tka' ? (plan.affected_side === 'both' ? ['right', 'left'] : plan.affected_side ? [plan.affected_side] : []) : []
+  const [knee, setKnee] = useState<Record<string, string>>({})
+  const [recorded, setRecorded] = useState<string[]>([])
 
   const save = useMutation({
-    mutationFn: (sign: boolean) => {
+    mutationFn: async (sign: boolean) => {
       const json = { ...soap, vitals: Object.fromEntries(Object.entries(vitals).filter(([, v]) => v.trim())), pain_vas: pain, sign }
-      return noteId
+      const n = await (noteId
         ? api<Note>(`/clinic/consultations/${noteId}`, { method: 'PUT', clinicId, json })
-        : api<Note>(`/clinic/patients/${patient.id}/consultations`, { method: 'POST', clinicId, json })
-    },
-    onSuccess: (n, sign) => {
+        : api<Note>(`/clinic/patients/${patient.id}/consultations`, { method: 'POST', clinicId, json }))
       setNoteId(n.id)
+      const readings = Object.entries(knee).filter(([, v]) => v.trim()).map(([key, v]) => {
+        const [code, side] = key.split(':')
+        return { code, side, value: Number(v), method: 'goniometer', consultation_id: n.id }
+      })
+      if (readings.length) {
+        const saved = await api<Schemas['MeasurementOut'][]>(`/clinic/patients/${patient.id}/measurements`, { method: 'POST', clinicId, json: readings })
+        setKnee({})
+        setRecorded((r) => [...r, ...saved.map((m) => `${m.side === 'right' ? 'R' : 'L'} ${m.label.toLowerCase()} ${m.value}°${m.trusted ? '' : ' (held — big jump)'}`)])
+      }
+      return n
+    },
+    onSuccess: (_n, sign) => {
       setSavedAt(new Date())
       onSaved(sign)
     },
@@ -104,6 +119,17 @@ function NoteForm({ patient, draft, onSaved, clinicId }: { patient: Schemas['Pat
                   <span className="w-10 text-right text-[15px] font-semibold tabular-nums">{pain ?? '—'}</span>
                 </div>
               </Field>
+              {kneeSides.map((side) => (
+                <div key={side} className="grid grid-cols-2 gap-2">
+                  {[['knee_flexion', 'flexion'], ['knee_extension_lag', 'ext. lag']].map(([code, label]) => (
+                    <Field key={code} label={`${side === 'right' ? 'R' : 'L'} knee ${label} (°)`}>
+                      <Input type="number" min={0} max={code === 'knee_flexion' ? 160 : 60} value={knee[`${code}:${side}`] ?? ''} className="!h-10"
+                        onChange={(e) => setKnee({ ...knee, [`${code}:${side}`]: e.target.value })} />
+                    </Field>
+                  ))}
+                </div>
+              ))}
+              {recorded.length > 0 && <p className="text-[12.5px] text-leaf-dark">Recorded to twin: {recorded.join(', ')}</p>}
               {VITALS.map((v) => (
                 <Field key={v.key} label={v.label}>
                   <Input value={vitals[v.key] ?? ''} onChange={(e) => setVitals({ ...vitals, [v.key]: e.target.value })} placeholder={v.placeholder} className="!h-10" />

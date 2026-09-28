@@ -1111,6 +1111,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/patients/{cp_id}/twin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Twin */
+        get: operations["get_twin_clinic_patients__cp_id__twin_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/patients/{cp_id}/measurements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Measurements
+         * @description Record clinic readings (goniometer, tape, pain). A big jump from the last reading is saved but held for confirmation.
+         */
+        post: operations["record_measurements_clinic_patients__cp_id__measurements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/measurements/{measurement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Discard Measurement */
+        delete: operations["discard_measurement_clinic_measurements__measurement_id__delete"];
+        options?: never;
+        head?: never;
+        /** Confirm Measurement */
+        patch: operations["confirm_measurement_clinic_measurements__measurement_id__patch"];
+        trace?: never;
+    };
+    "/clinic/care-plans/{plan_id}/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Targets
+         * @description Replace the plan's targets.
+         */
+        put: operations["set_targets_clinic_care_plans__plan_id__targets_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/exercises": {
         parameters: {
             query?: never;
@@ -1891,6 +1966,11 @@ export interface components {
             /** Activity */
             activity: components["schemas"]["ActivityItem"][];
         };
+        /**
+         * AffectedSide
+         * @enum {string}
+         */
+        AffectedSide: "left" | "right" | "both";
         /** AnalyticsOut */
         AnalyticsOut: {
             /** Days */
@@ -2291,6 +2371,11 @@ export interface components {
             sessions_planned?: number | null;
             /** Ends On */
             ends_on?: string | null;
+            /** Protocol */
+            protocol?: "tka" | null;
+            /** Surgery Date */
+            surgery_date?: string | null;
+            affected_side?: components["schemas"]["AffectedSide"] | null;
         };
         /** CarePlanOut */
         CarePlanOut: {
@@ -2308,6 +2393,11 @@ export interface components {
             sessions_planned?: number | null;
             /** Ends On */
             ends_on?: string | null;
+            /** Protocol */
+            protocol?: "tka" | null;
+            /** Surgery Date */
+            surgery_date?: string | null;
+            affected_side?: components["schemas"]["AffectedSide"] | null;
             /**
              * Id
              * Format: uuid
@@ -2329,6 +2419,8 @@ export interface components {
             medications: components["schemas"]["MedicationOut"][];
             /** Tests */
             tests: components["schemas"]["TestOrderOut"][];
+            /** Targets */
+            targets?: components["schemas"]["TargetOut"][];
         };
         /**
          * CarePlanStatus
@@ -2448,6 +2540,23 @@ export interface components {
             slug: string;
             /** Platform Fee Bps */
             platform_fee_bps: number;
+        };
+        /** CodeOut */
+        CodeOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Unit */
+            unit: string;
+            /** Sided */
+            sided: boolean;
+            /** Min */
+            min: number;
+            /** Max */
+            max: number;
+            /** Higher Is Better */
+            higher_is_better: boolean;
         };
         /** Collection */
         Collection: {
@@ -3042,6 +3151,73 @@ export interface components {
              * @default []
              */
             memberships: components["schemas"]["MembershipOut"][];
+        };
+        /** MeasurementIn */
+        MeasurementIn: {
+            /** Code */
+            code: string;
+            side: components["schemas"]["Side"];
+            /** Value */
+            value: number;
+            /**
+             * Method
+             * @default goniometer
+             */
+            method: string;
+            /** Measured At */
+            measured_at?: string | null;
+            /** Consultation Id */
+            consultation_id?: string | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** MeasurementOut */
+        MeasurementOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Unit */
+            unit: string;
+            side: components["schemas"]["Side"];
+            /** Value */
+            value: number;
+            source: components["schemas"]["MeasurementSource"];
+            /** Method */
+            method: string;
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Trusted */
+            trusted: boolean;
+            /** Confidence */
+            confidence: number | null;
+            /** Note */
+            note: string | null;
+            /** Consultation Id */
+            consultation_id: string | null;
+            /** Recorded By Name */
+            recorded_by_name: string | null;
+        };
+        /**
+         * MeasurementSource
+         * @enum {string}
+         */
+        MeasurementSource: "clinic" | "self" | "camera";
+        /** MeasurementUpdate */
+        MeasurementUpdate: {
+            /**
+             * Trusted
+             * @constant
+             */
+            trusted: true;
         };
         /** MediaOut */
         MediaOut: {
@@ -3872,6 +4048,11 @@ export interface components {
             /** Pct */
             pct: number;
         };
+        /**
+         * Side
+         * @enum {string}
+         */
+        Side: "left" | "right" | "none";
         /** SlotOut */
         SlotOut: {
             /**
@@ -4065,6 +4246,31 @@ export interface components {
             /** Hours */
             hours: string;
         };
+        /** TargetIn */
+        TargetIn: {
+            /** Code */
+            code: string;
+            side: components["schemas"]["Side"];
+            /** Target Value */
+            target_value: number;
+            /** By Week */
+            by_week?: number | null;
+        };
+        /** TargetOut */
+        TargetOut: {
+            /** Code */
+            code: string;
+            side: components["schemas"]["Side"];
+            /** Target Value */
+            target_value: number;
+            /** By Week */
+            by_week?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
         /** TestOrderIn */
         TestOrderIn: {
             /** Name */
@@ -4212,6 +4418,55 @@ export interface components {
             secret: string;
             /** Otpauth Uri */
             otpauth_uri: string;
+        };
+        /**
+         * TwinMeasureOut
+         * @description One tracked measure (e.g. right knee flexion): latest trusted value against the plan's target.
+         */
+        TwinMeasureOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Unit */
+            unit: string;
+            side: components["schemas"]["Side"];
+            /** Higher Is Better */
+            higher_is_better: boolean;
+            latest: components["schemas"]["MeasurementOut"] | null;
+            /** Baseline */
+            baseline: number | null;
+            /** Target */
+            target: number | null;
+            /** By Week */
+            by_week: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "no_data" | "no_target" | "in_progress" | "target_met";
+            /** Progress Pct */
+            progress_pct: number | null;
+        };
+        /** TwinOut */
+        TwinOut: {
+            /** Care Plan Id */
+            care_plan_id: string | null;
+            /** Protocol */
+            protocol: string | null;
+            /** Protocol Label */
+            protocol_label: string | null;
+            /** Surgery Date */
+            surgery_date: string | null;
+            affected_side: components["schemas"]["AffectedSide"] | null;
+            /** Weeks Since Surgery */
+            weeks_since_surgery: number | null;
+            /** Measures */
+            measures: components["schemas"]["TwinMeasureOut"][];
+            /** Measurements */
+            measurements: components["schemas"]["MeasurementOut"][];
+            /** Codes */
+            codes: components["schemas"]["CodeOut"][];
         };
         /**
          * UserRole
@@ -6450,6 +6705,181 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrescriptionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_twin_clinic_patients__cp_id__twin_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwinOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_measurements_clinic_patients__cp_id__measurements_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeasurementIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeasurementOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_measurement_clinic_measurements__measurement_id__delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                measurement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_measurement_clinic_measurements__measurement_id__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                measurement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeasurementUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeasurementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_targets_clinic_care_plans__plan_id__targets_put: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"][];
                 };
             };
             /** @description Validation Error */

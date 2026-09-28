@@ -16,6 +16,12 @@ class CarePlanStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class AffectedSide(StrEnum):
+    LEFT = "left"
+    RIGHT = "right"
+    BOTH = "both"
+
+
 class CarePlan(UUIDPk, Timestamps, Base):
     __tablename__ = "care_plans"
 
@@ -30,6 +36,10 @@ class CarePlan(UUIDPk, Timestamps, Base):
     starts_on: Mapped[date] = mapped_column(Date, server_default=func.current_date())
     ends_on: Mapped[date | None] = mapped_column(Date)
     status: Mapped[CarePlanStatus] = mapped_column(str_enum(CarePlanStatus), default=CarePlanStatus.ACTIVE, index=True)
+    # Digital twin (docs/digital-twin/A-knee-twin.md): "tka" turns on knee tracking for this plan.
+    protocol: Mapped[str | None] = mapped_column(String(40))
+    surgery_date: Mapped[date | None] = mapped_column(Date)
+    affected_side: Mapped[AffectedSide | None] = mapped_column(str_enum(AffectedSide))
 
 
 class Consultation(UUIDPk, Timestamps, Base):

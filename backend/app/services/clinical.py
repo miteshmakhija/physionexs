@@ -14,6 +14,7 @@ from app.models.exercise import Exercise, ExerciseMedia
 from app.models.patient import ClinicPatient, Patient, Sex
 from app.models.user import User
 from app.schemas.clinical import CarePlanOut, MedicationOut, PlanExerciseOut, TestOrderOut
+from app.services.twin import targets_out
 
 # Default reminder times for morning / afternoon / night doses (the design's 8:30 AM, 2:00 PM, 9:00 PM).
 DOSE_SLOTS = ("08:30", "14:00", "21:00")
@@ -127,6 +128,10 @@ def plan_out(db: Session, plan: CarePlan) -> CarePlanOut:
         notes=plan.notes,
         sessions_planned=plan.sessions_planned,
         ends_on=plan.ends_on,
+        protocol=plan.protocol,
+        surgery_date=plan.surgery_date,
+        affected_side=plan.affected_side,
+        targets=targets_out(db, plan.id),
         physio_name=physio.full_name,
         clinic_name=clinic.name,
         exercises=[

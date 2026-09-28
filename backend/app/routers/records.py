@@ -41,6 +41,7 @@ from app.schemas.clinical import (
     TestOrderIn,
     TestOrderOut,
     TestOrderUpdate,
+    TWIN_PLAN_FIELDS,
 )
 from app.services import audit
 from app.services.adherence import adherence_pct, day_stats
@@ -233,6 +234,8 @@ def create_plan(cp_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: Cur
 def update_plan(plan_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
     plan = care_plan_or_404(db, member.clinic_id, plan_id)
     for k, v in body.model_dump().items():
+        if k in TWIN_PLAN_FIELDS and k not in body.model_fields_set:
+            continue  # older clients (e.g. the medicines screen) don't send these
         setattr(plan, k, v)
     audit.record(db, action="update", entity="care_plan", entity_id=plan.id, actor_user_id=user.id, clinic_id=member.clinic_id, request=request)
     db.commit()

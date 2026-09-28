@@ -1,14 +1,15 @@
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 
 from app.core.phone import normalize_phone
-from app.models.clinical import CarePlanStatus, Feel, Frequency, TestOrderStatus
+from app.models.clinical import AffectedSide, CarePlanStatus, Feel, Frequency, TestOrderStatus
 from app.models.exercise import DoseUnit, ExerciseCategory, ExercisePosition, ExerciseStatus
 from app.models.patient import ClinicPatientStatus, CoreGrade, Sex
 from app.models.scheduling import TokenStatus
+from app.schemas.twin import TargetOut
 
 Phone = Annotated[str, AfterValidator(normalize_phone)]
 ShortText = Annotated[str, Field(max_length=200)]
@@ -184,6 +185,13 @@ class CarePlanIn(BaseModel):
     notes: LongText | None = None
     sessions_planned: Annotated[int, Field(ge=1, le=200)] | None = None
     ends_on: date | None = None
+    # Digital twin. Left out of a PUT, these keep their current values (see TWIN_PLAN_FIELDS).
+    protocol: Literal["tka"] | None = None
+    surgery_date: date | None = None
+    affected_side: AffectedSide | None = None
+
+
+TWIN_PLAN_FIELDS = {"protocol", "surgery_date", "affected_side"}
 
 
 class CarePlanOut(CarePlanIn):
@@ -195,6 +203,7 @@ class CarePlanOut(CarePlanIn):
     exercises: list[PlanExerciseOut]
     medications: list[MedicationOut]
     tests: list[TestOrderOut]
+    targets: list[TargetOut] = Field(default_factory=list)
 
 
 class ConsultationIn(BaseModel):

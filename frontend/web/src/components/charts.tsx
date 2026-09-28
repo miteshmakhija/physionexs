@@ -223,3 +223,80 @@ export function ProgressTable({ days }: { days: DayPoint[] }) {
     </table>
   )
 }
+
+export interface MeasurePoint {
+  at: string // ISO timestamp
+  value: number
+  trusted: boolean
+}
+
+/** One measure over time (e.g. right knee flexion) against a dashed target line. Held readings are hollow. */
+export function MeasureTrend({ points, target, unit, lo, hi, title }: { points: MeasurePoint[]; target: number | null; unit: string; lo: number; hi: number; title: string }) {
+  const { setRef, w } = useWidth()
+  const [hover, setHover] = useState<number | null>(null)
+  const titleId = useId()
+  const sorted = [...points].sort((a, b) => a.at.localeCompare(b.at))
+  const times = sorted.map((p) => new Date(p.at).getTime())
+  const t0 = Math.min(...times)
+  const t1 = Math.max(...times)
+  const values = [...sorted.map((p) => p.value), ...(target != null ? [target] : [])]
+  const pad = Math.max(5, (Math.max(...values) - Math.min(...values)) * 0.15)
+  const yMin = Math.max(lo, Math.floor((Math.min(...values) - pad) / 10) * 10)
+  const yMax = Math.min(hi, Math.ceil((Math.max(...values) + pad) / 10) * 10)
+  const plotW = w - PAD.left - PAD.right
+  const plotH = H - PAD.top - PAD.bottom
+  const x = (t: number) => (t1 === t0 ? PAD.left + plotW / 2 : PAD.left + ((t - t0) / (t1 - t0)) * plotW)
+  const y = (v: number) => PAD.top + plotH * (1 - (v - yMin) / (yMax - yMin || 1))
+  const trusted = sorted.map((p, i) => ({ ...p, i })).filter((p) => p.trusted)
+  const path = trusted.map((p, k) => `${k ? 'L' : 'M'}${x(times[p.i])},${y(p.value)}`).join(' ')
+  const ticks = [yMin, Math.round((yMin + yMax) / 2), yMax]
+  const suffix = unit === 'deg' ? '°' : unit === 'score' ? '/10' : ` ${unit}`
+  const fmt = (v: number) => `${v}${suffix}`
+
+  const onMove = (e: React.PointerEvent<SVGRectElement>) => {
+    const px = e.clientX - e.currentTarget.getBoundingClientRect().left + PAD.left
+    let best = 0
+    times.forEach((t, i) => { if (Math.abs(x(t) - px) < Math.abs(x(times[best]) - px)) best = i })
+    setHover(best)
+  }
+
+  return (
+    <div ref={setRef} className="relative">
+      <svg width={w} height={H} role="img" aria-labelledby={titleId} className="block">
+        <title id={titleId}>{title}</title>
+        {ticks.map((t) => (
+          <g key={t}>
+            <line x1={PAD.left} x2={w - PAD.right} y1={y(t)} y2={y(t)} stroke={GRID} strokeWidth={1} />
+            <text x={PAD.left - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted text-[11px] tabular-nums">{fmt(t)}</text>
+          </g>
+        ))}
+        {[0, sorted.length - 1].filter((i, k, a) => a.indexOf(i) === k && sorted[i]).map((i) => (
+          <text key={i} x={x(times[i])} y={H - 8} textAnchor={sorted.length === 1 ? 'middle' : i === 0 ? 'start' : 'end'} className="fill-muted text-[11px]">
+            {new Date(sorted[i].at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+          </text>
+        ))}
+        {target != null && (
+          <g>
+            <line x1={PAD.left} x2={w - PAD.right} y1={y(target)} y2={y(target)} stroke="#646867" strokeWidth={1.5} strokeDasharray="4 4" />
+            <text x={w - PAD.right} y={y(target) - 6} textAnchor="end" className="fill-muted text-[11px]">Target {fmt(target)}</text>
+          </g>
+        )}
+        {hover != null && <line x1={x(times[hover])} x2={x(times[hover])} y1={PAD.top} y2={PAD.top + plotH} stroke="#A7A7A9" strokeWidth={1} />}
+        <path d={path} fill="none" stroke={BLUE} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        {sorted.map((p, i) => (
+          <circle key={i} cx={x(times[i])} cy={y(p.value)} r={4} fill={p.trusted ? BLUE : SURFACE} stroke={p.trusted ? SURFACE : '#A7A7A9'} strokeWidth={2} />
+        ))}
+        <rect x={PAD.left - 8} y={PAD.top} width={plotW + 16} height={plotH} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setHover(null)} />
+      </svg>
+      {hover != null && (
+        <Tooltip
+          width={w}
+          x={x(times[hover])}
+          y={y(sorted[hover].value)}
+          value={`${fmt(sorted[hover].value)}${sorted[hover].trusted ? '' : ' · held'}`}
+          label={new Date(sorted[hover].at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+        />
+      )}
+    </div>
+  )
+}
