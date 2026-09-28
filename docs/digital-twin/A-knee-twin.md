@@ -189,7 +189,7 @@ back to normal). Physios can also acknowledge or dismiss a flag, and dismissing 
 | A1 ✅ | Migration; measurements + targets; console entry in Consultation and care plan form; "Recovery twin" section on the patient file (body map, cards, trends, readings) | M |
 | A2 ✅ | Consent + daily check-in (patient web + mobile); R8 safety path. Because in-app notifications aren't shown anywhere yet, red flags also appear as a dashboard card and a banner in the patient's Recovery twin section until A3's flags inbox | M |
 | A3 ✅ | Rules engine (R1–R3, R5–R8; R4 stays off until the band is signed off), Flags page in the console, flags card on the dashboard (replaces A2's red-flag card), flags on the patient file, daily cron rules, auto-resolve. Closed flags don't re-open for the same episode | M |
-| A4 | Suggestions + approve/edit/reject + guardrails + patient notification | M |
+| A4 ✅ | Suggestions + approve/edit/reject + guardrails + patient notification. Rules propose for pain (one set fewer on exercises logged as hard/painful) and red flags (pause the program); suggestions show inline on flags. Physio-authored suggestions weren't needed: physios edit a suggestion or change the plan directly | M |
 
 Each milestone ships on its own. A1 is useful to physios even if patients never check in.
 

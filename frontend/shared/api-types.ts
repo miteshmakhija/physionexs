@@ -1266,6 +1266,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/suggestions/{suggestion_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Suggestion
+         * @description Apply the suggested change, or the physio's edited version. Closes the flag and tells the patient.
+         */
+        post: operations["approve_suggestion_clinic_suggestions__suggestion_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/suggestions/{suggestion_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Suggestion
+         * @description Decline the change. The flag stays open for the physio to handle.
+         */
+        post: operations["reject_suggestion_clinic_suggestions__suggestion_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/exercises": {
         parameters: {
             query?: never;
@@ -3202,6 +3242,7 @@ export interface components {
             resolved_by_name: string | null;
             /** Resolution Note */
             resolution_note: string | null;
+            suggestion?: components["schemas"]["SuggestionOut"] | null;
         };
         /**
          * FlagSeverity
@@ -4053,6 +4094,45 @@ export interface components {
             /** @default monthly */
             plan: components["schemas"]["SubscriptionPlan"];
         };
+        /**
+         * PlanChangeIn
+         * @description One edit to a prescribed exercise. `before` must match the plan when it's applied, or the suggestion is out of date.
+         */
+        PlanChangeIn: {
+            /**
+             * Plan Exercise Id
+             * Format: uuid
+             */
+            plan_exercise_id: string;
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "sets" | "reps" | "hold_seconds" | "is_active";
+            /** Before */
+            before: number | boolean | null;
+            /** After */
+            after: number | boolean;
+        };
+        /** PlanChangeOut */
+        PlanChangeOut: {
+            /**
+             * Plan Exercise Id
+             * Format: uuid
+             */
+            plan_exercise_id: string;
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "sets" | "reps" | "hold_seconds" | "is_active";
+            /** Before */
+            before: number | boolean | null;
+            /** After */
+            after: number | boolean;
+            /** Exercise Name */
+            exercise_name: string;
+        };
         /** PlanExerciseIn */
         PlanExerciseIn: {
             /**
@@ -4597,6 +4677,64 @@ export interface components {
             /** Platform Fee Bps */
             platform_fee_bps: number;
         };
+        /** SuggestionApproveIn */
+        SuggestionApproveIn: {
+            /** Changes */
+            changes?: components["schemas"]["PlanChangeIn"][] | null;
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * SuggestionAuthor
+         * @enum {string}
+         */
+        SuggestionAuthor: "rules" | "physio" | "ai";
+        /** SuggestionOut */
+        SuggestionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Care Plan Id
+             * Format: uuid
+             */
+            care_plan_id: string;
+            /** Flag Id */
+            flag_id: string | null;
+            author: components["schemas"]["SuggestionAuthor"];
+            /** Title */
+            title: string;
+            /** Rationale */
+            rationale: string;
+            /** Changes */
+            changes: components["schemas"]["PlanChangeOut"][];
+            status: components["schemas"]["SuggestionStatus"];
+            /** Stale */
+            stale: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+        };
+        /** SuggestionRejectIn */
+        SuggestionRejectIn: {
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * SuggestionStatus
+         * @enum {string}
+         */
+        SuggestionStatus: "pending" | "approved" | "rejected" | "expired";
         /** SupportOut */
         SupportOut: {
             /** Email */
@@ -7395,6 +7533,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_suggestion_clinic_suggestions__suggestion_id__approve_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                suggestion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionApproveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_suggestion_clinic_suggestions__suggestion_id__reject_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                suggestion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionRejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionOut"];
                 };
             };
             /** @description Validation Error */

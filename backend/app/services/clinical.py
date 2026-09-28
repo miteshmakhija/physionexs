@@ -10,11 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.models.clinic import Clinic, ClinicMember
 from app.models.clinical import CarePlan, CarePlanExercise, Medication, TestOrder
+from app.models.engagement import Notification
 from app.models.exercise import Exercise, ExerciseMedia
 from app.models.patient import ClinicPatient, Patient, Sex
+from app.models.twin import CarePlanTarget
 from app.models.user import User
 from app.schemas.clinical import CarePlanOut, MedicationOut, PlanExerciseOut, TestOrderOut
-from app.services.twin import targets_out
+from app.schemas.twin import TargetOut
 
 # Default reminder times for morning / afternoon / night doses (the design's 8:30 AM, 2:00 PM, 9:00 PM).
 DOSE_SLOTS = ("08:30", "14:00", "21:00")
@@ -149,6 +151,18 @@ def plan_out(db: Session, plan: CarePlan) -> CarePlanOut:
         ],
         tests=[TestOrderOut(id=t.id, name=t.name, status=t.status, result_note=t.result_note, created_at=t.created_at, result_at=t.result_at) for t in tests],
     )
+
+
+def notify_plan_update(db: Session, plan: CarePlan, title: str, body: str | None = None) -> None:
+    """In-app notification to the patient that their plan changed."""
+    patient = db.get(Patient, db.get(ClinicPatient, plan.clinic_patient_id).patient_id)
+    if patient.user_id:
+        db.add(Notification(user_id=patient.user_id, kind="plan_updated", title=title, body=body or plan.condition, data={"care_plan_id": str(plan.id)}))
+
+
+def targets_out(db: Session, plan_id: uuid.UUID) -> list[TargetOut]:
+    rows = db.scalars(select(CarePlanTarget).where(CarePlanTarget.care_plan_id == plan_id).order_by(CarePlanTarget.code, CarePlanTarget.side))
+    return [TargetOut(id=t.id, code=t.code, side=t.side, target_value=float(t.target_value), by_week=t.by_week) for t in rows]
 
 
 def _thumbnails(db: Session, exercise_ids: list[uuid.UUID]) -> dict[uuid.UUID, str]:

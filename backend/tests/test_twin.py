@@ -1,4 +1,4 @@
-"""Digital twin, milestones A1–A3: measurements, targets, the twin view, consent, daily check-ins and flag rules.
+"""Digital twin, milestones A1–A4: measurements, targets, twin view, consent, check-ins, flag rules and plan suggestions.
 
 Unit tests always run. The API test is opt-in (PNX_INTEGRATION=1) and runs inside one database transaction that is
 rolled back at the end, so it leaves nothing behind — safe even on a shared database.
@@ -16,6 +16,7 @@ from app.models.twin import DailyCheckin, FlagSeverity
 from app.services.adherence import DayStat
 from app.services.checkins import advice_for
 from app.services.settings import DEFAULT_SETTINGS
+from app.services.suggestions import describe, is_reduction
 from app.services.twin_rules import Reading, Timeline, evaluate, missed_sessions, no_checkin, pain_high, pain_rising, red_flag, rom_drop, rom_plateau
 from app.services.twin import CODES, check, is_plausible, progress, weeks_since
 
@@ -121,6 +122,14 @@ def test_adherence_and_checkin_gap_rules():
     assert no_checkin(Timeline(TODAY, checkins=[ck(9, 2)]), CFG) is None  # no consent, nothing expected
     hits, evaluated = evaluate(Timeline(TODAY, targets={Side.LEFT: 110}), CFG)
     assert hits == [] and {"rom_plateau:left", "rom_drop:left", "red_flag"} <= evaluated
+
+
+def test_suggestion_guardrail_helpers():
+    assert is_reduction("sets", 3, 2) and is_reduction("sets", 3, 3) and not is_reduction("sets", 2, 3)
+    assert is_reduction("is_active", True, False) and not is_reduction("is_active", False, True)
+    assert not is_reduction("reps", None, 5)  # can't add reps to a hold-dosed exercise
+    assert describe({"field": "sets", "before": 3, "after": 2}, "Heel slides") == "Heel slides: 3 → 2 sets"
+    assert describe({"field": "is_active", "before": True, "after": False}, "Quad sets") == "Quad sets: paused"
 
 
 # ── API (rolled back) ───────────────────────────────────────────────────────
@@ -361,3 +370,87 @@ def test_flag_flow(client):
     # Other clinics can't touch flags.
     other = {**h, "X-Clinic-Id": str(uuid.uuid4())}
     assert c.post(f"/clinic/flags/{rules['rom_drop:right']['id']}/acknowledge", headers=other).status_code == 403
+
+
+def test_suggestion_flow(client):
+    from sqlalchemy import select
+
+    from app.models import CarePlan, Exercise, Notification, Patient, PlanSuggestion
+    from app.models.exercise import ExerciseCategory, ExerciseSource, ExerciseStatus, ExerciseVisibility
+    from app.models.twin import SuggestionAuthor
+    from app.services.suggestions import InvalidChange, check_changes
+    from app.services.twin_rules import evaluate_plan, local_today
+
+    c, h, cp_id, ph, db = client
+    today = local_today()
+    ex = []
+    for name in ("Heel slides", "Quad sets"):
+        e = Exercise(slug=f"pnx-twin-{uuid.uuid4().hex[:8]}", name=f"PNX TEST {name}", body_region="knee", category=ExerciseCategory.STRENGTH,
+                     steps=["Step"], source=ExerciseSource.PLATFORM, visibility=ExerciseVisibility.PUBLIC, status=ExerciseStatus.PUBLISHED)
+        db.add(e)
+        db.flush()
+        ex.append(str(e.id))
+    plan = c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Right TKA", "protocol": "tka", "affected_side": "right"}).json()
+    plan = c.put(f"/clinic/care-plans/{plan['id']}/exercises", headers=h, json=[
+        {"exercise_id": ex[0], "sets": 3, "reps": 10}, {"exercise_id": ex[1], "sets": 2, "reps": 10}]).json()
+    heel, quad = plan["exercises"][0]["id"], plan["exercises"][1]["id"]
+    version = c.get("/me/checkin", headers=ph).json()["consent"]["version"]
+    c.post("/me/consents", headers=ph, json={"purpose": "twin_tracking", "version": version})
+    base = {"day": today.isoformat(), "stiffness": 4, "swelling": "mild", "sleep": "ok", "exercises": "all"}
+
+    # Heel slides logged as hard, then high pain: suggest one set fewer on heel slides only.
+    assert c.post("/me/exercise-logs", headers=ph, json={"plan_exercise_id": heel, "logged_on": today.isoformat(), "feel": "hard"}).status_code == 201
+    c.post("/me/checkins", headers=ph, json={**base, "pain": 9})
+    flag = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "pain_high")
+    sug = flag["suggestion"]
+    assert sug["author"] == "rules" and sug["title"] == "Reduce sets on 1 exercise" and not sug["stale"]
+    assert [(x["plan_exercise_id"], x["field"], x["before"], x["after"]) for x in sug["changes"]] == [(heel, "sets", 3, 2)]
+    assert sug["changes"][0]["exercise_name"] == "PNX TEST Heel slides"
+
+    # Rules can never propose an increase.
+    with pytest.raises(InvalidChange):
+        check_changes(db, uuid.UUID(plan["id"]), [{"plan_exercise_id": heel, "field": "sets", "before": 3, "after": 4}], SuggestionAuthor.RULES)
+
+    # The physio edits (down to 1 set) and approves: plan updated, flag resolved, patient told.
+    r = c.post(f"/clinic/suggestions/{sug['id']}/approve", headers=h,
+               json={"changes": [{"plan_exercise_id": heel, "field": "sets", "before": 3, "after": 1}], "note": "Ice after exercises"})
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "approved" and r.json()["changes"][0]["after"] == 1 and r.json()["decided_by_name"] == "PNX TEST Physio"
+    mine = c.get("/me/care-plans", headers=ph).json()[0]
+    assert next(e for e in mine["exercises"] if e["id"] == heel)["sets"] == 1
+    closed = next(f for f in c.get("/clinic/flags", headers=h, params={"state": "closed"}).json() if f["id"] == flag["id"])
+    assert closed["resolution_note"] == "Plan change approved: Reduce sets on 1 exercise"
+    patient_user = db.scalar(select(Patient.user_id).where(Patient.full_name == "PNX TEST Twin Patient"))
+    note = db.scalar(select(Notification).where(Notification.user_id == patient_user, Notification.title == "Your physio updated your exercise program"))
+    assert note.body == "PNX TEST Heel slides: 3 → 1 sets. Ice after exercises"
+    assert c.post(f"/clinic/suggestions/{sug['id']}/approve", headers=h, json={}).status_code == 409
+
+    # A red flag suggests pausing the program; if the plan changes first, approving expires it instead.
+    c.post("/me/checkins", headers=ph, json={**base, "pain": 5, "red_flags": ["fever"]})
+    red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
+    assert red["suggestion"]["title"] == "Pause home exercises until reviewed" and len(red["suggestion"]["changes"]) == 2
+    c.put(f"/clinic/care-plans/{plan['id']}/exercises", headers=h, json=[{"exercise_id": ex[0], "sets": 1, "reps": 10}])  # quad sets removed
+    assert next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")["suggestion"]["stale"] is True
+    r = c.post(f"/clinic/suggestions/{red['suggestion']['id']}/approve", headers=h, json={})
+    assert r.status_code == 409
+    assert db.get(PlanSuggestion, uuid.UUID(red["suggestion"]["id"])).status.value == "expired"
+    red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
+    assert red["status"] == "open" and red["suggestion"] is None  # the flag stays for the physio
+
+    # A new red flag the next day re-opens it with a fresh suggestion; rejecting keeps the flag open.
+    tomorrow = today + timedelta(days=1)
+    plan_row = db.get(CarePlan, uuid.UUID(plan["id"]))
+    c.post("/me/checkins", headers=ph, json={**base, "day": tomorrow.isoformat(), "pain": 5, "red_flags": ["wound_redness"]})
+    evaluate_plan(db, plan_row, tomorrow)  # rules see tomorrow's check-in once it's tomorrow
+    db.flush()
+    red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
+    assert [x["plan_exercise_id"] for x in red["suggestion"]["changes"]] == [heel] and quad not in str(red["suggestion"])
+    other = {**h, "X-Clinic-Id": str(uuid.uuid4())}
+    assert c.post(f"/clinic/suggestions/{red['suggestion']['id']}/reject", headers=other, json={}).status_code == 403
+    r = c.post(f"/clinic/suggestions/{red['suggestion']['id']}/reject", headers=h, json={"note": "Wound checked, fine to continue"})
+    assert r.json()["status"] == "rejected"
+    c.post("/me/checkins", headers=ph, json={**base, "day": tomorrow.isoformat(), "pain": 4, "red_flags": ["wound_redness"]})
+    evaluate_plan(db, plan_row, tomorrow)
+    db.flush()
+    red = next(f for f in c.get("/clinic/flags", headers=h).json() if f["rule"] == "red_flag")
+    assert red["status"] == "open" and red["suggestion"] is None  # not re-proposed for the same occurrence

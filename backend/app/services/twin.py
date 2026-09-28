@@ -15,8 +15,9 @@ from app.models.clinical import AffectedSide, CarePlan
 from app.models.patient import ClinicPatient, Patient
 from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, DailyCheckin, Measurement, Side, TwinFlag
 from app.models.user import User
-from app.schemas.twin import CodeOut, FlagOut, MeasurementOut, TargetOut, TwinMeasureOut, TwinOut
+from app.schemas.twin import CodeOut, FlagOut, MeasurementOut, TwinMeasureOut, TwinOut
 from app.services.checkins import RED_FLAGS, checkin_out
+from app.services.suggestions import pending_for_flag, suggestion_out
 
 
 @dataclass(frozen=True)
@@ -103,11 +104,6 @@ def weeks_since(day: date | None, today: date | None = None) -> int | None:
         return None
     days = ((today or date.today()) - day).days
     return days // 7 if days >= 0 else None
-
-
-def targets_out(db: Session, plan_id: uuid.UUID) -> list[TargetOut]:
-    rows = db.scalars(select(CarePlanTarget).where(CarePlanTarget.care_plan_id == plan_id).order_by(CarePlanTarget.code, CarePlanTarget.side))
-    return [TargetOut(id=t.id, code=t.code, side=t.side, target_value=float(t.target_value), by_week=t.by_week) for t in rows]
 
 
 def measurement_out(m: Measurement, names: dict[uuid.UUID, str]) -> MeasurementOut:
@@ -202,4 +198,5 @@ def flag_out(db: Session, f: TwinFlag) -> FlagOut:
         rule_label=RULE_LABELS.get(f.rule.split(":", 1)[0], f.rule), severity=f.severity, status=f.status, summary=f.summary,
         evidence=f.evidence or {}, opened_at=f.opened_at, last_seen_at=f.last_seen_at, resolved_at=f.resolved_at,
         resolved_by_name=by.full_name if by else None, resolution_note=f.resolution_note,
+        suggestion=suggestion_out(db, s) if (s := pending_for_flag(db, f.id)) else None,
     )

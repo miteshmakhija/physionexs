@@ -4351,6 +4351,144 @@
         }
       }
     },
+    "/clinic/suggestions/{suggestion_id}/approve": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Approve Suggestion",
+        "description": "Apply the suggested change, or the physio's edited version. Closes the flag and tells the patient.",
+        "operationId": "approve_suggestion_clinic_suggestions__suggestion_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "suggestion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Suggestion Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionApproveIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/suggestions/{suggestion_id}/reject": {
+      "post": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Reject Suggestion",
+        "description": "Decline the change. The flag stays open for the physio to handle.",
+        "operationId": "reject_suggestion_clinic_suggestions__suggestion_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "suggestion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Suggestion Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionRejectIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clinic/exercises": {
       "get": {
         "tags": [
@@ -11026,6 +11164,16 @@
               }
             ],
             "title": "Resolution Note"
+          },
+          "suggestion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SuggestionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -13720,6 +13868,116 @@
         ],
         "title": "PhysioRegisterIn"
       },
+      "PlanChangeIn": {
+        "properties": {
+          "plan_exercise_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Exercise Id"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "sets",
+              "reps",
+              "hold_seconds",
+              "is_active"
+            ],
+            "title": "Field"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_exercise_id",
+          "field",
+          "before",
+          "after"
+        ],
+        "title": "PlanChangeIn",
+        "description": "One edit to a prescribed exercise. `before` must match the plan when it's applied, or the suggestion is out of date."
+      },
+      "PlanChangeOut": {
+        "properties": {
+          "plan_exercise_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Exercise Id"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "sets",
+              "reps",
+              "hold_seconds",
+              "is_active"
+            ],
+            "title": "Field"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "After"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_exercise_id",
+          "field",
+          "before",
+          "after",
+          "exercise_name"
+        ],
+        "title": "PlanChangeOut"
+      },
       "PlanExerciseIn": {
         "properties": {
           "exercise_id": {
@@ -15371,6 +15629,183 @@
           "platform_fee_bps"
         ],
         "title": "SubscriptionUpdate"
+      },
+      "SuggestionApproveIn": {
+        "properties": {
+          "changes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PlanChangeIn"
+                },
+                "type": "array",
+                "maxItems": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changes"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "SuggestionApproveIn"
+      },
+      "SuggestionAuthor": {
+        "type": "string",
+        "enum": [
+          "rules",
+          "physio",
+          "ai"
+        ],
+        "title": "SuggestionAuthor"
+      },
+      "SuggestionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "care_plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Care Plan Id"
+          },
+          "flag_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag Id"
+          },
+          "author": {
+            "$ref": "#/components/schemas/SuggestionAuthor"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/PlanChangeOut"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SuggestionStatus"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By Name"
+          },
+          "decision_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "care_plan_id",
+          "flag_id",
+          "author",
+          "title",
+          "rationale",
+          "changes",
+          "status",
+          "stale",
+          "created_at",
+          "decided_at",
+          "decided_by_name",
+          "decision_note"
+        ],
+        "title": "SuggestionOut"
+      },
+      "SuggestionRejectIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "SuggestionRejectIn"
+      },
+      "SuggestionStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "approved",
+          "rejected",
+          "expired"
+        ],
+        "title": "SuggestionStatus"
       },
       "SupportOut": {
         "properties": {

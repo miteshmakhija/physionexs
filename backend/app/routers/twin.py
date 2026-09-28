@@ -1,6 +1,6 @@
 """Practice console: the patient's digital twin — measurements, targets, check-ins and flags.
 
-Milestones A1–A3 of docs/digital-twin/A-knee-twin.md. Plan suggestions come in A4.
+Milestones A1–A4 of docs/digital-twin/A-knee-twin.md.
 """
 
 import uuid
@@ -15,11 +15,25 @@ from app.core.deps import DB, CurrentUser, require_clinic_member
 from app.models.clinic import ClinicMember, MembershipRole
 from app.models.clinical import Consultation
 from app.models.patient import ClinicPatient
-from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, FlagStatus, Measurement, MeasurementSource, TwinFlag
-from app.schemas.twin import FlagCloseIn, FlagDismissIn, FlagOut, MeasurementIn, MeasurementOut, MeasurementUpdate, TargetIn, TargetOut, TwinOut
+from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, FlagStatus, Measurement, MeasurementSource, PlanSuggestion, SuggestionStatus, TwinFlag
+from app.schemas.twin import (
+    FlagCloseIn,
+    FlagDismissIn,
+    FlagOut,
+    MeasurementIn,
+    MeasurementOut,
+    MeasurementUpdate,
+    SuggestionApproveIn,
+    SuggestionOut,
+    SuggestionRejectIn,
+    TargetIn,
+    TargetOut,
+    TwinOut,
+)
 from app.services import audit
-from app.services.clinical import care_plan_or_404, clinic_patient_or_404
-from app.services.twin import check, flag_out, is_plausible, last_trusted, measured_at_or_now, measurement_out, targets_out, twin_out, user_names
+from app.services.clinical import care_plan_or_404, clinic_patient_or_404, targets_out
+from app.services.twin import check, flag_out, is_plausible, last_trusted, measured_at_or_now, measurement_out, twin_out, user_names
+from app.services.suggestions import InvalidChange, StaleSuggestion, approve, expire_for_flag, reject, suggestion_out
 from app.services.twin_rules import SEVERITY_ORDER, active_plan_for, evaluate_plan
 
 router = APIRouter(prefix="/clinic", tags=["twin"])
@@ -156,6 +170,7 @@ def _close(db: Session, f: TwinFlag, new: FlagStatus, note: str | None, member: 
     if f.status not in ACTIVE_FLAG_STATUSES:
         raise HTTPException(status.HTTP_409_CONFLICT, "This flag is already closed")
     f.status, f.resolved_at, f.resolved_by, f.resolution_note, f.cleared = new, datetime.now(UTC), user_id, note, False
+    expire_for_flag(db, f.id)
     audit.record(db, action=new.value, entity="twin_flag", entity_id=f.id, actor_user_id=user_id, clinic_id=member.clinic_id,
                  summary=f"{f.rule}: {note or '-'}"[:200], request=request)
     db.commit()
@@ -182,3 +197,45 @@ def resolve_flag(flag_id: uuid.UUID, body: FlagCloseIn, member: Clinician, user:
 def dismiss_flag(flag_id: uuid.UUID, body: FlagDismissIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> FlagOut:
     """Not a concern: needs a one-line reason. It won't re-open for the same episode."""
     return _close(db, _flag_or_404(db, member.clinic_id, flag_id), FlagStatus.DISMISSED, body.note, member, user.id, request)
+
+
+# ── Plan suggestions ────────────────────────────────────────────────────────
+
+
+def _suggestion_or_404(db: Session, clinic_id: uuid.UUID, suggestion_id: uuid.UUID) -> PlanSuggestion:
+    s = db.get(PlanSuggestion, suggestion_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Suggestion not found")
+    care_plan_or_404(db, clinic_id, s.care_plan_id)
+    if s.status != SuggestionStatus.PENDING:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"This suggestion was already {s.status.value}")
+    return s
+
+
+@router.post("/suggestions/{suggestion_id}/approve", response_model=SuggestionOut)
+def approve_suggestion(suggestion_id: uuid.UUID, body: SuggestionApproveIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> SuggestionOut:
+    """Apply the suggested change, or the physio's edited version. Closes the flag and tells the patient."""
+    s = _suggestion_or_404(db, member.clinic_id, suggestion_id)
+    edited = [c.model_dump(mode="json") for c in body.changes] if body.changes is not None else None
+    try:
+        approve(db, s, user.id, edited, body.note)
+    except StaleSuggestion as e:
+        db.commit()  # keep it marked expired
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{e}. Review the plan and try again.")
+    except InvalidChange as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e))
+    audit.record(db, action="approve", entity="plan_suggestion", entity_id=s.id, actor_user_id=user.id, clinic_id=member.clinic_id,
+                 summary=s.title + (" (edited)" if edited is not None else ""), changes={"applied": edited or s.changes}, request=request)
+    db.commit()
+    return suggestion_out(db, s)
+
+
+@router.post("/suggestions/{suggestion_id}/reject", response_model=SuggestionOut)
+def reject_suggestion(suggestion_id: uuid.UUID, body: SuggestionRejectIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> SuggestionOut:
+    """Decline the change. The flag stays open for the physio to handle."""
+    s = _suggestion_or_404(db, member.clinic_id, suggestion_id)
+    reject(s, user.id, body.note)
+    audit.record(db, action="reject", entity="plan_suggestion", entity_id=s.id, actor_user_id=user.id, clinic_id=member.clinic_id,
+                 summary=f"{s.title}: {body.note or '-'}"[:200], request=request)
+    db.commit()
+    return suggestion_out(db, s)

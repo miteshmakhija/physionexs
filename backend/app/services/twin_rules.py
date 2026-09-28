@@ -27,6 +27,7 @@ from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, DailyCheckin, 
 from app.services.adherence import DayStat, day_stats
 from app.services.checkins import CHECKIN_PROTOCOLS, RED_FLAGS, TWIN_TRACKING, active_consent
 from app.services.settings import DEFAULT_SETTINGS, get_setting
+from app.services.suggestions import expire_for_ended_plans, expire_for_flag, propose
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -193,13 +194,18 @@ def apply_hits(db: Session, plan: CarePlan, hits: Sequence[Hit], evaluated: set[
     now = datetime.now(UTC)
     active = {f.rule: f for f in db.scalars(select(TwinFlag).where(TwinFlag.care_plan_id == plan.id, TwinFlag.status.in_(ACTIVE_FLAG_STATUSES)))}
     hit_rules = {h.rule for h in hits}
+    opened: list[TwinFlag] = []  # new or re-opened flags, which may get a plan suggestion
 
     for h in hits:
         f = active.get(h.rule)
         if f is not None:
+            if base_rule(h.rule) in EVENT_RULES and h.key < f.key:
+                continue  # an older occurrence (keys are ISO days); the flag already shows a newer one
             if base_rule(h.rule) in EVENT_RULES and f.key != h.key:
                 f.status = FlagStatus.OPEN  # a new occurrence: make sure the physio sees it again
                 f.opened_at = now
+                expire_for_flag(db, f.id)  # the old occurrence's suggestion no longer applies
+                opened.append(f)
             if SEVERITY_RANK[h.severity] > SEVERITY_RANK[f.severity]:
                 f.severity = h.severity
             f.key, f.summary, f.evidence, f.last_seen_at, f.clear_since = h.key, h.summary, h.evidence, now, None
@@ -210,8 +216,10 @@ def apply_hits(db: Session, plan: CarePlan, hits: Sequence[Hit], evaluated: set[
         )
         if closed is not None and closed.key == h.key and not closed.cleared:
             continue  # a physio closed this and nothing has changed since
-        db.add(TwinFlag(clinic_patient_id=plan.clinic_patient_id, care_plan_id=plan.id, rule=h.rule, key=h.key, severity=h.severity,
-                        summary=h.summary, evidence=h.evidence, opened_at=now, last_seen_at=now))
+        f = TwinFlag(clinic_patient_id=plan.clinic_patient_id, care_plan_id=plan.id, rule=h.rule, key=h.key, severity=h.severity,
+                     summary=h.summary, evidence=h.evidence, opened_at=now, last_seen_at=now)
+        db.add(f)
+        opened.append(f)
 
     for rule in evaluated - hit_rules:
         f = active.get(rule)
@@ -221,8 +229,14 @@ def apply_hits(db: Session, plan: CarePlan, hits: Sequence[Hit], evaluated: set[
             elif (today - f.clear_since).days >= auto_resolve_days:
                 f.status, f.resolved_at = FlagStatus.RESOLVED, now
                 f.resolution_note = f"Resolved automatically: back to normal for {auto_resolve_days} days"
+                expire_for_flag(db, f.id)
         db.execute(update(TwinFlag).where(TwinFlag.care_plan_id == plan.id, TwinFlag.rule == rule,
                                           TwinFlag.status.not_in(ACTIVE_FLAG_STATUSES), TwinFlag.cleared.is_(False)).values(cleared=True))
+
+    if opened:
+        db.flush()
+        for f in opened:
+            propose(db, plan, f, today)
 
 
 def evaluate_plan(db: Session, plan: CarePlan | None, today: date | None = None) -> None:
@@ -245,7 +259,8 @@ def evaluate_all(db: Session, today: date | None = None) -> dict:
         .where(TwinFlag.status.in_(ACTIVE_FLAG_STATUSES), TwinFlag.care_plan_id.in_(select(CarePlan.id).where(CarePlan.status != CarePlanStatus.ACTIVE)))
         .values(status=FlagStatus.RESOLVED, resolved_at=datetime.now(UTC), resolution_note="Care plan ended")
     ).rowcount
-    return {"plans_evaluated": len(plans), "flags_closed_plan_ended": ended}
+    expired = expire_for_ended_plans(db)
+    return {"plans_evaluated": len(plans), "flags_closed_plan_ended": ended, "suggestions_expired": expired}
 
 
 def active_plan_for(db: Session, clinic_patient_id: uuid.UUID) -> CarePlan | None:

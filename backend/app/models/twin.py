@@ -161,3 +161,38 @@ class TwinFlag(UUIDPk, Timestamps, Base):
     resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     resolution_note: Mapped[str | None] = mapped_column(Text)
     explanation: Mapped[str | None] = mapped_column(Text)  # reserved for GenAI explanations
+
+
+class SuggestionAuthor(StrEnum):
+    RULES = "rules"
+    PHYSIO = "physio"
+    AI = "ai"
+
+
+class SuggestionStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"  # its flag closed, or the plan changed before a decision
+
+
+class PlanSuggestion(UUIDPk, Timestamps, Base):
+    """A proposed change to a care plan's exercises. Nothing is applied until a physio approves it."""
+
+    __tablename__ = "plan_suggestions"
+    __table_args__ = (
+        Index("uq_plan_suggestions_pending_flag", "flag_id", unique=True, postgresql_where=text("status = 'pending'")),
+    )
+
+    care_plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("care_plans.id", ondelete="CASCADE"), index=True)
+    flag_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("twin_flags.id", ondelete="SET NULL"), index=True)
+    author: Mapped[SuggestionAuthor] = mapped_column(str_enum(SuggestionAuthor))
+    title: Mapped[str] = mapped_column(String(160))
+    rationale: Mapped[str] = mapped_column(Text)
+    # [{plan_exercise_id, field: sets|reps|hold_seconds|is_active, before, after}] — see services/suggestions.py
+    changes: Mapped[list] = mapped_column(JSONB, default=list)
+    status: Mapped[SuggestionStatus] = mapped_column(str_enum(SuggestionStatus), default=SuggestionStatus.PENDING, index=True)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    applied_changes: Mapped[list | None] = mapped_column(JSONB)  # what was applied, if the physio edited it

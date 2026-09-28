@@ -5,7 +5,18 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from app.models.clinical import AffectedSide
-from app.models.twin import CheckinSource, ExercisesDone, FlagSeverity, FlagStatus, MeasurementSource, Side, Sleep, Swelling
+from app.models.twin import (
+    CheckinSource,
+    ExercisesDone,
+    FlagSeverity,
+    FlagStatus,
+    MeasurementSource,
+    Side,
+    Sleep,
+    SuggestionAuthor,
+    SuggestionStatus,
+    Swelling,
+)
 
 Code = Annotated[str, Field(min_length=2, max_length=40)]
 Value = Annotated[float, Field(ge=-999, le=9999)]  # range per code is checked in services/twin.py
@@ -150,6 +161,47 @@ class CheckinResultOut(BaseModel):
     advice: AdviceOut | None
 
 
+ChangeField = Literal["sets", "reps", "hold_seconds", "is_active"]
+
+
+class PlanChangeIn(BaseModel):
+    """One edit to a prescribed exercise. `before` must match the plan when it's applied, or the suggestion is out of date."""
+
+    plan_exercise_id: uuid.UUID
+    field: ChangeField
+    before: int | bool | None
+    after: int | bool
+
+
+class PlanChangeOut(PlanChangeIn):
+    exercise_name: str
+
+
+class SuggestionOut(BaseModel):
+    id: uuid.UUID
+    care_plan_id: uuid.UUID
+    flag_id: uuid.UUID | None
+    author: SuggestionAuthor
+    title: str
+    rationale: str
+    changes: list[PlanChangeOut]
+    status: SuggestionStatus
+    stale: bool  # the plan changed since it was proposed; approving would fail
+    created_at: datetime
+    decided_at: datetime | None
+    decided_by_name: str | None
+    decision_note: str | None
+
+
+class SuggestionApproveIn(BaseModel):
+    changes: list[PlanChangeIn] | None = Field(default=None, max_length=30)  # the physio's edited version, if any
+    note: Annotated[str, Field(max_length=300)] | None = None
+
+
+class SuggestionRejectIn(BaseModel):
+    note: Annotated[str, Field(max_length=300)] | None = None
+
+
 class FlagOut(BaseModel):
     id: uuid.UUID
     clinic_patient_id: uuid.UUID
@@ -165,6 +217,7 @@ class FlagOut(BaseModel):
     resolved_at: datetime | None
     resolved_by_name: str | None
     resolution_note: str | None
+    suggestion: SuggestionOut | None = None  # pending plan change proposed for this flag
 
 
 class FlagCloseIn(BaseModel):

@@ -20,7 +20,6 @@ from app.models.clinical import (
     TestOrder,
     TestOrderStatus,
 )
-from app.models.engagement import Notification
 from app.models.exercise import Exercise, ExerciseStatus, ExerciseVisibility
 from app.models.patient import ClinicPatient, MedicalBackground, Patient
 from app.models.scheduling import Appointment, AppointmentStatus
@@ -52,6 +51,7 @@ from app.services.clinical import (
     ensure_clinic_patient,
     exercise_detail_text,
     new_rx_no,
+    notify_plan_update,
     plan_out,
     reminder_times,
 )
@@ -284,7 +284,7 @@ def set_plan_exercises(plan_id: uuid.UUID, items: list[PlanExerciseIn], member: 
         pe.is_active = True
         for k, v in item.model_dump(exclude={"exercise_id"}).items():
             setattr(pe, k, v)
-    _notify_plan_update(db, plan, "Your exercise program was updated")
+    notify_plan_update(db, plan, "Your exercise program was updated")
     audit.record(db, action="prescribe", entity="care_plan_exercises", entity_id=plan.id, actor_user_id=user.id, clinic_id=member.clinic_id, summary=f"{len(items)} exercises", request=request)
     db.commit()
     return plan_out(db, plan)
@@ -298,7 +298,7 @@ def set_plan_medications(plan_id: uuid.UUID, items: list[MedicationIn], member: 
     db.execute(update(Medication).where(Medication.care_plan_id == plan.id).values(is_active=False))
     for item in items:
         db.add(Medication(care_plan_id=plan.id, reminder_times=reminder_times(item.frequency), **item.model_dump()))
-    _notify_plan_update(db, plan, "Your medicines were updated")
+    notify_plan_update(db, plan, "Your medicines were updated")
     audit.record(db, action="prescribe", entity="medications", entity_id=plan.id, actor_user_id=user.id, clinic_id=member.clinic_id, summary=", ".join(i.name for i in items)[:200], request=request)
     db.commit()
     return plan_out(db, plan)
@@ -324,15 +324,9 @@ def update_test(test_id: uuid.UUID, body: TestOrderUpdate, member: Clinician, db
     if body.status == TestOrderStatus.RESULT_READY:
         plan = db.get(CarePlan, t.care_plan_id) if t.care_plan_id else None
         if plan:
-            _notify_plan_update(db, plan, f"Result ready: {t.name}")
+            notify_plan_update(db, plan, f"Result ready: {t.name}")
     db.commit()
     return TestOrderOut(id=t.id, name=t.name, status=t.status, result_note=t.result_note, created_at=t.created_at, result_at=t.result_at)
-
-
-def _notify_plan_update(db: Session, plan: CarePlan, title: str) -> None:
-    patient = db.get(Patient, db.get(ClinicPatient, plan.clinic_patient_id).patient_id)
-    if patient.user_id:
-        db.add(Notification(user_id=patient.user_id, kind="plan_updated", title=title, body=plan.condition, data={"care_plan_id": str(plan.id)}))
 
 
 # ── Prescriptions ───────────────────────────────────────────────────────────
@@ -369,7 +363,7 @@ def issue_prescription(plan_id: uuid.UUID, member: Clinician, user: CurrentUser,
     rx = Prescription(clinic_patient_id=cp.id, care_plan_id=plan.id, consultation_id=latest.id if latest else None,
                       physio_user_id=user.id, rx_no=new_rx_no(now), snapshot=snapshot, issued_at=now)
     db.add(rx)
-    _notify_plan_update(db, plan, "New prescription from your physio")
+    notify_plan_update(db, plan, "New prescription from your physio")
     audit.record(db, action="issue", entity="prescription", entity_id=rx.id, actor_user_id=user.id, clinic_id=member.clinic_id, summary=rx.rx_no, request=request)
     db.commit()
     return PrescriptionOut(id=rx.id, rx_no=rx.rx_no, issued_at=rx.issued_at, snapshot=rx.snapshot)
