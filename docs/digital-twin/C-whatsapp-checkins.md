@@ -74,7 +74,7 @@ with one alternative provider on price, template approval speed and webhook qual
 | # | Deliverable | Size |
 |---|---|---|
 | C0 | Provider choice, Meta Business verification, number, 2 templates submitted | S (mostly waiting on approvals) |
-| C1 | Webhook, session state machine, daily send, safety path, opt-in/out | M |
+| C1 ✅ | Webhook, session state machine, daily send, safety path, opt-in/out. Built against the WhatsApp Cloud API (Meta) with a swappable adapter; switched off until keys are set | M |
 | C2 | Pilot + readout | 4 weeks of running |
 
 **Start C0 early:** Meta verification and template approval can take days to weeks, so it can run alongside A.
@@ -84,3 +84,33 @@ with one alternative provider on price, template approval speed and webhook qual
 1. Stay with MSG91 for WhatsApp or evaluate another provider.
 2. The pilot clinic, and whether one fixed morning time is acceptable for v1.
 3. The budget ceiling per patient per month for messages.
+
+## What C1 built (2026-09-29)
+
+- **Opt-in** on the patient home (web + mobile), under today's check-in: its own versioned consent (`whatsapp`), shown
+  only when WhatsApp is switched on and the patient has a mobile number. Reply STOP to turn off, START to turn back on.
+- **Morning invite** from the daily cron (09:00 IST): the `daily_checkin` template with the first name only, once per
+  patient per day, skipped if they've already checked in.
+- **Conversation** (`services/whatsapp_flow.py`, pure and unit-tested): pain and stiffness as typed numbers 0–10
+  (11 options don't fit a list), swelling as a list, sleep and exercises as buttons, then the warning-sign question;
+  "Yes" opens a list of the four red flags (short titles ≤ 24 chars, full wording as the description).
+- **Saving** goes through the same code as app check-ins (`services/checkin_submit.py`): `source = whatsapp`, physio
+  alert, flag rules, and the same fixed red-flag advice with the clinic's number.
+- **Webhook** `/webhooks/whatsapp`: Meta's verify handshake (GET) and signed messages (POST, `X-Hub-Signature-256`).
+  State is saved before replying; retries are ignored by message id. The message log holds no content.
+
+**Provider.** MSG91's WhatsApp API reference wasn't publicly readable, so C1 talks to Meta's WhatsApp Cloud API
+directly (`services/whatsapp_provider.py`). Using MSG91 instead means adding an adapter with the same two functions
+(`send`, `parse_webhook`) once we have their API reference from the MSG91 account.
+
+## Switching it on
+
+1. Meta Business verification; a WhatsApp Business phone number (not one on regular WhatsApp); display name approved.
+2. Create and get approval for a **utility** template named `daily_checkin`, language `en`:
+   body "Good morning {{1}}, time for your 30-second knee check-in." with quick-reply buttons **Start** (payload
+   `start`) and **Skip today** (payload `skip`).
+3. In the Meta app, subscribe the webhook to `messages` at `https://physionexs-api.vercel.app/webhooks/whatsapp`
+   with a verify token of your choice.
+4. Set on the API project in Vercel: `WHATSAPP_PROVIDER=meta`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`,
+   `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`; redeploy.
+5. Legal review of the WhatsApp consent text (`services/checkins.py`), then pilot with one clinic (C2).

@@ -96,6 +96,7 @@ function Summary({ state, onEdit }: { state: State; onEdit: () => void }) {
         Pain {t.pain}/10 · Stiffness {t.stiffness}/10 · Swelling {labelOf(SWELLING, t.swelling).toLowerCase()} · Slept {labelOf(SLEEP, t.sleep).toLowerCase()}
       </Text>
       <Text variant="caption">Your physio at {state.plan?.clinic_name} can see this. Check in again tomorrow.</Text>
+      {state.whatsapp && <WhatsAppOptIn wa={state.whatsapp} />}
       <Pressable onPress={confirmStop} accessibilityRole="button" style={{ marginTop: 4 }}>
         <Text variant="caption" style={{ textDecorationLine: 'underline' }}>Stop sharing check-ins</Text>
       </Pressable>
@@ -180,6 +181,36 @@ function Choice<T extends string>({ label, options, value, onChange }: { label: 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map((o) => <Chip key={o.value} label={o.label} selected={value === o.value} onPress={() => onChange(o.value)} />)}
       </View>
+    </View>
+  )
+}
+
+/** Opt in to (or out of) getting the daily check-in as a WhatsApp message each morning. */
+function WhatsAppOptIn({ wa }: { wa: NonNullable<State['whatsapp']> }) {
+  const qc = useQueryClient()
+  const toggle = useMutation({
+    mutationFn: () => wa.consent.granted
+      ? api('/me/consents/whatsapp', { method: 'DELETE' })
+      : api('/me/consents', { method: 'POST', json: { purpose: 'whatsapp', version: wa.consent.version } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['checkin'] }),
+  })
+  return (
+    <View style={{ marginTop: 8, gap: 6, backgroundColor: colors.surface2, borderRadius: radius.md, padding: 12 }}>
+      {wa.consent.granted ? (
+        <>
+          <Text style={{ color: colors.ink, fontFamily: font.semibold }}>WhatsApp check-ins on · {wa.phone}</Text>
+          <Text variant="caption">You’ll get a message each morning.</Text>
+          <Pressable onPress={() => toggle.mutate()} accessibilityRole="button">
+            <Text variant="caption" style={{ textDecorationLine: 'underline' }}>Turn off</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Text style={{ color: colors.ink, fontFamily: font.semibold }}>{wa.consent.title}</Text>
+          <Text variant="caption" style={{ lineHeight: 18 }}>{wa.consent.body}</Text>
+          <Button title={`Turn on for ${wa.phone}`} variant="leaf" onPress={() => toggle.mutate()} loading={toggle.isPending} />
+        </>
+      )}
     </View>
   )
 }

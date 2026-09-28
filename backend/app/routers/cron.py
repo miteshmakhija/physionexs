@@ -17,7 +17,8 @@ from app.models.engagement import Notification
 from app.models.patient import Patient
 from app.models.scheduling import Appointment, AppointmentStatus
 from app.models.user import User
-from app.services.twin_rules import evaluate_all
+from app.services.twin_rules import evaluate_all, local_today
+from app.services.whatsapp import send_daily_invites
 
 router = APIRouter(prefix="/cron", tags=["cron"], include_in_schema=False)
 settings = get_settings()
@@ -90,4 +91,6 @@ def daily(db: DB, authorization: Annotated[str | None, Header()] = None) -> dict
     # Digital twin: time-based flag rules (missed exercises, no check-ins), auto-resolve, ended plans.
     twin = evaluate_all(db)
     db.commit()
-    return {"overdue": overdue, "reminders": reminded, "twin": twin}
+    # WhatsApp: morning check-in invites (the daily cron runs at 09:00 IST).
+    invites = send_daily_invites(db, local_today()) if settings.whatsapp_enabled else 0
+    return {"overdue": overdue, "reminders": reminded, "twin": twin, "whatsapp_invites": invites}

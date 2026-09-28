@@ -8,26 +8,27 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.deps import DB, require_roles
 from app.models.clinic import Clinic
 from app.models.patient import ClinicPatient, Patient
 from app.models.twin import CheckinSource, Consent, DailyCheckin
 from app.models.user import User, UserRole
-from app.schemas.twin import CheckinIn, CheckinPlanOut, CheckinResultOut, CheckinStateOut, ConsentIn, ConsentStateOut
+from app.schemas.twin import CheckinIn, CheckinPlanOut, CheckinResultOut, CheckinStateOut, ConsentIn, ConsentStateOut, WhatsAppStateOut
 from app.services import audit
+from app.services.checkin_submit import save_checkin
 from app.services.checkins import (
     CONSENTS,
     TWIN_TRACKING,
+    WHATSAPP,
     active_consent,
     advice_for,
     checkin_out,
     consent_state,
     eligible_plan,
-    notify_physio,
     red_flag_options,
     withdraw,
 )
-from app.services.twin_rules import evaluate_plan
 
 router = APIRouter(prefix="/me", tags=["checkins"])
 
@@ -41,6 +42,10 @@ def _patient(db: Session, user: User) -> Patient:
     if p is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Patient profile not found")
     return p
+
+
+def _mask(phone: str) -> str:
+    return f"{phone[:3]} ••••• {phone[-5:]}" if len(phone) > 8 else phone
 
 
 def _clinic_of(db: Session, clinic_patient_id) -> Clinic:
@@ -70,6 +75,8 @@ def checkin_state(user: PatientUser, db: DB, day: Annotated[date | None, Query()
         advice=advice_for(today.red_flags or [], clinic) if today else None,
         recent=[checkin_out(c) for c in rows],
         red_flag_options=red_flag_options(),
+        whatsapp=WhatsAppStateOut(consent=consent_state(active_consent(db, patient.id, WHATSAPP), WHATSAPP), phone=_mask(patient.phone))
+        if get_settings().whatsapp_enabled and patient.phone else None,
     )
 
 
@@ -93,7 +100,7 @@ def grant_consent(body: ConsentIn, user: PatientUser, db: DB, request: Request) 
 
 
 @router.delete("/consents/{purpose}", status_code=status.HTTP_204_NO_CONTENT)
-def withdraw_consent(purpose: Literal["twin_tracking"], user: PatientUser, db: DB, request: Request) -> None:
+def withdraw_consent(purpose: Literal["twin_tracking", "whatsapp"], user: PatientUser, db: DB, request: Request) -> None:
     patient = _patient(db, user)
     current = active_consent(db, patient.id, purpose)
     if current:
@@ -120,24 +127,11 @@ def submit_checkin(
     if consent is None or consent.version != CONSENTS[TWIN_TRACKING]["version"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "consent_required")
 
-    flags = list(dict.fromkeys(body.red_flags))
-    c = db.scalar(select(DailyCheckin).where(DailyCheckin.patient_id == patient.id, DailyCheckin.day == body.day).with_for_update())
-    new_flags = [f for f in flags if c is None or f not in (c.red_flags or [])]
-    fields = body.model_dump(exclude={"day", "red_flags"}) | {"red_flags": flags, "care_plan_id": plan.id}
-    if c is None:
-        c = DailyCheckin(patient_id=patient.id, day=body.day, source=CheckinSource.WEB if x_client == "web" else CheckinSource.APP, **fields)
-        db.add(c)
-    else:
-        for k, v in fields.items():
-            setattr(c, k, v)
-    if new_flags:
-        notify_physio(db, plan, patient, new_flags)
     try:
-        db.flush()
-        evaluate_plan(db, plan)
+        c, advice = save_checkin(db, patient, plan, body, CheckinSource.WEB if x_client == "web" else CheckinSource.APP)
         db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Check-in already saved — please refresh")
     db.refresh(c)
-    return CheckinResultOut(checkin=checkin_out(c), advice=advice_for(flags, _clinic_of(db, plan.clinic_patient_id)))
+    return CheckinResultOut(checkin=checkin_out(c), advice=advice)

@@ -21,6 +21,7 @@ from app.schemas.twin import AdviceOut, CheckinOut, ConsentStateOut, OptionOut
 CHECKIN_PROTOCOLS = {"tka"}
 
 TWIN_TRACKING = "twin_tracking"
+WHATSAPP = "whatsapp"
 CONSENTS = {
     TWIN_TRACKING: {
         "version": "2026-09",
@@ -31,6 +32,15 @@ CONSENTS = {
             "and the measurements your physio records. Only your physio's clinic can see them. We use them to show "
             "your progress and to alert your physio early. You can stop at any time; we then stop collecting new "
             "check-ins. This is not an emergency service. If you feel very unwell, call 112."
+        ),
+    },
+    WHATSAPP: {
+        "version": "2026-09",
+        "title": "Get your daily check-in on WhatsApp",
+        "body": (
+            "We'll send one WhatsApp message each morning to your mobile number for your daily check-in. Your answers "
+            "pass through WhatsApp (Meta) and reach your physio like an app check-in. Messages never include your "
+            "diagnosis. Reply STOP at any time to turn them off."
         ),
     },
 }

@@ -226,3 +226,29 @@ class ValidationPair(UUIDPk, Base):
     note: Mapped[str | None] = mapped_column(Text)
     recorded_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+
+class WhatsAppSession(UUIDPk, Timestamps, Base):
+    """One day's WhatsApp check-in conversation (design C). Answers are copied into daily_checkins when complete."""
+
+    __tablename__ = "whatsapp_sessions"
+    __table_args__ = (UniqueConstraint("patient_id", "day"),)
+
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"))
+    day: Mapped[date] = mapped_column(Date)  # IST
+    step: Mapped[str] = mapped_column(String(20))  # invite, pain, stiffness, swelling, sleep, exercises, red, red_which, done, skipped
+    answers: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+
+class WhatsAppMessage(UUIDPk, Base):
+    """Delivery log for audit and de-duplicating webhook retries. Holds no message content."""
+
+    __tablename__ = "whatsapp_messages"
+
+    provider_id: Mapped[str | None] = mapped_column(String(128), unique=True)
+    direction: Mapped[str] = mapped_column(String(3))  # in, out
+    patient_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="SET NULL"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # template, text, buttons, list, inbound
+    status: Mapped[str | None] = mapped_column(String(20))  # sent, delivered, read, failed
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

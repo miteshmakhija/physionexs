@@ -134,8 +134,13 @@ class ConsentStateOut(BaseModel):
 
 
 class ConsentIn(BaseModel):
-    purpose: Literal["twin_tracking"]
+    purpose: Literal["twin_tracking", "whatsapp"]
     version: Annotated[str, Field(max_length=20)]
+
+
+class WhatsAppStateOut(BaseModel):
+    consent: ConsentStateOut
+    phone: str  # masked, e.g. +91 ••••• 45678
 
 
 class CheckinPlanOut(BaseModel):
@@ -154,6 +159,8 @@ class CheckinStateOut(BaseModel):
     advice: AdviceOut | None  # for red flags reported today
     recent: list[CheckinOut]  # last 7 days, newest first
     red_flag_options: list[OptionOut]
+    whatsapp: WhatsAppStateOut | None = None  # present only when WhatsApp check-ins are switched on
+
 
 
 class CheckinResultOut(BaseModel):

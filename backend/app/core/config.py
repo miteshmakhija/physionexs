@@ -59,9 +59,25 @@ class Settings(BaseSettings):
     # Vercel Cron authenticates with "Authorization: Bearer <CRON_SECRET>".
     cron_secret: str | None = None
 
+    # WhatsApp check-ins (docs/digital-twin/C-whatsapp-checkins.md). Off unless a provider is set:
+    # "meta" = WhatsApp Cloud API; "log" = development only, messages are logged instead of sent.
+    whatsapp_provider: str | None = None
+    whatsapp_token: str | None = None
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_app_secret: str | None = None  # verifies webhook signatures
+    whatsapp_verify_token: str | None = None  # Meta's webhook set-up handshake
+    whatsapp_checkin_template: str = "daily_checkin"  # approved utility template: {{1}} = first name; buttons Start / Skip today
+    whatsapp_template_language: str = "en"
+
     @property
     def is_dev(self) -> bool:
         return self.environment != "production"
+
+    @property
+    def whatsapp_enabled(self) -> bool:
+        if self.whatsapp_provider == "log":
+            return self.is_dev
+        return self.whatsapp_provider == "meta" and bool(self.whatsapp_token and self.whatsapp_phone_number_id and self.whatsapp_app_secret)
 
     @property
     def sqlalchemy_url(self) -> str:

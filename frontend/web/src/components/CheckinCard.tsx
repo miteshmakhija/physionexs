@@ -86,6 +86,7 @@ function Summary({ state, onEdit }: { state: State; onEdit: () => void }) {
         Pain <b>{t.pain}/10</b> · Stiffness <b>{t.stiffness}/10</b> · Swelling {labelOf(SWELLING, t.swelling).toLowerCase()} · Slept {labelOf(SLEEP, t.sleep).toLowerCase()}
       </p>
       <p className="mt-1 text-[13px] text-muted">Your physio at {state.plan?.clinic_name} can see this. Check in again tomorrow.</p>
+      {state.whatsapp && <WhatsAppOptIn wa={state.whatsapp} />}
       <button className="mt-3 text-[12px] text-muted underline" onClick={() => window.confirm('Stop sharing daily check-ins with your physio? You can turn it back on later.') && stop.mutate()}>
         Stop sharing check-ins
       </button>
@@ -179,5 +180,32 @@ function Pill({ selected, onClick, danger, children }: { selected: boolean; onCl
       className={cx('rounded-sm border px-3 py-2 text-[13px] font-medium transition', selected ? (danger ? 'border-danger bg-danger text-white' : 'border-ink bg-ink text-white') : 'border-line-strong hover:border-ink')}>
       {children}
     </button>
+  )
+}
+
+/** Opt in to (or out of) getting the daily check-in as a WhatsApp message each morning. */
+function WhatsAppOptIn({ wa }: { wa: NonNullable<State['whatsapp']> }) {
+  const qc = useQueryClient()
+  const toggle = useMutation({
+    mutationFn: () => wa.consent.granted
+      ? api('/me/consents/whatsapp', { method: 'DELETE' })
+      : api('/me/consents', { method: 'POST', json: { purpose: 'whatsapp', version: wa.consent.version } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['checkin'] }),
+  })
+  return (
+    <div className="mt-4 rounded-md bg-surface-2 p-3 text-[13px]">
+      {wa.consent.granted ? (
+        <p>
+          <b>WhatsApp check-ins on</b> · {wa.phone}. You’ll get a message each morning.{' '}
+          <button className="underline" onClick={() => toggle.mutate()}>Turn off</button>
+        </p>
+      ) : (
+        <>
+          <p className="font-semibold">{wa.consent.title}</p>
+          <p className="mt-1 text-muted">{wa.consent.body}</p>
+          <Button variant="secondary" className="mt-2 !h-9" loading={toggle.isPending} onClick={() => toggle.mutate()}>Turn on for {wa.phone}</Button>
+        </>
+      )}
+    </div>
   )
 }

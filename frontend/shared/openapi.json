@@ -5787,7 +5787,10 @@
             "in": "path",
             "required": true,
             "schema": {
-              "const": "twin_tracking",
+              "enum": [
+                "twin_tracking",
+                "whatsapp"
+              ],
               "type": "string",
               "title": "Purpose"
             }
@@ -7748,6 +7751,138 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response Razorpay Webhook Webhooks Razorpay Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/whatsapp": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Whatsapp Verify",
+        "description": "Meta's one-time webhook handshake: echo the challenge if the verify token matches.",
+        "operationId": "whatsapp_verify_webhooks_whatsapp_get",
+        "parameters": [
+          {
+            "name": "hub.mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hub.Mode"
+            }
+          },
+          {
+            "name": "hub.verify_token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hub.Verify Token"
+            }
+          },
+          {
+            "name": "hub.challenge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hub.Challenge"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Whatsapp Webhook",
+        "description": "Incoming WhatsApp messages. Always answers 200 once verified, so Meta doesn't retry what we've handled.",
+        "operationId": "whatsapp_webhook_webhooks_whatsapp_post",
+        "parameters": [
+          {
+            "name": "x-hub-signature-256",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Hub-Signature-256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Whatsapp Webhook Webhooks Whatsapp Post"
                 }
               }
             }
@@ -10027,6 +10162,16 @@
             },
             "type": "array",
             "title": "Red Flag Options"
+          },
+          "whatsapp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatsAppStateOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -10460,7 +10605,10 @@
         "properties": {
           "purpose": {
             "type": "string",
-            "const": "twin_tracking",
+            "enum": [
+              "twin_tracking",
+              "whatsapp"
+            ],
             "title": "Purpose"
           },
           "version": {
@@ -17494,6 +17642,23 @@
           "branch_id"
         ],
         "title": "WalkInIn"
+      },
+      "WhatsAppStateOut": {
+        "properties": {
+          "consent": {
+            "$ref": "#/components/schemas/ConsentStateOut"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "consent",
+          "phone"
+        ],
+        "title": "WhatsAppStateOut"
       }
     },
     "securitySchemes": {
