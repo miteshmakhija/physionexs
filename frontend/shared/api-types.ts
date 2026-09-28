@@ -1186,6 +1186,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/red-flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recent Red Flags
+         * @description Warning signs patients reported in their check-ins over the last 7 days, newest first.
+         */
+        get: operations["recent_red_flags_clinic_red_flags_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/exercises": {
         parameters: {
             query?: never;
@@ -1431,6 +1451,80 @@ export interface paths {
         get: operations["my_prescriptions_me_prescriptions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/checkin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checkin State
+         * @description State of today's check-in card: whether it applies, consent, today's answers and any safety advice.
+         */
+        get: operations["checkin_state_me_checkin_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant Consent */
+        post: operations["grant_consent_me_consents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/consents/{purpose}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Withdraw Consent */
+        delete: operations["withdraw_consent_me_consents__purpose__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/checkins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Checkin
+         * @description Save the day's check-in (re-submitting the same day edits it). Red flags return fixed safety advice at once.
+         */
+        post: operations["submit_checkin_me_checkins_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1966,6 +2060,22 @@ export interface components {
             /** Activity */
             activity: components["schemas"]["ActivityItem"][];
         };
+        /** AdviceOut */
+        AdviceOut: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "emergency" | "urgent";
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Call Label */
+            call_label: string | null;
+            /** Call Number */
+            call_number: string | null;
+        };
         /**
          * AffectedSide
          * @enum {string}
@@ -2436,6 +2546,93 @@ export interface components {
             /** Pct */
             pct: number;
         };
+        /** CheckinIn */
+        CheckinIn: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Pain */
+            pain: number;
+            /** Stiffness */
+            stiffness: number;
+            swelling: components["schemas"]["Swelling"];
+            sleep: components["schemas"]["Sleep"];
+            exercises: components["schemas"]["ExercisesDone"];
+            /** Red Flags */
+            red_flags?: ("calf_pain" | "fever" | "wound_redness" | "chest_breathless")[];
+            /** Note */
+            note?: string | null;
+        };
+        /** CheckinOut */
+        CheckinOut: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Pain */
+            pain: number;
+            /** Stiffness */
+            stiffness: number;
+            swelling: components["schemas"]["Swelling"];
+            sleep: components["schemas"]["Sleep"];
+            exercises: components["schemas"]["ExercisesDone"];
+            /** Red Flags */
+            red_flags: string[];
+            /** Note */
+            note?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            source: components["schemas"]["CheckinSource"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CheckinPlanOut */
+        CheckinPlanOut: {
+            /**
+             * Care Plan Id
+             * Format: uuid
+             */
+            care_plan_id: string;
+            /** Condition */
+            condition: string;
+            /** Clinic Name */
+            clinic_name: string;
+        };
+        /** CheckinResultOut */
+        CheckinResultOut: {
+            checkin: components["schemas"]["CheckinOut"];
+            advice: components["schemas"]["AdviceOut"] | null;
+        };
+        /**
+         * CheckinSource
+         * @enum {string}
+         */
+        CheckinSource: "app" | "web" | "whatsapp";
+        /**
+         * CheckinStateOut
+         * @description Everything the patient app needs to show the check-in card.
+         */
+        CheckinStateOut: {
+            /** Eligible */
+            eligible: boolean;
+            plan: components["schemas"]["CheckinPlanOut"] | null;
+            consent: components["schemas"]["ConsentStateOut"];
+            today: components["schemas"]["CheckinOut"] | null;
+            advice: components["schemas"]["AdviceOut"] | null;
+            /** Recent */
+            recent: components["schemas"]["CheckinOut"][];
+            /** Red Flag Options */
+            red_flag_options: components["schemas"]["OptionOut"][];
+        };
         /** CheckoutIn */
         CheckoutIn: {
             plan?: components["schemas"]["SubscriptionPlan"] | null;
@@ -2568,6 +2765,31 @@ export interface components {
             count: number;
             /** Actions */
             actions: string[];
+        };
+        /** ConsentIn */
+        ConsentIn: {
+            /**
+             * Purpose
+             * @constant
+             */
+            purpose: "twin_tracking";
+            /** Version */
+            version: string;
+        };
+        /** ConsentStateOut */
+        ConsentStateOut: {
+            /** Purpose */
+            purpose: string;
+            /** Version */
+            version: string;
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Granted */
+            granted: boolean;
+            /** Granted At */
+            granted_at: string | null;
         };
         /**
          * ConsultMode
@@ -2858,6 +3080,11 @@ export interface components {
          * @enum {string}
          */
         ExerciseStatus: "draft" | "in_review" | "published" | "rejected";
+        /**
+         * ExercisesDone
+         * @enum {string}
+         */
+        ExercisesDone: "all" | "some" | "none";
         /**
          * Feel
          * @enum {string}
@@ -3323,6 +3550,13 @@ export interface components {
             est_wait_minutes: number;
             /** Now Serving */
             now_serving: string | null;
+        };
+        /** OptionOut */
+        OptionOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
         };
         /** OtpRequestIn */
         OtpRequestIn: {
@@ -3928,6 +4162,25 @@ export interface components {
             /** Actions */
             actions: string[];
         };
+        /** RedFlagReportOut */
+        RedFlagReportOut: {
+            /**
+             * Clinic Patient Id
+             * Format: uuid
+             */
+            clinic_patient_id: string;
+            /** Patient Name */
+            patient_name: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Red Flags */
+            red_flags: components["schemas"]["OptionOut"][];
+            /** Pain */
+            pain: number;
+        };
         /** RefreshIn */
         RefreshIn: {
             /** Refresh Token */
@@ -4053,6 +4306,11 @@ export interface components {
          * @enum {string}
          */
         Side: "left" | "right" | "none";
+        /**
+         * Sleep
+         * @enum {string}
+         */
+        Sleep: "good" | "ok" | "poor";
         /** SlotOut */
         SlotOut: {
             /**
@@ -4246,6 +4504,11 @@ export interface components {
             /** Hours */
             hours: string;
         };
+        /**
+         * Swelling
+         * @enum {string}
+         */
+        Swelling: "none" | "mild" | "moderate" | "severe";
         /** TargetIn */
         TargetIn: {
             /** Code */
@@ -4467,6 +4730,12 @@ export interface components {
             measurements: components["schemas"]["MeasurementOut"][];
             /** Codes */
             codes: components["schemas"]["CodeOut"][];
+            /** Checkins */
+            checkins?: components["schemas"]["CheckinOut"][];
+            /** Red Flag Labels */
+            red_flag_labels?: {
+                [key: string]: string;
+            };
         };
         /**
          * UserRole
@@ -6893,6 +7162,37 @@ export interface operations {
             };
         };
     };
+    recent_red_flags_clinic_red_flags_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedFlagReportOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     clinic_library_clinic_exercises_get: {
         parameters: {
             query?: {
@@ -7461,6 +7761,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrescriptionOut"][];
+                };
+            };
+        };
+    };
+    checkin_state_me_checkin_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckinStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_consent_me_consents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_consent_me_consents__purpose__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                purpose: "twin_tracking";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_checkin_me_checkins_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Client"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckinIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckinResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

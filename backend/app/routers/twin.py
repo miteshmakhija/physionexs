@@ -1,22 +1,24 @@
-"""Practice console: the patient's digital twin — structured measurements and care-plan targets.
+"""Practice console: the patient's digital twin — measurements, targets, check-ins and red flags.
 
-Milestone A1 of docs/digital-twin/A-knee-twin.md. Check-ins, rules and suggestions come in later milestones.
+Milestones A1–A2 of docs/digital-twin/A-knee-twin.md. Rules and suggestions come in later milestones.
 """
 
 import uuid
+from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import DB, CurrentUser, require_clinic_member
 from app.models.clinic import ClinicMember, MembershipRole
 from app.models.clinical import CarePlan, CarePlanStatus, Consultation
-from app.models.patient import ClinicPatient
-from app.models.twin import CarePlanTarget, Measurement, MeasurementSource
-from app.schemas.twin import MeasurementIn, MeasurementOut, MeasurementUpdate, TargetIn, TargetOut, TwinOut
+from app.models.patient import ClinicPatient, Patient
+from app.models.twin import CarePlanTarget, DailyCheckin, Measurement, MeasurementSource
+from app.schemas.twin import MeasurementIn, MeasurementOut, MeasurementUpdate, OptionOut, RedFlagReportOut, TargetIn, TargetOut, TwinOut
 from app.services import audit
+from app.services.checkins import RED_FLAGS
 from app.services.clinical import care_plan_or_404, clinic_patient_or_404
 from app.services.twin import check, is_plausible, last_trusted, measured_at_or_now, measurement_out, targets_out, twin_out, user_names
 
@@ -122,3 +124,22 @@ def set_targets(
                  summary=", ".join(f"{i.code} {i.side.value} {i.target_value:g}" for i in items)[:200], request=request)
     db.commit()
     return targets_out(db, plan.id)
+
+
+@router.get("/red-flags", response_model=list[RedFlagReportOut])
+def recent_red_flags(member: Member, db: DB) -> list[RedFlagReportOut]:
+    """Warning signs patients reported in their check-ins over the last 7 days, newest first."""
+    rows = db.execute(
+        select(DailyCheckin, ClinicPatient.id, Patient.full_name)
+        .join(CarePlan, CarePlan.id == DailyCheckin.care_plan_id)
+        .join(ClinicPatient, ClinicPatient.id == CarePlan.clinic_patient_id)
+        .join(Patient, Patient.id == ClinicPatient.patient_id)
+        .where(ClinicPatient.clinic_id == member.clinic_id, func.cardinality(DailyCheckin.red_flags) > 0, DailyCheckin.day > date.today() - timedelta(days=7))
+        .order_by(DailyCheckin.day.desc(), DailyCheckin.updated_at.desc())
+        .limit(50)
+    ).all()
+    return [
+        RedFlagReportOut(clinic_patient_id=cp_id, patient_name=name, day=c.day, pain=c.pain,
+                         red_flags=[OptionOut(code=f, label=RED_FLAGS.get(f, f)) for f in c.red_flags])
+        for c, cp_id, name in rows
+    ]

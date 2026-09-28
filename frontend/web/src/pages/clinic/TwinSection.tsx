@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { MeasureTrend } from '@/components/charts'
-import { Alert, Button, Field, Input, Select, cx } from '@/components/ui'
+import { Alert, Button, Field, Input, Select, Stat, cx } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
-import { dayLabel } from '@shared/format'
+import { EXERCISES, SLEEP, SWELLING, labelOf } from '@shared/checkin'
+import { dayLabel, isoDay } from '@shared/format'
 
 type Twin = Schemas['TwinOut']
 type Measure = Schemas['TwinMeasureOut']
@@ -68,6 +69,8 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
           })}
         </div>
       )}
+
+      <Checkins twin={t} />
 
       {canWrite && <AddReading twin={t} cpId={cpId} clinicId={clinicId} />}
       <Readings twin={t} cpId={cpId} canWrite={canWrite} clinicId={clinicId} />
@@ -136,11 +139,11 @@ function KneeMap({ measures }: { measures: Measure[] }) {
 function AddReading({ twin, cpId, clinicId }: { twin: Twin; cpId: string; clinicId: string }) {
   const qc = useQueryClient()
   const defaultSide = twin.affected_side === 'left' ? 'left' : 'right'
-  const [f, setF] = useState({ code: 'knee_flexion', side: defaultSide, value: '', day: new Date().toISOString().slice(0, 10) })
+  const [f, setF] = useState({ code: 'knee_flexion', side: defaultSide, value: '', day: isoDay() })
   const code = twin.codes.find((c) => c.code === f.code)!
   const save = useMutation({
     mutationFn: () => {
-      const today = f.day === new Date().toISOString().slice(0, 10)
+      const today = f.day === isoDay()
       return api<Reading[]>(`/clinic/patients/${cpId}/measurements`, {
         method: 'POST',
         clinicId,
@@ -179,7 +182,7 @@ function AddReading({ twin, cpId, clinicId }: { twin: Twin; cpId: string; clinic
         <Input type="number" step="0.5" min={code.min} max={code.max} value={f.value} onChange={set('value')} required className="!w-28" />
       </Field>
       <Field label="Date">
-        <Input type="date" value={f.day} max={new Date().toISOString().slice(0, 10)} onChange={set('day')} required />
+        <Input type="date" value={f.day} max={isoDay()} onChange={set('day')} required />
       </Field>
       <Button type="submit" variant="secondary" loading={save.isPending}>Add reading</Button>
       {save.error && <div className="w-full"><Alert>{(save.error as Error).message}</Alert></div>}
@@ -230,6 +233,51 @@ function Readings({ twin, cpId, canWrite, clinicId }: { twin: Twin; cpId: string
       </table>
       {twin.measurements.length > rows.length && (
         <button className="eyebrow mt-3 !text-ink hover:underline" onClick={() => setAll(true)}>Show all {twin.measurements.length} readings</button>
+      )}
+    </div>
+  )
+}
+
+/** Patient-reported daily check-ins: red flags first, then the latest answers and 30-day trends. */
+function Checkins({ twin }: { twin: Twin }) {
+  const c = twin.checkins ?? []
+  if (!twin.protocol && c.length === 0) return null
+  const weekAgo = isoDay(new Date(Date.now() - 6 * 86_400_000))
+  const flagged = c.filter((x) => x.red_flags.length > 0 && x.day >= weekAgo)
+  const last = c[0]
+  const seven = c.filter((x) => x.day >= weekAgo)
+
+  return (
+    <div className="mt-8">
+      <h3 className="mb-3 text-[14px] font-semibold">Daily check-ins</h3>
+      {flagged.map((x) => (
+        <div key={x.id} role="alert" className="mb-3 rounded-md border-2 border-danger bg-danger-tint px-4 py-3 text-[14px]">
+          <b className="text-danger">Red flag · {dayLabel(x.day)}:</b> {x.red_flags.map((f) => twin.red_flag_labels?.[f] ?? f).join(', ')}.
+          <span className="text-ink-2"> The patient was shown advice to contact the clinic{x.red_flags.includes('chest_breathless') ? ' and call 112' : ''}. Please follow up.</span>
+        </div>
+      ))}
+      {!last ? (
+        <p className="text-[13.5px] text-muted">No check-ins yet. The patient is asked to check in daily from their app once they agree to share.</p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Stat label="Last check-in" value={dayLabel(last.day)} sub={`${last.source === 'web' ? 'Web' : last.source === 'whatsapp' ? 'WhatsApp' : 'App'}`} />
+            <Stat label="Pain · stiffness" value={`${last.pain} · ${last.stiffness}`} sub="out of 10" />
+            <Stat label="Swelling · sleep" value={labelOf(SWELLING, last.swelling)} sub={`Slept ${labelOf(SLEEP, last.sleep).toLowerCase()}`} />
+            <Stat label="Check-ins · 7 days" value={`${seven.length} of 7`} sub={`Exercises: ${labelOf(EXERCISES, last.exercises).toLowerCase()} yesterday`} />
+          </div>
+          {c.length > 1 && (
+            <div className="mt-6 grid gap-8 lg:grid-cols-2">
+              {(['pain', 'stiffness'] as const).map((k) => (
+                <div key={k}>
+                  <h4 className="mb-2 text-[13.5px] font-semibold">{k === 'pain' ? 'Pain' : 'Stiffness'} · check-ins</h4>
+                  <MeasureTrend title={`${k} from daily check-ins, 0 to 10`} unit="score" lo={0} hi={10} target={null}
+                    points={c.map((x) => ({ at: `${x.day}T12:00:00`, value: x[k], trusted: true }))} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -3,6 +3,7 @@ import { Link, router } from 'expo-router'
 import { Pressable, View } from 'react-native'
 
 import { useSession } from '@/auth/session'
+import { CheckinCard } from '@/components/CheckinCard'
 import { SupportCard } from '@/components/Support'
 import { Avatar, Button, Card, Divider, Screen, Text } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
@@ -36,6 +37,8 @@ export default function PatientHome() {
           <Avatar name={me.full_name} size={44} />
         </Pressable>
       </View>
+
+      <CheckinCard />
 
       {tokens.data?.map((t) => (
         <Card key={t.label} style={{ gap: 4 }}>

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
+import { CheckinCard } from '@/components/CheckinCard'
 import { SupportCard } from '@/components/Support'
 import { Avatar, Card } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
@@ -31,6 +32,8 @@ export default function PatientHome() {
         <p className="eyebrow">{greeting()}</p>
         <h1 className="mt-1 text-[28px] font-bold tracking-[-0.02em]">{firstName}</h1>
       </div>
+
+      <CheckinCard />
 
       {tokens.data?.map((t) => (
         <Card key={t.label} className="p-6">

@@ -4087,6 +4087,59 @@
         }
       }
     },
+    "/clinic/red-flags": {
+      "get": {
+        "tags": [
+          "twin"
+        ],
+        "summary": "Recent Red Flags",
+        "description": "Warning signs patients reported in their check-ins over the last 7 days, newest first.",
+        "operationId": "recent_red_flags_clinic_red_flags_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RedFlagReportOut"
+                  },
+                  "title": "Response Recent Red Flags Clinic Red Flags Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clinic/exercises": {
       "get": {
         "tags": [
@@ -5118,6 +5171,214 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/me/checkin": {
+      "get": {
+        "tags": [
+          "checkins"
+        ],
+        "summary": "Checkin State",
+        "description": "State of today's check-in card: whether it applies, consent, today's answers and any safety advice.",
+        "operationId": "checkin_state_me_checkin_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinStateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/consents": {
+      "post": {
+        "tags": [
+          "checkins"
+        ],
+        "summary": "Grant Consent",
+        "operationId": "grant_consent_me_consents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentStateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/me/consents/{purpose}": {
+      "delete": {
+        "tags": [
+          "checkins"
+        ],
+        "summary": "Withdraw Consent",
+        "operationId": "withdraw_consent_me_consents__purpose__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "const": "twin_tracking",
+              "type": "string",
+              "title": "Purpose"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/checkins": {
+      "post": {
+        "tags": [
+          "checkins"
+        ],
+        "summary": "Submit Checkin",
+        "description": "Save the day's check-in (re-submitting the same day edits it). Red flags return fixed safety advice at once.",
+        "operationId": "submit_checkin_me_checkins_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Client",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckinIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinResultOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/clinic/invoices": {
@@ -7192,6 +7453,57 @@
         ],
         "title": "AdminDashboard"
       },
+      "AdviceOut": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "emergency",
+              "urgent"
+            ],
+            "title": "Level"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "call_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Label"
+          },
+          "call_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "title",
+          "body",
+          "call_label",
+          "call_number"
+        ],
+        "title": "AdviceOut"
+      },
       "AffectedSide": {
         "type": "string",
         "enum": [
@@ -8694,6 +9006,271 @@
         ],
         "title": "CategoryShare"
       },
+      "CheckinIn": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "pain": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Pain"
+          },
+          "stiffness": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Stiffness"
+          },
+          "swelling": {
+            "$ref": "#/components/schemas/Swelling"
+          },
+          "sleep": {
+            "$ref": "#/components/schemas/Sleep"
+          },
+          "exercises": {
+            "$ref": "#/components/schemas/ExercisesDone"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "calf_pain",
+                "fever",
+                "wound_redness",
+                "chest_breathless"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "title": "Red Flags"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "pain",
+          "stiffness",
+          "swelling",
+          "sleep",
+          "exercises"
+        ],
+        "title": "CheckinIn"
+      },
+      "CheckinOut": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "pain": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Pain"
+          },
+          "stiffness": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Stiffness"
+          },
+          "swelling": {
+            "$ref": "#/components/schemas/Swelling"
+          },
+          "sleep": {
+            "$ref": "#/components/schemas/Sleep"
+          },
+          "exercises": {
+            "$ref": "#/components/schemas/ExercisesDone"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/CheckinSource"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "pain",
+          "stiffness",
+          "swelling",
+          "sleep",
+          "exercises",
+          "red_flags",
+          "id",
+          "source",
+          "updated_at"
+        ],
+        "title": "CheckinOut"
+      },
+      "CheckinPlanOut": {
+        "properties": {
+          "care_plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Care Plan Id"
+          },
+          "condition": {
+            "type": "string",
+            "title": "Condition"
+          },
+          "clinic_name": {
+            "type": "string",
+            "title": "Clinic Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "care_plan_id",
+          "condition",
+          "clinic_name"
+        ],
+        "title": "CheckinPlanOut"
+      },
+      "CheckinResultOut": {
+        "properties": {
+          "checkin": {
+            "$ref": "#/components/schemas/CheckinOut"
+          },
+          "advice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdviceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkin",
+          "advice"
+        ],
+        "title": "CheckinResultOut"
+      },
+      "CheckinSource": {
+        "type": "string",
+        "enum": [
+          "app",
+          "web",
+          "whatsapp"
+        ],
+        "title": "CheckinSource"
+      },
+      "CheckinStateOut": {
+        "properties": {
+          "eligible": {
+            "type": "boolean",
+            "title": "Eligible"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinPlanOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ConsentStateOut"
+          },
+          "today": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "advice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdviceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/CheckinOut"
+            },
+            "type": "array",
+            "title": "Recent"
+          },
+          "red_flag_options": {
+            "items": {
+              "$ref": "#/components/schemas/OptionOut"
+            },
+            "type": "array",
+            "title": "Red Flag Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "eligible",
+          "plan",
+          "consent",
+          "today",
+          "advice",
+          "recent",
+          "red_flag_options"
+        ],
+        "title": "CheckinStateOut",
+        "description": "Everything the patient app needs to show the check-in card."
+      },
       "CheckoutIn": {
         "properties": {
           "plan": {
@@ -9107,6 +9684,72 @@
           "actions"
         ],
         "title": "Collection"
+      },
+      "ConsentIn": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "const": "twin_tracking",
+            "title": "Purpose"
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "purpose",
+          "version"
+        ],
+        "title": "ConsentIn"
+      },
+      "ConsentStateOut": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "granted": {
+            "type": "boolean",
+            "title": "Granted"
+          },
+          "granted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "purpose",
+          "version",
+          "title",
+          "body",
+          "granted",
+          "granted_at"
+        ],
+        "title": "ConsentStateOut"
       },
       "ConsultMode": {
         "type": "string",
@@ -10038,6 +10681,15 @@
           "rejected"
         ],
         "title": "ExerciseStatus"
+      },
+      "ExercisesDone": {
+        "type": "string",
+        "enum": [
+          "all",
+          "some",
+          "none"
+        ],
+        "title": "ExercisesDone"
       },
       "Feel": {
         "type": "string",
@@ -11363,6 +12015,24 @@
           "now_serving"
         ],
         "title": "MyTokenOut"
+      },
+      "OptionOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "OptionOut"
       },
       "OtpRequestIn": {
         "properties": {
@@ -13321,6 +13991,44 @@
         ],
         "title": "RecordsPage"
       },
+      "RedFlagReportOut": {
+        "properties": {
+          "clinic_patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Clinic Patient Id"
+          },
+          "patient_name": {
+            "type": "string",
+            "title": "Patient Name"
+          },
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "red_flags": {
+            "items": {
+              "$ref": "#/components/schemas/OptionOut"
+            },
+            "type": "array",
+            "title": "Red Flags"
+          },
+          "pain": {
+            "type": "integer",
+            "title": "Pain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clinic_patient_id",
+          "patient_name",
+          "day",
+          "red_flags",
+          "pain"
+        ],
+        "title": "RedFlagReportOut"
+      },
       "RefreshIn": {
         "properties": {
           "refresh_token": {
@@ -13669,6 +14377,15 @@
           "none"
         ],
         "title": "Side"
+      },
+      "Sleep": {
+        "type": "string",
+        "enum": [
+          "good",
+          "ok",
+          "poor"
+        ],
+        "title": "Sleep"
       },
       "SlotOut": {
         "properties": {
@@ -14354,6 +15071,16 @@
           "hours"
         ],
         "title": "SupportOut"
+      },
+      "Swelling": {
+        "type": "string",
+        "enum": [
+          "none",
+          "mild",
+          "moderate",
+          "severe"
+        ],
+        "title": "Swelling"
       },
       "TargetIn": {
         "properties": {
@@ -15067,6 +15794,20 @@
             },
             "type": "array",
             "title": "Codes"
+          },
+          "checkins": {
+            "items": {
+              "$ref": "#/components/schemas/CheckinOut"
+            },
+            "type": "array",
+            "title": "Checkins"
+          },
+          "red_flag_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Red Flag Labels"
           }
         },
         "type": "object",

@@ -1,15 +1,15 @@
-"""Digital twin: structured measurements and care-plan targets (see docs/digital-twin/A-knee-twin.md).
+"""Digital twin: measurements, targets, daily check-ins and consent (see docs/digital-twin/A-knee-twin.md).
 
 Measurements are shaped like a FHIR Observation (code, value, unit, side, source, time) so they can be exported later.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Numeric, SmallInteger, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Numeric, SmallInteger, String, Text, UniqueConstraint, func, text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Timestamps, UUIDPk
@@ -59,3 +59,62 @@ class CarePlanTarget(UUIDPk, Timestamps, Base):
     side: Mapped[Side] = mapped_column(str_enum(Side))
     target_value: Mapped[Decimal] = mapped_column(Numeric(6, 1))
     by_week: Mapped[int | None] = mapped_column(SmallInteger)  # weeks after surgery (or plan start); null = end of plan
+
+
+class Swelling(StrEnum):
+    NONE = "none"
+    MILD = "mild"
+    MODERATE = "moderate"
+    SEVERE = "severe"
+
+
+class Sleep(StrEnum):
+    GOOD = "good"
+    OK = "ok"
+    POOR = "poor"
+
+
+class ExercisesDone(StrEnum):
+    ALL = "all"
+    SOME = "some"
+    NONE = "none"
+
+
+class CheckinSource(StrEnum):
+    APP = "app"
+    WEB = "web"
+    WHATSAPP = "whatsapp"
+
+
+class DailyCheckin(UUIDPk, Timestamps, Base):
+    """The patient's 30-second daily check-in. One per patient per (local) day; re-submitting edits it."""
+
+    __tablename__ = "daily_checkins"
+    __table_args__ = (UniqueConstraint("patient_id", "day"),)
+
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"))
+    care_plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("care_plans.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)  # patient's local date
+    pain: Mapped[int] = mapped_column(SmallInteger)  # 0–10
+    stiffness: Mapped[int] = mapped_column(SmallInteger)  # 0–10
+    swelling: Mapped[Swelling] = mapped_column(str_enum(Swelling))
+    sleep: Mapped[Sleep] = mapped_column(str_enum(Sleep))
+    exercises: Mapped[ExercisesDone] = mapped_column(str_enum(ExercisesDone))  # yesterday's home exercises
+    red_flags: Mapped[list[str]] = mapped_column(ARRAY(String(30)), default=list)  # see services/twin.py RED_FLAGS
+    note: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[CheckinSource] = mapped_column(str_enum(CheckinSource))
+
+
+class Consent(UUIDPk, Base):
+    """A patient's consent for one purpose (DPDP Act 2023). Withdrawing stamps withdrawn_at; granting again adds a row."""
+
+    __tablename__ = "consents"
+    __table_args__ = (
+        Index("uq_consents_active", "patient_id", "purpose", unique=True, postgresql_where=text("withdrawn_at IS NULL")),
+    )
+
+    patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), index=True)
+    purpose: Mapped[str] = mapped_column(String(30))  # twin_tracking; later camera_analysis, ai_processing, whatsapp
+    version: Mapped[str] = mapped_column(String(20))
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

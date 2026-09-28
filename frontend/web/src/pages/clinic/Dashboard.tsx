@@ -49,6 +49,7 @@ export default function Dashboard() {
       />
       {!d ? <Loader /> : (
         <div className={cx('space-y-8 transition-opacity', q.isFetching && 'opacity-70')}>
+          <RedFlags clinicId={clinicId} />
           {isOwner && d.subscription?.due_soon && <SubscriptionBanner sub={d.subscription} clinicId={clinicId} />}
 
           <div className={cx('grid gap-3 sm:grid-cols-2', isOwner ? 'lg:grid-cols-5' : 'lg:grid-cols-4')}>
@@ -173,4 +174,27 @@ function CheckIn({ clinicId }: { clinicId: string }) {
   })
   if (done) return <span className="text-[13px] text-muted">Checked in · {done}</span>
   return <Button variant="secondary" onClick={() => check.mutate()} loading={check.isPending}>Check in</Button>
+}
+
+/** Warning signs patients reported in daily check-ins (last 7 days). Shown only when there are any. */
+function RedFlags({ clinicId }: { clinicId: string }) {
+  const q = useQuery({ queryKey: ['red-flags'], queryFn: () => api<Schemas['RedFlagReportOut'][]>('/clinic/red-flags', { clinicId }), refetchInterval: 60_000 })
+  if (!q.data?.length) return null
+  return (
+    <section className="rounded-md border-2 border-danger p-5">
+      <h2 className="eyebrow !text-danger">Red flags reported · last 7 days</h2>
+      <p className="mt-1 text-[13px] text-muted">Patients were told to contact the clinic. Please follow up.</p>
+      <ul className="mt-3 divide-y divide-line">
+        {q.data.map((r) => (
+          <li key={`${r.clinic_patient_id}-${r.day}`}>
+            <Link to={`/clinic/patients/${r.clinic_patient_id}`} className="flex flex-wrap items-baseline gap-x-3 py-2.5 text-[14px] hover:bg-surface-2">
+              <span className="font-semibold">{r.patient_name}</span>
+              <span className="text-danger">{r.red_flags.map((f) => f.label).join(', ')}</span>
+              <span className="ml-auto text-[12.5px] text-muted">{dayLabel(r.day)} · pain {r.pain}/10</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }

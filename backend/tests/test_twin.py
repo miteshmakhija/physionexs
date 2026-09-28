@@ -1,4 +1,4 @@
-"""Digital twin, milestone A1: measurements, targets and the twin view.
+"""Digital twin, milestones A1–A2: measurements, targets, the twin view, consent and daily check-ins.
 
 Unit tests always run. The API test is opt-in (PNX_INTEGRATION=1) and runs inside one database transaction that is
 rolled back at the end, so it leaves nothing behind — safe even on a shared database.
@@ -12,6 +12,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.twin import Side
+from app.services.checkins import advice_for
 from app.services.twin import CODES, check, is_plausible, progress, weeks_since
 
 # ── Unit ────────────────────────────────────────────────────────────────────
@@ -51,11 +52,24 @@ def test_weeks_since():
     assert weeks_since(date(2026, 10, 5), today) is None  # surgery not yet done
 
 
+def test_red_flag_advice_is_fixed_and_escalates():
+    from app.models import Clinic
+
+    clinic = Clinic(name="Knee Care", slug="x", phone="+912000000000")
+    assert advice_for([], clinic) is None
+    a = advice_for(["fever"], clinic)
+    assert a.level == "urgent" and a.call_number == "+912000000000" and "fever or chills" in a.body
+    a = advice_for(["calf_pain", "fever", "wound_redness"], clinic)
+    assert "tenderness in the calf, fever or chills and wound redder" in a.body
+    a = advice_for(["fever", "chest_breathless"], clinic)  # emergency wins
+    assert a.level == "emergency" and a.call_number == "112"
+
+
 # ── API (rolled back) ───────────────────────────────────────────────────────
 
 
 @pytest.fixture
-def client():
+def client():  # yields (TestClient, physio headers, clinic_patient id, patient headers)
     if os.getenv("PNX_INTEGRATION") != "1":
         pytest.skip("set PNX_INTEGRATION=1 to run")
     from fastapi.testclient import TestClient
@@ -80,7 +94,10 @@ def client():
     db.add(clinic)
     db.flush()
     db.add(ClinicMember(clinic_id=clinic.id, user_id=physio.id, role=MembershipRole.OWNER))
-    patient = Patient(full_name="PNX TEST Twin Patient")
+    patient_user = User(full_name="PNX TEST Twin Patient", email=f"pnx-twin-pt-{tag}@test.physionexs.com", role=UserRole.PATIENT)
+    db.add(patient_user)
+    db.flush()
+    patient = Patient(full_name="PNX TEST Twin Patient", user_id=patient_user.id)
     db.add(patient)
     db.flush()
     cp = ClinicPatient(clinic_id=clinic.id, patient_id=patient.id)
@@ -90,7 +107,8 @@ def client():
     app.dependency_overrides[get_db] = lambda: db
     h = {"Authorization": f"Bearer {create_access_token(physio.id, physio.role.value)}", "X-Clinic-Id": str(clinic.id)}
     try:
-        yield TestClient(app), h, str(cp.id)
+        ph = {"Authorization": f"Bearer {create_access_token(patient_user.id, patient_user.role.value)}"}
+        yield TestClient(app), h, str(cp.id), ph
     finally:
         app.dependency_overrides.pop(get_db, None)
         db.close()
@@ -99,7 +117,7 @@ def client():
 
 
 def test_twin_flow(client):
-    c, h, cp_id = client
+    c, h, cp_id, _ = client
 
     # A TKA plan on the right knee, surgery 3 weeks ago.
     surgery = (date.today() - timedelta(days=21)).isoformat()
@@ -157,3 +175,51 @@ def test_twin_flow(client):
     # Other clinics can't see or touch it.
     other = {**h, "X-Clinic-Id": str(uuid.uuid4())}
     assert c.get(f"/clinic/patients/{cp_id}/twin", headers=other).status_code == 403
+
+
+def test_checkin_flow(client):
+    c, h, cp_id, ph = client
+    today = date.today().isoformat()
+    answers = {"day": today, "pain": 4, "stiffness": 5, "swelling": "mild", "sleep": "ok", "exercises": "all"}
+
+    # No TKA plan yet: the card doesn't apply and check-ins are refused.
+    state = c.get("/me/checkin", headers=ph, params={"day": today}).json()
+    assert state["eligible"] is False
+    assert c.post("/me/checkins", headers=ph, json=answers).status_code == 409
+
+    plan = c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Left TKA", "protocol": "tka", "affected_side": "left"}).json()
+    state = c.get("/me/checkin", headers=ph, params={"day": today}).json()
+    assert state["eligible"] and state["plan"]["care_plan_id"] == plan["id"] and state["consent"]["granted"] is False
+    assert len(state["red_flag_options"]) == 4
+
+    # Consent first; an outdated version is refused.
+    assert c.post("/me/checkins", headers=ph, json=answers).status_code == 403
+    assert c.post("/me/consents", headers=ph, json={"purpose": "twin_tracking", "version": "old"}).status_code == 409
+    version = state["consent"]["version"]
+    assert c.post("/me/consents", headers=ph, json={"purpose": "twin_tracking", "version": version}).json()["granted"] is True
+
+    # Check in, then edit the same day: still one row.
+    r = c.post("/me/checkins", headers=ph, json=answers)
+    assert r.status_code == 200 and r.json()["advice"] is None and r.json()["checkin"]["source"] == "app"
+    r = c.post("/me/checkins", headers=ph, json={**answers, "pain": 6, "red_flags": ["fever"]})
+    assert r.json()["checkin"]["pain"] == 6 and r.json()["advice"]["level"] == "urgent"
+    state = c.get("/me/checkin", headers=ph, params={"day": today}).json()
+    assert state["today"]["pain"] == 6 and state["advice"]["level"] == "urgent" and len(state["recent"]) == 1
+
+    # Chest pain escalates to 112.
+    r = c.post("/me/checkins", headers=ph, json={**answers, "red_flags": ["fever", "chest_breathless"]})
+    assert r.json()["advice"]["call_number"] == "112"
+
+    # Out-of-range answers and far-off days are refused.
+    assert c.post("/me/checkins", headers=ph, json={**answers, "pain": 11}).status_code == 422
+    assert c.post("/me/checkins", headers=ph, json={**answers, "day": (date.today() - timedelta(days=5)).isoformat()}).status_code == 400
+
+    # The clinic sees the check-in in the twin and on the red-flag feed.
+    twin = c.get(f"/clinic/patients/{cp_id}/twin", headers=h).json()
+    assert len(twin["checkins"]) == 1 and twin["checkins"][0]["red_flags"] == ["fever", "chest_breathless"]
+    flags = c.get("/clinic/red-flags", headers=h).json()
+    assert flags[0]["clinic_patient_id"] == cp_id and [f["code"] for f in flags[0]["red_flags"]] == ["fever", "chest_breathless"]
+
+    # Withdrawing consent stops new check-ins.
+    assert c.delete("/me/consents/twin_tracking", headers=ph).status_code == 204
+    assert c.post("/me/checkins", headers=ph, json=answers).status_code == 403

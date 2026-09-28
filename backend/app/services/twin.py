@@ -13,9 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.models.clinical import AffectedSide, CarePlan
 from app.models.patient import ClinicPatient
-from app.models.twin import CarePlanTarget, Measurement, Side
+from app.models.twin import CarePlanTarget, DailyCheckin, Measurement, Side
 from app.models.user import User
 from app.schemas.twin import CodeOut, MeasurementOut, TargetOut, TwinMeasureOut, TwinOut
+from app.services.checkins import RED_FLAGS, checkin_out
 
 
 @dataclass(frozen=True)
@@ -133,6 +134,13 @@ def twin_out(db: Session, cp: ClinicPatient, plan: CarePlan | None) -> TwinOut:
     names = user_names(db, rows)
     targets = {(t.code, t.side): t for t in db.scalars(select(CarePlanTarget).where(CarePlanTarget.care_plan_id == plan.id))} if plan else {}
 
+    # Only check-ins made against this clinic's plans for the patient.
+    checkins = list(db.scalars(
+        select(DailyCheckin).join(CarePlan, CarePlan.id == DailyCheckin.care_plan_id)
+        .where(CarePlan.clinic_patient_id == cp.id, DailyCheckin.day > date.today() - timedelta(days=30))
+        .order_by(DailyCheckin.day.desc())
+    ))
+
     keys: list[tuple[str, Side]] = []
     if plan and plan.protocol in PROTOCOL_MEASURES:
         keys += [(code, side) for code in PROTOCOL_MEASURES[plan.protocol] for side in _sides(plan.affected_side)]
@@ -165,4 +173,6 @@ def twin_out(db: Session, cp: ClinicPatient, plan: CarePlan | None) -> TwinOut:
         measures=measures,
         measurements=[measurement_out(m, names) for m in rows],
         codes=[CodeOut(code=k, label=c.label, unit=c.unit, sided=c.sided, min=c.lo, max=c.hi, higher_is_better=c.higher_is_better) for k, c in CODES.items()],
+        checkins=[checkin_out(c) for c in checkins],
+        red_flag_labels=RED_FLAGS,
     )
