@@ -209,6 +209,8 @@ def apply_hits(db: Session, plan: CarePlan, hits: Sequence[Hit], evaluated: set[
                 opened.append(f)
             if SEVERITY_RANK[h.severity] > SEVERITY_RANK[f.severity]:
                 f.severity = h.severity
+            if f.evidence != h.evidence:
+                f.explanation = None  # the data changed: an old AI explanation would be stale
             f.key, f.summary, f.evidence, f.last_seen_at, f.clear_since = h.key, h.summary, h.evidence, now, None
             continue
         closed = db.scalar(

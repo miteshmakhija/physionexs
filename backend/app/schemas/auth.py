@@ -71,6 +71,7 @@ class MembershipOut(BaseModel):
     role: MembershipRole
     branch_id: uuid.UUID | None
     twin_pilot: bool = False  # recovery-twin features switched on for this clinic
+    ai_assist: bool = False  # AI assist switched on for this clinic and configured on the server
 
 
 class MeOut(BaseModel):

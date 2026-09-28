@@ -4634,6 +4634,183 @@
         }
       }
     },
+    "/clinic/ai/flags/{flag_id}/explain": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Explain Flag",
+        "description": "Plain-language explanation of a flag. Cached on the flag until its data changes.",
+        "operationId": "explain_flag_clinic_ai_flags__flag_id__explain_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "flag_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Flag Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIText"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/ai/patients/{cp_id}/summary": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Weekly Summary",
+        "description": "The last 7 days in a short paragraph for the physio. Not stored.",
+        "operationId": "weekly_summary_clinic_ai_patients__cp_id__summary_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cp_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cp Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIText"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clinic/ai/patients/{cp_id}/objective": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Draft Objective",
+        "description": "A draft for the consultation note's Objective box; the physio edits it before saving.",
+        "operationId": "draft_objective_clinic_ai_patients__cp_id__objective_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cp_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cp Id"
+            }
+          },
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIText"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clinic/exercises": {
       "get": {
         "tags": [
@@ -8095,6 +8272,24 @@
   },
   "components": {
     "schemas": {
+      "AIText": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "default": "claude-opus-5"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "AIText"
+      },
       "ActivityItem": {
         "properties": {
           "id": {
@@ -11959,6 +12154,17 @@
                 "type": "null"
               }
             ]
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
           }
         },
         "type": "object",
@@ -13211,6 +13417,11 @@
           "twin_pilot": {
             "type": "boolean",
             "title": "Twin Pilot",
+            "default": false
+          },
+          "ai_assist": {
+            "type": "boolean",
+            "title": "Ai Assist",
             "default": false
           }
         },

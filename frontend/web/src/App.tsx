@@ -22,7 +22,7 @@ import PrescribeExercises from '@/pages/clinic/PrescribeExercises'
 import PrescribeMedicines from '@/pages/clinic/PrescribeMedicines'
 import PrescriptionView from '@/pages/clinic/PrescriptionView'
 import QueuePage from '@/pages/clinic/Queue'
-import Validation from '@/pages/clinic/Validation'
+import Validation, { AdminValidation } from '@/pages/clinic/Validation'
 import Staff, { MyLeave } from '@/pages/clinic/Staff'
 import CarePlan from '@/pages/patient/CarePlan'
 import Exercises from '@/pages/patient/Exercises'
@@ -114,6 +114,7 @@ const router = createBrowserRouter([
       { path: 'security', element: <Security /> },
       { path: 'audit', element: <AuditLogPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'validation', element: <AdminValidation /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

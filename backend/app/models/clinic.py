@@ -39,6 +39,8 @@ class Clinic(UUIDPk, Timestamps, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Recovery-twin pilot (knee tracking, check-ins, flags, camera, WhatsApp). Switched on per clinic by the Super Admin.
     twin_pilot: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # AI assist for this clinic's physios (flag explanations, summaries, note drafts). Super Admin switch.
+    ai_assist: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class Branch(UUIDPk, Timestamps, Base):

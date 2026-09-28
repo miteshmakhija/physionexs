@@ -31,6 +31,7 @@ export default function AdminShell() {
             { to: '/admin/subscriptions', label: 'Subscriptions' },
             { to: '/admin/exercises', label: 'Exercise library' },
             { to: '/admin/analytics', label: 'Analytics' },
+            { to: '/admin/validation', label: 'Camera validation' },
             { to: '/admin/audit', label: 'Audit log' },
             { to: '/admin/settings', label: 'Settings' },
           ],

@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     whatsapp_checkin_template: str = "daily_checkin"  # approved utility template: {{1}} = first name; buttons Start / Skip today
     whatsapp_template_language: str = "en"
 
+    # AI assist for physios (Claude). Off unless set; clinics are also switched on individually by the Super Admin.
+    anthropic_api_key: str | None = None
+
     # Expo push (mobile). Works without a token; set one if "enhanced push security" is on in the Expo project.
     expo_access_token: str | None = None
 

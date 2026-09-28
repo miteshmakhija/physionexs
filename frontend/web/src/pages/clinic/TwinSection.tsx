@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { useClinic } from '@/auth/useClinic'
 import { MeasureTrend } from '@/components/charts'
 import { FlagList } from '@/components/flags'
+import { AIDraft } from '@/components/AIDraft'
 import { KneeMap } from '@/components/KneeMap'
 import { Alert, Button, Field, Input, Select, Stat, cx } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
@@ -45,6 +47,7 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
         </p>
       </div>
 
+      {canWrite && t.protocol && <Summary cpId={cpId} clinicId={clinicId} />}
       <TwinFlags twin={t} canWrite={canWrite} clinicId={clinicId} />
 
       {t.measures.length > 0 && (
@@ -270,6 +273,21 @@ function TwinFlags({ twin, canWrite, clinicId }: { twin: Twin; canWrite: boolean
           ? <div className="mt-3"><FlagList flags={closed} clinicId={clinicId} canWrite={false} showPatient={false} /></div>
           : <button className="eyebrow mt-3 !text-ink hover:underline" onClick={() => setShowClosed(true)}>Show {closed.length} closed flag{closed.length > 1 ? 's' : ''} (30 days)</button>
       )}
+    </div>
+  )
+}
+
+/** AI assist: the last 7 days in a short paragraph for the physio (not stored). */
+function Summary({ cpId, clinicId }: { cpId: string; clinicId: string }) {
+  const { aiAssist } = useClinic()
+  const run = useMutation({ mutationFn: () => api<{ text: string }>(`/clinic/ai/patients/${cpId}/summary`, { method: 'POST', clinicId }) })
+  if (!aiAssist) return null
+  return (
+    <div className="mb-6">
+      {run.data ? <AIDraft text={run.data.text} /> : (
+        <Button variant="secondary" className="!h-9" loading={run.isPending} onClick={() => run.mutate()}>Summarise last 7 days with AI</Button>
+      )}
+      {run.error && <p className="mt-1 text-[12.5px] text-danger">{(run.error as Error).message}</p>}
     </div>
   )
 }

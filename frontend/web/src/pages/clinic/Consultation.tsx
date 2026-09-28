@@ -20,7 +20,7 @@ export default function Consultation() {
   const { id } = useParams()
   const [params] = useSearchParams()
   const draftId = params.get('note')
-  const { clinicId, twinPilot } = useClinic()
+  const { clinicId, twinPilot, aiAssist } = useClinic()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const file = useQuery({ queryKey: ['patient-file', id], queryFn: () => api<Schemas['PatientFileOut']>(`/clinic/patients/${id}`, { clinicId }) })
@@ -40,11 +40,12 @@ export default function Consultation() {
       }}
       clinicId={clinicId}
       twinPilot={twinPilot}
+      aiAssist={aiAssist}
     />
   )
 }
 
-function NoteForm({ patient, draft, onSaved, clinicId, twinPilot }: { patient: Schemas['PatientFileOut']; draft?: Note; onSaved: (signed: boolean) => void; clinicId: string; twinPilot: boolean }) {
+function NoteForm({ patient, draft, onSaved, clinicId, twinPilot, aiAssist }: { patient: Schemas['PatientFileOut']; draft?: Note; onSaved: (signed: boolean) => void; clinicId: string; twinPilot: boolean; aiAssist: boolean }) {
   const [noteId, setNoteId] = useState(draft?.id ?? null)
   const [soap, setSoap] = useState({
     subjective: draft?.subjective ?? '',
@@ -85,6 +86,10 @@ function NoteForm({ patient, draft, onSaved, clinicId, twinPilot }: { patient: S
     },
   })
   const set = (k: keyof typeof soap) => (e: { target: { value: string } }) => setSoap({ ...soap, [k]: e.target.value })
+  const draftO = useMutation({
+    mutationFn: () => api<{ text: string }>(`/clinic/ai/patients/${patient.id}/objective`, { method: 'POST', clinicId }),
+    onSuccess: (r) => setSoap((s) => ({ ...s, objective: r.text })),
+  })
   const bg = patient.background
 
   return (
@@ -96,7 +101,18 @@ function NoteForm({ patient, draft, onSaved, clinicId, twinPilot }: { patient: S
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-5">
           <Field label="S — Subjective"><Textarea rows={3} value={soap.subjective} onChange={set('subjective')} placeholder="What the patient reports: pain, function, sleep, response to last session…" /></Field>
-          <Field label="O — Objective"><Textarea rows={3} value={soap.objective} onChange={set('objective')} placeholder="Observation, palpation, ROM, strength, special tests…" /></Field>
+          <Field label="O — Objective" hint={aiAssist && kneeSides.length ? 'AI drafts are a starting point — check every line before signing.' : undefined}>
+            <Textarea rows={3} value={soap.objective} onChange={set('objective')} placeholder="Observation, palpation, ROM, strength, special tests…" />
+          </Field>
+          {aiAssist && kneeSides.length > 0 && (
+            <div className="-mt-3">
+              <button type="button" className="text-[12.5px] font-semibold text-violet underline disabled:opacity-60" disabled={draftO.isPending}
+                onClick={() => (!soap.objective.trim() || window.confirm('Replace the Objective text with an AI draft?')) && draftO.mutate()}>
+                {draftO.isPending ? 'Drafting…' : 'Draft Objective from recovery data (AI)'}
+              </button>
+              {draftO.error && <p className="mt-1 text-[12.5px] text-danger">{(draftO.error as Error).message}</p>}
+            </div>
+          )}
           <Field label="A — Assessment"><Textarea rows={2} value={soap.assessment} onChange={set('assessment')} placeholder="Clinical impression / diagnosis" /></Field>
           <Field label="P — Plan"><Textarea rows={3} value={soap.plan} onChange={set('plan')} placeholder="Treatment given, progression, home program, review date…" /></Field>
 

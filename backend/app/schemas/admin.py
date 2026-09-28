@@ -172,11 +172,25 @@ class PlatformFeeSetting(BaseModel):
         return self
 
 
+class TwinRulesSetting(BaseModel):
+    """Recovery-twin flag thresholds (services/twin_rules.py), tuned by the clinical lead."""
+
+    pain_rising_delta: Annotated[int, Field(ge=1, le=6)]  # 3-day average this many points above the week before
+    pain_high: Annotated[int, Field(ge=5, le=10)]  # any check-in at or above this pain
+    plateau_min_change_deg: Annotated[int, Field(ge=1, le=20)]  # knee bend changed less than this…
+    plateau_min_span_days: Annotated[int, Field(ge=3, le=28)]  # …across readings at least this many days apart
+    rom_drop_deg: Annotated[int, Field(ge=3, le=40)]  # knee bend this far below the best reading
+    missed_days: Annotated[int, Field(ge=2, le=14)]  # scheduled days in a row with nothing logged
+    no_checkin_days: Annotated[int, Field(ge=2, le=14)]
+    auto_resolve_days: Annotated[int, Field(ge=1, le=14)]  # a flag closes after this many days back to normal
+
+
 SETTINGS_MODELS: dict[str, type[BaseModel]] = {
     "rewards": RewardsSetting,
     "support": SupportSetting,
     "pms_pricing": PricingSetting,
     "platform_fee": PlatformFeeSetting,
+    "twin_rules": TwinRulesSetting,
 }
 
 

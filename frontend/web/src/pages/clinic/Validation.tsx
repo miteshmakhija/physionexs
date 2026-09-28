@@ -17,7 +17,16 @@ const sign = (v: number | null | undefined) => (v == null ? '—' : `${v > 0 ? '
 /** Camera vs goniometer agreement (design B1). The clinical lead uses this to accept or reject camera measurement. */
 export default function Validation() {
   const { clinicId } = useClinic()
-  const q = useQuery({ queryKey: ['validation'], queryFn: () => api<Schemas['ValidationOut']>('/clinic/validation', { clinicId }) })
+  return <ValidationView path="/clinic/validation" clinicId={clinicId} scope="clinic" />
+}
+
+/** Super Admin: every clinic's pairs, without patient names. */
+export function AdminValidation() {
+  return <ValidationView path="/admin/twin/validation" scope="all" />
+}
+
+function ValidationView({ path, clinicId, scope }: { path: string; clinicId?: string; scope: 'clinic' | 'all' }) {
+  const q = useQuery({ queryKey: ['validation', scope], queryFn: () => api<Schemas['ValidationOut']>(path, { clinicId }) })
   const [group, setGroup] = useState<string | null>(null)
   if (!q.data) return <Loader />
   const { summary, pairs } = q.data
@@ -27,8 +36,10 @@ export default function Validation() {
   return (
     <div className="max-w-5xl">
       <PageHeader
-        title="Camera validation"
-        subtitle="Camera angles against goniometer readings taken at the same moment. Camera readings stay out of clinical use until agreement is accepted."
+        title={scope === 'all' ? 'Camera validation · all clinics' : 'Camera validation'}
+        subtitle={scope === 'all'
+          ? 'Every pilot clinic’s camera readings against the goniometer, without patient names. Use this to decide whether camera measurement is accurate enough.'
+          : 'Camera angles against goniometer readings taken at the same moment. Camera readings stay out of clinical use until agreement is accepted.'}
         actions={pairs.length > 0 && <Button variant="secondary" onClick={() => downloadCsv(pairs)}>Download CSV</Button>}
       />
       {summary.length === 0 ? (
@@ -71,14 +82,14 @@ export default function Validation() {
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line">
-                  {['Date', 'Patient', 'Measure', 'Camera', 'Goniometer', 'Diff', 'Clear frames', 'Conditions'].map((h) => <th key={h} className="eyebrow py-2 font-semibold">{h}</th>)}
+                  {[...(scope === 'all' ? ['Date'] : ['Date', 'Patient']), 'Measure', 'Camera', 'Goniometer', 'Diff', 'Clear frames', 'Conditions'].map((h) => <th key={h} className="eyebrow py-2 font-semibold">{h}</th>)}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line tabular-nums">
                 {pairs.map((p) => (
                   <tr key={p.id}>
                     <td className="py-1.5">{dayLabel(p.created_at)}</td>
-                    <td>{p.patient_name ?? '—'}</td>
+                    {scope !== 'all' && <td>{p.patient_name ?? '—'}</td>}
                     <td>{p.side === 'left' ? 'L' : 'R'} {MEASURE[p.code] ?? p.code}, {POSTURE[p.posture] ?? p.posture}</td>
                     <td>{p.camera_value}°</td>
                     <td>{p.reference_value}°</td>

@@ -200,6 +200,7 @@ def flag_out(db: Session, f: TwinFlag) -> FlagOut:
         evidence=f.evidence or {}, opened_at=f.opened_at, last_seen_at=f.last_seen_at, resolved_at=f.resolved_at,
         resolved_by_name=by.full_name if by else None, resolution_note=f.resolution_note,
         suggestion=suggestion_out(db, s) if (s := pending_for_flag(db, f.id)) else None,
+        explanation=f.explanation,
     )
 
 

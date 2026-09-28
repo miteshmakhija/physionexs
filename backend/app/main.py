@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import admin, admin_platform, auth, billing, bookings, care, checkins, clinic, cron, exercises, health, insights, notifications, physios, platform, practice, queue, records, staff, twin, webhooks
+from app.routers import admin, admin_platform, ai, auth, billing, bookings, care, checkins, clinic, cron, exercises, health, insights, notifications, physios, platform, practice, queue, records, staff, twin, webhooks
 from app.services import push  # noqa: F401  (registers the after-commit push hook)
 
 settings = get_settings()
@@ -36,6 +36,7 @@ app.include_router(admin_platform.router)
 app.include_router(queue.router)
 app.include_router(records.router)
 app.include_router(twin.router)
+app.include_router(ai.router)
 app.include_router(exercises.router)
 app.include_router(care.router)
 app.include_router(checkins.router)

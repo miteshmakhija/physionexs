@@ -69,6 +69,7 @@ export function SettingsPage() {
       <SupportForm s={by.support} />
       <PricingForm s={by.pms_pricing} />
       <FeeForm s={by.platform_fee} />
+      <TwinRulesForm s={by.twin_rules} />
       <section className="border-t border-line pt-6 text-[14px]">
         <h2 className="eyebrow mb-2">Appointment reminders</h2>
         <p className="text-muted">Patients get reminders 24 hours and 2 hours before each appointment (hourly scheduled job).</p>
@@ -186,7 +187,7 @@ function FeeForm({ s }: { s?: Setting }) {
 
 // ── Records ─────────────────────────────────────────────────────────────────
 
-const ACTION_LABEL: Record<string, string> = { deactivate: 'Deactivate', activate: 'Activate', hide: 'Hide', unhide: 'Restore', set_fee: 'Set fee', pilot_on: 'Pilot on', pilot_off: 'Pilot off' }
+const ACTION_LABEL: Record<string, string> = { deactivate: 'Deactivate', activate: 'Activate', hide: 'Hide', unhide: 'Restore', set_fee: 'Set fee', pilot_on: 'Pilot on', pilot_off: 'Pilot off', ai_on: 'AI on', ai_off: 'AI off' }
 
 export function RecordsPage() {
   const qc = useQueryClient()
@@ -214,13 +215,16 @@ export function RecordsPage() {
       ? `Switch on the recovery-twin pilot for ${row.name}? Its physios get knee tracking, check-ins, flags and camera validation.`
       : action === 'pilot_off'
         ? `Switch off the recovery-twin pilot for ${row.name}? Its patients stop getting check-ins; existing data is kept.`
+        : action === 'ai_on'
+          ? `Switch on AI assist for ${row.name}? Its physios can ask Claude to explain flags, summarise patients and draft notes. De-identified recovery data is sent to Anthropic.`
         : `${ACTION_LABEL[action]} this record?`
     if (window.confirm(ask)) act.mutate({ id: String(row.id), action })
   }
   const d = list.data
   const applicable = (row: Record<string, unknown>, a: string) =>
     (a === 'deactivate' && row.active !== false) || (a === 'activate' && row.active === false) || (a === 'hide' && !row.hidden) || (a === 'unhide' && row.hidden === true) || a === 'set_fee' ||
-    (a === 'pilot_on' && row.twin_pilot === false) || (a === 'pilot_off' && row.twin_pilot === true)
+    (a === 'pilot_on' && row.twin_pilot === false) || (a === 'pilot_off' && row.twin_pilot === true) ||
+    (a === 'ai_on' && row.ai_assist === false) || (a === 'ai_off' && row.ai_assist === true)
 
   return (
     <div>
@@ -278,4 +282,35 @@ function format(v: unknown): string {
   if (typeof v === 'boolean') return v ? 'Yes' : 'No'
   if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return `${dayLabel(v)} ${time(v)}`
   return String(v)
+}
+
+const TWIN_RULES: { key: string; label: string; hint: string; min: number; max: number }[] = [
+  { key: 'pain_high', label: 'High pain (0–10)', hint: 'Any check-in at or above this raises an “Act” flag.', min: 5, max: 10 },
+  { key: 'pain_rising_delta', label: 'Pain rising (points)', hint: '3-day average this much above the week before.', min: 1, max: 6 },
+  { key: 'rom_drop_deg', label: 'Knee bend drop (°)', hint: 'This far below the patient’s best reading.', min: 3, max: 40 },
+  { key: 'plateau_min_change_deg', label: 'Plateau: change under (°)', hint: 'Last 3 readings moved less than this…', min: 1, max: 20 },
+  { key: 'plateau_min_span_days', label: 'Plateau: over at least (days)', hint: '…across at least this many days, below target.', min: 3, max: 28 },
+  { key: 'missed_days', label: 'Missed exercises (days)', hint: 'Scheduled days in a row with nothing logged.', min: 2, max: 14 },
+  { key: 'no_checkin_days', label: 'No check-ins (days)', hint: 'Days since the last check-in.', min: 2, max: 14 },
+  { key: 'auto_resolve_days', label: 'Auto-resolve after (days)', hint: 'Back to normal this long closes a flag (never red flags).', min: 1, max: 14 },
+]
+
+function TwinRulesForm({ s }: { s?: Setting }) {
+  const v = (s?.value ?? {}) as Record<string, number>
+  const [f, setF] = useState<Record<string, string>>(Object.fromEntries(TWIN_RULES.map((r) => [r.key, String(v[r.key] ?? '')])))
+  const save = useSave('twin_rules')
+  return (
+    <Section title="Recovery-twin flag thresholds" s={s} save={save} onSubmit={() => save.mutate(Object.fromEntries(TWIN_RULES.map((r) => [r.key, Number(f[r.key])])))}>
+      <p className="mb-3 text-[13px] text-muted">
+        When the rules raise a flag for a physio. Starting points only — set these with your clinical lead. Changes apply from the next check-in, reading or the daily run.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {TWIN_RULES.map((r) => (
+          <Field key={r.key} label={r.label} hint={r.hint}>
+            <Input type="number" min={r.min} max={r.max} step={1} required value={f[r.key]} onChange={(e) => setF({ ...f, [r.key]: e.target.value })} />
+          </Field>
+        ))}
+      </div>
+    </Section>
+  )
 }

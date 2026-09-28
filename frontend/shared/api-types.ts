@@ -1366,6 +1366,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/ai/flags/{flag_id}/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Explain Flag
+         * @description Plain-language explanation of a flag. Cached on the flag until its data changes.
+         */
+        post: operations["explain_flag_clinic_ai_flags__flag_id__explain_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/ai/patients/{cp_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Weekly Summary
+         * @description The last 7 days in a short paragraph for the physio. Not stored.
+         */
+        post: operations["weekly_summary_clinic_ai_patients__cp_id__summary_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/ai/patients/{cp_id}/objective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Objective
+         * @description A draft for the consultation note's Objective box; the physio edits it before saving.
+         */
+        post: operations["draft_objective_clinic_ai_patients__cp_id__objective_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/exercises": {
         parameters: {
             query?: never;
@@ -2263,6 +2323,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIText */
+        AIText: {
+            /** Text */
+            text: string;
+            /**
+             * Model
+             * @default claude-opus-5
+             */
+            model: string;
+        };
         /** ActivityItem */
         ActivityItem: {
             /**
@@ -3497,6 +3567,8 @@ export interface components {
             /** Resolution Note */
             resolution_note: string | null;
             suggestion?: components["schemas"]["SuggestionOut"] | null;
+            /** Explanation */
+            explanation?: string | null;
         };
         /**
          * FlagSeverity
@@ -3934,6 +4006,11 @@ export interface components {
              * @default false
              */
             twin_pilot: boolean;
+            /**
+             * Ai Assist
+             * @default false
+             */
+            ai_assist: boolean;
         };
         /**
          * MembershipRole
@@ -8127,6 +8204,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explain_flag_clinic_ai_flags__flag_id__explain_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                flag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIText"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weekly_summary_clinic_ai_patients__cp_id__summary_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIText"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    draft_objective_clinic_ai_patients__cp_id__objective_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIText"];
                 };
             };
             /** @description Validation Error */

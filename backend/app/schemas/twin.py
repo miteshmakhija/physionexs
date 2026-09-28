@@ -225,6 +225,7 @@ class FlagOut(BaseModel):
     resolved_by_name: str | None
     resolution_note: str | None
     suggestion: SuggestionOut | None = None  # pending plan change proposed for this flag
+    explanation: str | None = None  # AI explanation (draft for the physio), if one was generated
 
 
 class FlagCloseIn(BaseModel):

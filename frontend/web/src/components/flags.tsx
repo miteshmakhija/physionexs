@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { useClinic } from '@/auth/useClinic'
+import { AIDraft } from '@/components/AIDraft'
 import { Alert, Button, Input, Textarea, cx } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { dayLabel } from '@shared/format'
@@ -47,6 +49,7 @@ export function FlagList({ flags, clinicId, canWrite, showPatient = true }: { fl
                 {f.status === 'acknowledged' && <span className="text-[12.5px] text-muted"> · seen</span>}
               </p>
               <p className="text-ink-2">{f.summary}</p>
+              {open && <Explain flag={f} clinicId={clinicId} />}
               {open && f.suggestion && <SuggestionBox s={f.suggestion} cpId={f.clinic_patient_id} clinicId={clinicId} canWrite={canWrite} />}
               <p className="text-[12.5px] text-muted">
                 {open
@@ -143,6 +146,30 @@ function SuggestionBox({ s, cpId, clinicId, canWrite }: { s: Suggestion; cpId: s
         </div>
       )}
       {!s.stale && <p className="mt-2 text-[11.5px] text-muted">Approving updates the patient’s exercise program and closes this flag.</p>}
+    </div>
+  )
+}
+
+/** AI assist: a plain-language explanation of the flag, generated on request and cached until the flag's data changes. */
+function Explain({ flag, clinicId }: { flag: Flag; clinicId: string }) {
+  const { aiAssist } = useClinic()
+  const qc = useQueryClient()
+  const run = useMutation({
+    mutationFn: () => api<{ text: string }>(`/clinic/ai/flags/${flag.id}/explain`, { method: 'POST', clinicId }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['flags'] })
+      void qc.invalidateQueries({ queryKey: ['twin', flag.clinic_patient_id] })
+    },
+  })
+  const text = flag.explanation ?? run.data?.text
+  if (!aiAssist) return null
+  if (text) return <AIDraft text={text} className="mt-2" />
+  return (
+    <div className="mt-1">
+      <button className="text-[12.5px] font-semibold text-violet underline disabled:opacity-60" disabled={run.isPending} onClick={() => run.mutate()}>
+        {run.isPending ? 'Explaining…' : 'Explain with AI'}
+      </button>
+      {run.error && <p className="mt-1 text-[12.5px] text-danger">{(run.error as Error).message}</p>}
     </div>
   )
 }
