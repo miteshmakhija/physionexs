@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Pressable, View, type LayoutChangeEvent } from 'react-native'
 import Svg, { Circle, Line, Path } from 'react-native-svg'
 
+import { Recovery } from '@/components/Recovery'
 import { Card, Chip, Loading, Screen, Text } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { dayParts } from '@shared/format'
@@ -32,6 +33,7 @@ export default function ProgressTab() {
           <Chip label="Month" selected={range === 'month'} onPress={() => setRange('month')} />
         </View>
       </View>
+      <Recovery />
       {p.unlogged_doses_today > 0 && (
         <Card style={{ backgroundColor: colors.amberTint, borderColor: colors.amberTint }}>
           <Text style={{ color: colors.amber }}>You have {p.unlogged_doses_today} unlogged medicine dose(s) today.</Text>

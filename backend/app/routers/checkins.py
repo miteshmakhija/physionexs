@@ -14,9 +14,10 @@ from app.models.clinic import Clinic
 from app.models.patient import ClinicPatient, Patient
 from app.models.twin import CheckinSource, Consent, DailyCheckin
 from app.models.user import User, UserRole
-from app.schemas.twin import CheckinIn, CheckinPlanOut, CheckinResultOut, CheckinStateOut, ConsentIn, ConsentStateOut, WhatsAppStateOut
+from app.schemas.twin import CheckinIn, CheckinPlanOut, CheckinResultOut, CheckinStateOut, ConsentIn, ConsentStateOut, RecoveryOut, WhatsAppStateOut
 from app.services import audit
 from app.services.checkin_submit import save_checkin
+from app.services.twin import recovery_out
 from app.services.checkins import (
     CONSENTS,
     TWIN_TRACKING,
@@ -135,3 +136,14 @@ def submit_checkin(
         raise HTTPException(status.HTTP_409_CONFLICT, "Check-in already saved — please refresh")
     db.refresh(c)
     return CheckinResultOut(checkin=checkin_out(c), advice=advice)
+
+
+@router.get("/recovery", response_model=RecoveryOut)
+def my_recovery(user: PatientUser, db: DB) -> RecoveryOut:
+    """Knee recovery for the Progress screen: readings against target, and check-in trends."""
+    patient = _patient(db, user)
+    plan = eligible_plan(db, patient.id)
+    if plan is None:
+        return RecoveryOut(available=False)
+    cp = db.get(ClinicPatient, plan.clinic_patient_id)
+    return recovery_out(db, cp, plan, _clinic_of(db, plan.clinic_patient_id).name)

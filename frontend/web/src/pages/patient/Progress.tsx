@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { AdherenceBars, PainLine, ProgressTable } from '@/components/charts'
 import { PageHeader } from '@/components/ConsoleLayout'
+import { Recovery } from '@/components/Recovery'
 import { Alert, cx, Loader, Stat } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 
@@ -35,6 +36,8 @@ export default function Progress() {
       />
       {!p ? <Loader /> : (
         <div className={cx('space-y-8 transition-opacity', q.isFetching && 'opacity-60')}>
+          <Recovery />
+
           {p.unlogged_doses_today > 0 && <Alert tone="warning">You have {p.unlogged_doses_today} unlogged medicine dose(s) today. Staying consistent keeps these charts accurate.</Alert>}
 
           <div className="grid gap-3 sm:grid-cols-3">

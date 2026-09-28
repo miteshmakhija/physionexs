@@ -1691,6 +1691,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Recovery
+         * @description Knee recovery for the Progress screen: readings against target, and check-in trends.
+         */
+        get: operations["my_recovery_me_recovery_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/notifications": {
         parameters: {
             query?: never;
@@ -4640,6 +4660,87 @@ export interface components {
             total: number;
             /** Actions */
             actions: string[];
+        };
+        /** RecoveryDayOut */
+        RecoveryDayOut: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Pain */
+            pain: number;
+            /** Stiffness */
+            stiffness: number;
+        };
+        /**
+         * RecoveryMeasureOut
+         * @description A measure as the patient sees it: latest clinic reading against the target their physio set.
+         */
+        RecoveryMeasureOut: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            /** Hint */
+            hint: string | null;
+            side: components["schemas"]["Side"];
+            /** Unit */
+            unit: string;
+            /** Higher Is Better */
+            higher_is_better: boolean;
+            /** Latest */
+            latest: number | null;
+            /** Latest On */
+            latest_on: string | null;
+            /** Baseline */
+            baseline: number | null;
+            /** Target */
+            target: number | null;
+            /** By Week */
+            by_week: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "no_data" | "no_target" | "in_progress" | "target_met";
+            /** Progress Pct */
+            progress_pct: number | null;
+        };
+        /**
+         * RecoveryOut
+         * @description The patient's own recovery view. Only confirmed clinic readings and their own check-ins; no flags or notes.
+         */
+        RecoveryOut: {
+            /** Available */
+            available: boolean;
+            /** Condition */
+            condition?: string | null;
+            /** Clinic Name */
+            clinic_name?: string | null;
+            /** Surgery Date */
+            surgery_date?: string | null;
+            /** Weeks Since Surgery */
+            weeks_since_surgery?: number | null;
+            /** Measures */
+            measures?: components["schemas"]["RecoveryMeasureOut"][];
+            /** Readings */
+            readings?: components["schemas"]["RecoveryReadingOut"][];
+            /** Checkins */
+            checkins?: components["schemas"]["RecoveryDayOut"][];
+        };
+        /** RecoveryReadingOut */
+        RecoveryReadingOut: {
+            /** Code */
+            code: string;
+            side: components["schemas"]["Side"];
+            /** Value */
+            value: number;
+            /**
+             * Measured On
+             * Format: date
+             */
+            measured_on: string;
         };
         /** RefreshIn */
         RefreshIn: {
@@ -8735,6 +8836,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_recovery_me_recovery_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryOut"];
                 };
             };
         };

@@ -6,6 +6,7 @@ Design: docs/digital-twin/A-knee-twin.md (milestone A1: structured measurements,
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
@@ -15,7 +16,7 @@ from app.models.clinical import AffectedSide, CarePlan
 from app.models.patient import ClinicPatient, Patient
 from app.models.twin import ACTIVE_FLAG_STATUSES, CarePlanTarget, DailyCheckin, Measurement, Side, TwinFlag
 from app.models.user import User
-from app.schemas.twin import CodeOut, FlagOut, MeasurementOut, TwinMeasureOut, TwinOut
+from app.schemas.twin import CodeOut, FlagOut, MeasurementOut, RecoveryDayOut, RecoveryMeasureOut, RecoveryOut, RecoveryReadingOut, TwinMeasureOut, TwinOut
 from app.services.checkins import RED_FLAGS, checkin_out
 from app.services.suggestions import pending_for_flag, suggestion_out
 
@@ -199,4 +200,33 @@ def flag_out(db: Session, f: TwinFlag) -> FlagOut:
         evidence=f.evidence or {}, opened_at=f.opened_at, last_seen_at=f.last_seen_at, resolved_at=f.resolved_at,
         resolved_by_name=by.full_name if by else None, resolution_note=f.resolution_note,
         suggestion=suggestion_out(db, s) if (s := pending_for_flag(db, f.id)) else None,
+    )
+
+
+IST = ZoneInfo("Asia/Kolkata")
+
+# Patient-facing wording (the console uses the clinical labels in CODES).
+PATIENT_LABELS = {
+    "knee_flexion": ("Knee bend", "How far your knee bends. Higher is better."),
+    "knee_extension_lag": ("Knee straightening", "How far short of fully straight. 0° means fully straight."),
+    "knee_girth": ("Knee swelling", "Measured around the knee. Lower means less swelling."),
+}
+
+
+def recovery_out(db: Session, cp: ClinicPatient, plan: CarePlan, clinic_name: str) -> RecoveryOut:
+    """The patient's view: confirmed clinic readings (no camera estimates or held readings) and their check-ins."""
+    t = twin_out(db, cp, plan)
+    readings = [m for m in t.measurements if m.trusted and m.source.value == "clinic" and m.code in PATIENT_LABELS]
+    return RecoveryOut(
+        available=True, condition=plan.condition, clinic_name=clinic_name, surgery_date=t.surgery_date, weeks_since_surgery=t.weeks_since_surgery,
+        measures=[
+            RecoveryMeasureOut(
+                code=m.code, label=PATIENT_LABELS[m.code][0], hint=PATIENT_LABELS[m.code][1], side=m.side, unit=m.unit, higher_is_better=m.higher_is_better,
+                latest=m.latest.value if m.latest else None, latest_on=m.latest.measured_at.astimezone(IST).date() if m.latest else None,
+                baseline=m.baseline, target=m.target, by_week=m.by_week, status=m.status, progress_pct=m.progress_pct,
+            )
+            for m in t.measures if m.code in PATIENT_LABELS
+        ],
+        readings=[RecoveryReadingOut(code=m.code, side=m.side, value=m.value, measured_on=m.measured_at.astimezone(IST).date()) for m in reversed(readings)],
+        checkins=[RecoveryDayOut(day=c.day, pain=c.pain, stiffness=c.stiffness) for c in reversed(t.checkins)],
     )

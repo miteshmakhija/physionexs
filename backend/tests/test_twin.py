@@ -538,3 +538,43 @@ def test_pilot_switch(client):
     assert c.get(f"/clinic/patients/{cp_id}/twin", headers=h).status_code == 200
     assert c.get("/me/checkin", headers=ph).json()["eligible"] is True
     assert c.get("/auth/me", headers=h).json()["memberships"][0]["twin_pilot"] is True
+
+
+def test_patient_recovery_view(client):
+    from app.models import Clinic
+
+    c, h, cp_id, ph, db = client
+    assert c.get("/me/recovery", headers=ph).json() == {"available": False, "condition": None, "clinic_name": None, "surgery_date": None,
+                                                         "weeks_since_surgery": None, "measures": [], "readings": [], "checkins": []}
+    surgery = (date.today() - timedelta(days=21)).isoformat()
+    plan = c.post(f"/clinic/patients/{cp_id}/care-plans", headers=h, json={"condition": "Right TKA", "protocol": "tka", "surgery_date": surgery, "affected_side": "right"}).json()
+    c.put(f"/clinic/care-plans/{plan['id']}/targets", headers=h, json=[{"code": "knee_flexion", "side": "right", "target_value": 120, "by_week": 8}])
+    at = lambda d: (datetime.now(UTC) - timedelta(days=d)).isoformat()  # noqa: E731
+    c.post(f"/clinic/patients/{cp_id}/measurements", headers=h, json=[
+        {"code": "knee_flexion", "side": "right", "value": 60, "measured_at": at(7), "note": "Guarding, apprehensive"},
+        {"code": "pain_nprs", "side": "none", "value": 6, "method": "self_report", "measured_at": at(7)},
+    ])
+    c.post(f"/clinic/patients/{cp_id}/measurements", headers=h, json=[{"code": "knee_flexion", "side": "right", "value": 90}])
+    held = c.post(f"/clinic/patients/{cp_id}/measurements", headers=h, json=[{"code": "knee_flexion", "side": "right", "value": 125}]).json()[0]
+    assert held["trusted"] is False
+    r = c.post(f"/clinic/patients/{cp_id}/camera-measurements", headers=h, json={
+        "code": "knee_flexion", "side": "right", "posture": "supine", "camera_value": 88, "confidence": 0.9, "frames": 20, "spread": 1,
+        "model": "mediapipe-pose-full-f16-v1", "goniometer_value": 91, "patient_consented": True})
+    assert r.status_code == 201, r.text
+    version = c.get("/me/checkin", headers=ph).json()["consent"]["version"]
+    c.post("/me/consents", headers=ph, json={"purpose": "twin_tracking", "version": version})
+    c.post("/me/checkins", headers=ph, json={"day": date.today().isoformat(), "pain": 4, "stiffness": 5, "swelling": "mild", "sleep": "ok", "exercises": "all"})
+
+    r = c.get("/me/recovery", headers=ph).json()
+    assert r["available"] and r["weeks_since_surgery"] == 3 and r["clinic_name"] == "PNX TEST Twin Clinic"
+    flex = next(m for m in r["measures"] if m["code"] == "knee_flexion")
+    assert (flex["label"], flex["latest"], flex["baseline"], flex["target"], flex["by_week"], flex["progress_pct"]) == ("Knee bend", 91, 60, 120, 8, 52)
+    assert [m["code"] for m in r["measures"]] == ["knee_flexion", "knee_extension_lag"]  # no clinic pain score
+    # Only confirmed clinic readings: not the held 125°, not the camera's 88°; and no notes.
+    assert [x["value"] for x in r["readings"]] == [60, 90, 91]
+    assert "note" not in str(r) and "Guarding" not in str(r)
+    assert r["checkins"] == [{"day": date.today().isoformat(), "pain": 4, "stiffness": 5}]
+
+    db.get(Clinic, uuid.UUID(h["X-Clinic-Id"])).twin_pilot = False
+    db.flush()
+    assert c.get("/me/recovery", headers=ph).json()["available"] is False

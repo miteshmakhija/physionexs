@@ -314,3 +314,47 @@ class CameraMeasurementOut(BaseModel):
     camera: MeasurementOut
     goniometer: MeasurementOut
     difference: float  # camera − goniometer
+
+
+class RecoveryMeasureOut(BaseModel):
+    """A measure as the patient sees it: latest clinic reading against the target their physio set."""
+
+    code: str
+    label: str
+    hint: str | None
+    side: Side
+    unit: str
+    higher_is_better: bool
+    latest: float | None
+    latest_on: date | None
+    baseline: float | None
+    target: float | None
+    by_week: int | None
+    status: Literal["no_data", "no_target", "in_progress", "target_met"]
+    progress_pct: int | None
+
+
+class RecoveryReadingOut(BaseModel):
+    code: str
+    side: Side
+    value: float
+    measured_on: date
+
+
+class RecoveryDayOut(BaseModel):
+    day: date
+    pain: int
+    stiffness: int
+
+
+class RecoveryOut(BaseModel):
+    """The patient's own recovery view. Only confirmed clinic readings and their own check-ins; no flags or notes."""
+
+    available: bool
+    condition: str | None = None
+    clinic_name: str | None = None
+    surgery_date: date | None = None
+    weeks_since_surgery: int | None = None
+    measures: list[RecoveryMeasureOut] = Field(default_factory=list)
+    readings: list[RecoveryReadingOut] = Field(default_factory=list)  # oldest first
+    checkins: list[RecoveryDayOut] = Field(default_factory=list)  # last 30 days, oldest first

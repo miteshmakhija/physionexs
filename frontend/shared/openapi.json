@@ -5878,6 +5878,33 @@
         }
       }
     },
+    "/me/recovery": {
+      "get": {
+        "tags": [
+          "checkins"
+        ],
+        "summary": "My Recovery",
+        "description": "Knee recovery for the Progress screen: readings against target, and check-in trends.",
+        "operationId": "my_recovery_me_recovery_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/me/notifications": {
       "get": {
         "tags": [
@@ -15481,6 +15508,267 @@
           "actions"
         ],
         "title": "RecordsPage"
+      },
+      "RecoveryDayOut": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "pain": {
+            "type": "integer",
+            "title": "Pain"
+          },
+          "stiffness": {
+            "type": "integer",
+            "title": "Stiffness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "pain",
+          "stiffness"
+        ],
+        "title": "RecoveryDayOut"
+      },
+      "RecoveryMeasureOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "higher_is_better": {
+            "type": "boolean",
+            "title": "Higher Is Better"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest"
+          },
+          "latest_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest On"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "by_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Week"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "no_data",
+              "no_target",
+              "in_progress",
+              "target_met"
+            ],
+            "title": "Status"
+          },
+          "progress_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "label",
+          "hint",
+          "side",
+          "unit",
+          "higher_is_better",
+          "latest",
+          "latest_on",
+          "baseline",
+          "target",
+          "by_week",
+          "status",
+          "progress_pct"
+        ],
+        "title": "RecoveryMeasureOut",
+        "description": "A measure as the patient sees it: latest clinic reading against the target their physio set."
+      },
+      "RecoveryOut": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "clinic_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinic Name"
+          },
+          "surgery_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Surgery Date"
+          },
+          "weeks_since_surgery": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weeks Since Surgery"
+          },
+          "measures": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryMeasureOut"
+            },
+            "type": "array",
+            "title": "Measures"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryReadingOut"
+            },
+            "type": "array",
+            "title": "Readings"
+          },
+          "checkins": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryDayOut"
+            },
+            "type": "array",
+            "title": "Checkins"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "RecoveryOut",
+        "description": "The patient's own recovery view. Only confirmed clinic readings and their own check-ins; no flags or notes."
+      },
+      "RecoveryReadingOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "measured_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Measured On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "side",
+          "value",
+          "measured_on"
+        ],
+        "title": "RecoveryReadingOut"
       },
       "RefreshIn": {
         "properties": {
