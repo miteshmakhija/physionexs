@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { CaptureWindow, LEG, OneEuroFilter, blandAltman, frameQuality, kneeFlexion2D, kneeFlexion3D, median, type Pt } from './angles'
+import { CaptureWindow, LEG, OneEuroFilter, blandAltman, frameQuality, jointsVisible, kneeFlexion2D, kneeFlexion3D, median, otherSideClearer, type Pt } from './angles'
 
 describe('kneeFlexion2D', () => {
   it('is 0° for a straight leg and 90° for a right angle', () => {
@@ -68,6 +68,45 @@ describe('CaptureWindow', () => {
     const w = new CaptureWindow()
     for (let i = 0; i < 30; i++) w.push(i * 33, i < 27 ? null : 90)
     expect(w.result(29 * 33)).toBeNull()
+  })
+})
+
+describe('steadyProgress (auto-capture)', () => {
+  it('fills up while the angle holds steady and resets when it moves', () => {
+    const w = new CaptureWindow()
+    for (let i = 0; i <= 30; i++) w.push(i * 33, 100 + (i % 2))
+    expect(w.steadyProgress(30 * 33)).toBeCloseTo((30 * 33) / 1500, 2)
+    for (let i = 31; i <= 50; i++) w.push(i * 33, 100)
+    expect(w.steadyProgress(50 * 33)).toBe(1)
+    w.push(51 * 33, 120) // the patient moved
+    expect(w.steadyProgress(51 * 33)).toBeLessThan(0.05)
+  })
+  it('is 0 without a current good frame, and tolerates the odd dropped frame', () => {
+    const w = new CaptureWindow()
+    for (let i = 0; i <= 50; i++) w.push(i * 33, i % 10 === 5 ? null : 90)
+    expect(w.steadyProgress(50 * 33)).toBe(1)
+    expect(w.steadyProgress(50 * 33 + 1000)).toBe(0) // stale
+    w.push(51 * 33, null)
+    expect(w.steadyProgress(51 * 33)).toBe(0)
+  })
+})
+
+describe('framing checklist', () => {
+  const body = (side: 'left' | 'right', visible: number) => {
+    const lms: Pt[] = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, visibility: 0.1 }))
+    for (const i of Object.values(LEG[side])) lms[i] = { x: 0.5, y: 0.5, visibility: visible }
+    return lms
+  }
+  it('reports each joint', () => {
+    const lms = body('right', 0.9)
+    lms[LEG.right.ankle] = { x: 0.5, y: 0.995, visibility: 0.9 } // at the bottom edge
+    expect(jointsVisible(lms, 'right')).toEqual({ hip: true, knee: true, ankle: false })
+    expect(jointsVisible(undefined, 'right')).toEqual({ hip: false, knee: false, ankle: false })
+  })
+  it('spots when the other leg is the clear one', () => {
+    expect(otherSideClearer(body('left', 0.9), 'right')).toBe(true)
+    expect(otherSideClearer(body('right', 0.9), 'right')).toBe(false)
+    expect(otherSideClearer(undefined, 'right')).toBe(false)
   })
 })
 

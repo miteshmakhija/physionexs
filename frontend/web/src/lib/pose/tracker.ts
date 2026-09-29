@@ -25,10 +25,11 @@ export async function createPoseLandmarker(): Promise<{ landmarker: PoseLandmark
   throw new Error('unreachable')
 }
 
-export async function openCamera(video: HTMLVideoElement): Promise<MediaStream> {
+/** Opens the camera: the back one by default on phones (`environment`); laptops just use their only camera. */
+export async function openCamera(video: HTMLVideoElement, facing: 'environment' | 'user' = 'environment'): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
-    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+    video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
   })
   video.srcObject = stream
   await video.play()

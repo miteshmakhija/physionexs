@@ -56,6 +56,23 @@ export function frameQuality(landmarks: Pt[] | undefined, side: Side, minVisibil
   return null
 }
 
+export type Joint = keyof (typeof LEG)[Side]
+
+/** Which of the leg's joints are clearly visible and inside the frame (the on-screen framing checklist). */
+export function jointsVisible(landmarks: Pt[] | undefined, side: Side, minVisibility = 0.6, margin = 0.02): Record<Joint, boolean> {
+  const ok = (i: number) => {
+    const p = landmarks?.[i]
+    return !!p && (p.visibility ?? 0) >= minVisibility && p.x >= margin && p.x <= 1 - margin && p.y >= margin && p.y <= 1 - margin
+  }
+  const L = LEG[side]
+  return { hip: ok(L.hip), knee: ok(L.knee), ankle: ok(L.ankle) }
+}
+
+/** The chosen leg isn't trackable but the other one is: the patient is probably facing the other way. */
+export function otherSideClearer(landmarks: Pt[] | undefined, side: Side): boolean {
+  return !!landmarks?.length && frameQuality(landmarks, side) !== null && frameQuality(landmarks, side === 'left' ? 'right' : 'left') === null
+}
+
 /**
  * One Euro filter (Casiez et al., 2012): smooths jitter when the joint is still, follows quickly when it moves.
  * `t` is in seconds.
@@ -145,6 +162,34 @@ export class CaptureWindow {
       frames: good.length,
       spread: Math.round((Math.max(...angles) - Math.min(...angles)) * 10) / 10,
     }
+  }
+
+  /**
+   * How far through a steady hold the patient is, 0–1 (1 = held for `holdMs`): the newest run of frames whose good
+   * angles stay within `maxSpread`° and that are mostly good (`minGood`). Drives hands-free auto-capture.
+   */
+  steadyProgress(nowMs: number, holdMs = 1500, maxSpread = 3, minGood = 0.8): number {
+    const last = this.frames[this.frames.length - 1]
+    if (!last || last.angle === null || nowMs - last.t > 250) return 0
+    let lo = Infinity
+    let hi = -Infinity
+    let good = 0
+    let start = last.t
+    for (let i = this.frames.length - 1; i >= 0; i--) {
+      const f = this.frames[i]
+      if (f.angle !== null) {
+        const nlo = Math.min(lo, f.angle)
+        const nhi = Math.max(hi, f.angle)
+        if (nhi - nlo > maxSpread) break
+        lo = nlo
+        hi = nhi
+        good++
+      }
+      const total = this.frames.length - i
+      if (total >= 5 && good / total < minGood) break
+      start = f.t
+    }
+    return Math.min(1, Math.max(0, (nowMs - start) / holdMs))
   }
 
   clear() {
