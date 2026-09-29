@@ -10,7 +10,7 @@ export function PilotForm() {
   const send = useMutation({
     mutationFn: () => api('/platform/pilot-leads', {
       method: 'POST',
-      json: { ...f, email: f.email || null, knee_patients_per_month: f.knee_patients_per_month || null, message: f.message || null, website: f.website || null },
+      json: { ...f, knee_patients_per_month: f.knee_patients_per_month || null, message: f.message || null, website: f.website || null },
     }),
   })
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
@@ -42,7 +42,7 @@ export function PilotForm() {
             <Field label="Your name"><Input value={f.contact_name} onChange={set('contact_name')} required minLength={2} autoComplete="name" /></Field>
             <Field label="City"><Input value={f.city} onChange={set('city')} required minLength={2} autoComplete="address-level2" /></Field>
             <Field label="Mobile number"><Input type="tel" value={f.phone} onChange={set('phone')} required autoComplete="tel" placeholder="98123 45678" /></Field>
-            <Field label="Email (optional)"><Input type="email" value={f.email} onChange={set('email')} autoComplete="email" /></Field>
+            <Field label="Email"><Input type="email" value={f.email} onChange={set('email')} required autoComplete="email" /></Field>
             <Field label="Knee-replacement patients a month">
               <Select value={f.knee_patients_per_month} onChange={set('knee_patients_per_month')}>
                 <option value="">Choose…</option>

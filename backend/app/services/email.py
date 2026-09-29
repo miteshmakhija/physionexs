@@ -20,21 +20,22 @@ def is_configured() -> bool:
     return bool((settings.smtp_host and settings.smtp_user and settings.smtp_password) or settings.resend_api_key)
 
 
-def send_email(to: str, subject: str, text: str, html: str | None = None) -> None:
+def send_email(to: str, subject: str, text: str, html: str | None = None, reply_to: str | None = None) -> None:
     """Send a transactional email: through SMTP when set (e.g. the clinic's Google Workspace mailbox), else Resend.
 
-    Without either (local dev) the message is logged.
+    `reply_to` makes Reply go to someone else (e.g. the clinic that filled in a form). Without SMTP or Resend
+    (local dev) the message is logged.
     """
     if settings.smtp_host and settings.smtp_user and settings.smtp_password:
-        return _smtp(to, subject, text, html)
+        return _smtp(to, subject, text, html, reply_to)
     if settings.resend_api_key:
-        return _resend(to, subject, text, html)
+        return _resend(to, subject, text, html, reply_to)
     if not settings.is_dev:
         raise EmailError("Email is not configured")
     log.warning("DEV EMAIL to %s: %s\n%s", to, subject, text)
 
 
-def _smtp(to: str, subject: str, text: str, html: str | None) -> None:
+def _smtp(to: str, subject: str, text: str, html: str | None, reply_to: str | None = None) -> None:
     name, _ = parseaddr(settings.email_from)
     msg = EmailMessage()
     # Gmail only sends as the signed-in mailbox (or its aliases), so the address comes from SMTP_USER unless
@@ -43,6 +44,8 @@ def _smtp(to: str, subject: str, text: str, html: str | None) -> None:
     msg["From"] = formataddr((name or "Physionexs", sender if sender.split("@")[-1] == settings.smtp_user.split("@")[-1] else settings.smtp_user))
     msg["To"] = to
     msg["Subject"] = subject
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.set_content(text)
     if html:
         msg.add_alternative(html, subtype="html")
@@ -61,12 +64,13 @@ def _smtp(to: str, subject: str, text: str, html: str | None) -> None:
         raise EmailError("Could not send the email") from exc
 
 
-def _resend(to: str, subject: str, text: str, html: str | None) -> None:
+def _resend(to: str, subject: str, text: str, html: str | None, reply_to: str | None = None) -> None:
     try:
         resp = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {settings.resend_api_key}"},
-            json={"from": settings.email_from, "to": [to], "subject": subject, "text": text, **({"html": html} if html else {})},
+            json={"from": settings.email_from, "to": [to], "subject": subject, "text": text,
+                  **({"html": html} if html else {}), **({"reply_to": reply_to} if reply_to else {})},
             timeout=10,
         )
     except httpx.HTTPError as exc:

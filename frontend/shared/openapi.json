@@ -15240,15 +15240,8 @@
             "title": "Phone"
           },
           "email": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "email"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "email",
             "title": "Email"
           },
           "knee_patients_per_month": {
@@ -15296,7 +15289,8 @@
           "clinic_name",
           "contact_name",
           "city",
-          "phone"
+          "phone",
+          "email"
         ],
         "title": "PilotLeadIn"
       },

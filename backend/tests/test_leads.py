@@ -21,7 +21,7 @@ def env(monkeypatch):
     from app.routers import platform
 
     mails: list[tuple] = []
-    monkeypatch.setattr(platform, "send_email", lambda to, subject, text, html=None: mails.append((to, subject, text)))
+    monkeypatch.setattr(platform, "send_email", lambda to, subject, text, html=None, reply_to=None: mails.append((to, subject, text, html, reply_to)))
     conn = engine.connect()
     outer = conn.begin()
     db = Session(bind=conn, join_transaction_mode="create_savepoint", autoflush=False, expire_on_commit=False)
@@ -44,14 +44,19 @@ def test_pilot_lead(env):
     lead = {"clinic_name": "PNX TEST Knee Clinic", "contact_name": "Dr. Test", "city": "Nashik", "phone": phone,
             "email": "pnx-lead@example.com", "knee_patients_per_month": "10-30", "message": "Keen to try the check-ins"}
     assert c.post("/platform/pilot-leads", json=lead).status_code == 201
-    assert len(mails) == 1 and "PNX TEST Knee Clinic, Nashik" in mails[0][1] and "10-30" in mails[0][2]
+    # The team gets the details (Reply goes to the clinic); the clinic gets a thank-you.
+    team, ack = mails
+    assert team[1] == "New pilot request: PNX TEST Knee Clinic, Nashik" and "10 to 30" in team[2] and "Keen to try" in team[3]
+    assert team[4] == "pnx-lead@example.com" and "wa.me/91" + phone in team[3]
+    assert ack[0] == "pnx-lead@example.com" and "Hi Dr." in ack[2] and "PNX TEST Knee Clinic" in ack[2]
 
     # Duplicate within a day, a bot (hidden field filled) and bad input: nothing new saved or sent.
     assert c.post("/platform/pilot-leads", json=lead).status_code == 201
-    assert c.post("/platform/pilot-leads", json=lead | {"phone": "9811111111", "email": None, "website": "http://spam"}).status_code == 201
+    assert c.post("/platform/pilot-leads", json=lead | {"phone": "9811111111", "email": "bot@example.com", "website": "http://spam"}).status_code == 201
     assert c.post("/platform/pilot-leads", json=lead | {"phone": "12"}).status_code == 422
     assert c.post("/platform/pilot-leads", json=lead | {"knee_patients_per_month": "lots"}).status_code == 422
-    assert len(mails) == 1
+    assert c.post("/platform/pilot-leads", json={k: v for k, v in lead.items() if k != "email"} | {"phone": "9822222222"}).status_code == 422  # email required
+    assert len(mails) == 2
 
     # The Super Admin sees it in Records and marks it contacted.
     rows = c.get("/admin/records/pilot_leads", headers=ah, params={"q": "PNX TEST Knee"}).json()["rows"]

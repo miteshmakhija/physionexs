@@ -4582,8 +4582,11 @@ export interface components {
             city: string;
             /** Phone */
             phone: string;
-            /** Email */
-            email?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
             /** Knee Patients Per Month */
             knee_patients_per_month?: ("<10" | "10-30" | "30+") | null;
             /** Message */

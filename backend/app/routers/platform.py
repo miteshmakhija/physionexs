@@ -11,6 +11,7 @@ from sqlalchemy import or_, select
 from app.core.deps import DB
 from app.core.phone import normalize_phone
 from app.models.platform import PilotLead
+from app.services import lead_emails
 from app.services.email import send_email
 from app.services.settings import get_setting
 
@@ -61,7 +62,7 @@ class PilotLeadIn(BaseModel):
     contact_name: Annotated[str, Field(min_length=2, max_length=120)]
     city: Annotated[str, Field(min_length=2, max_length=80)]
     phone: Annotated[str, AfterValidator(normalize_phone)]
-    email: EmailStr | None = None
+    email: EmailStr  # required with the mobile: both are how we reach the clinic
     knee_patients_per_month: Literal["<10", "10-30", "30+"] | None = None
     message: Annotated[str, Field(max_length=1000)] | None = None
     website: str | None = None  # hidden field: people leave it empty, bots fill it in
@@ -79,13 +80,18 @@ def request_pilot(body: PilotLeadIn, db: DB) -> dict:
     lead = PilotLead(**body.model_dump(exclude={"website"}))
     db.add(lead)
     db.commit()
-    to = get_setting(db, "support").get("email")
-    if to:
+    db.refresh(lead)
+    support = get_setting(db, "support")
+    # Each email is best-effort: the lead is already saved for the Super Admin.
+    if to := support.get("email"):
         try:
-            send_email(to, f"Pilot clinic request: {lead.clinic_name}, {lead.city}",
-                       f"{lead.contact_name} · {lead.phone} · {lead.email or '-'}\n"
-                       f"Knee patients a month: {lead.knee_patients_per_month or '-'}\n\n{lead.message or ''}\n\n"
-                       "See Super Admin → Records → Pilot leads.")
+            subject, text, html = lead_emails.team_notification(lead)
+            send_email(to, subject, text, html, reply_to=lead.email)
         except Exception:
-            log.exception("Couldn't email pilot lead")
+            log.exception("Couldn't email the team about a pilot lead")
+    try:
+        subject, text, html = lead_emails.clinic_acknowledgement(lead, support)
+        send_email(lead.email, subject, text, html, reply_to=support.get("email") or None)
+    except Exception:
+        log.exception("Couldn't send the pilot acknowledgement")
     return {"ok": True}
