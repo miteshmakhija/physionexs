@@ -202,7 +202,7 @@ export function InvoiceView() {
           ? <Link to="/clinic/billing" className="eyebrow hover:underline">← Billing</Link>
           : <Link to={`/clinic/patients/${v.clinic_patient_id}`} className="eyebrow hover:underline">← Patient file</Link>}
         <div className="flex flex-wrap items-center gap-2">
-          {isOwner && v.status === 'due' && (
+          {v.status === 'due' && (  // any team member collects at the desk (the API limits staff to their branch)
             <>
               <Select value={method} onChange={(e) => setMethod(e.target.value)} className="!h-11 !w-36" aria-label="Payment method">
                 {METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
