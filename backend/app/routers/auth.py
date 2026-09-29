@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 import jwt
 
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 
 from app.core.config import get_settings
 from app.core.deps import DB, CurrentUser
@@ -62,15 +62,20 @@ settings = get_settings()
 OTP_WINDOW = timedelta(minutes=10)
 OTP_MAX_PER_WINDOW = 3
 TRIAL_DAYS = 14
-# Roles that must sign in with password (+ TOTP), never OTP alone.
-PASSWORD_ONLY_ROLES = {UserRole.PHYSIO, UserRole.SUPER_ADMIN}
+# Phone one-time codes are switched off for everyone for now; staff sign in with email too. Flip to re-enable for staff.
+STAFF_PHONE_SIGN_IN = False
+PHONE_SIGN_IN_OFF = "Mobile number sign-in is no longer available. Please sign in with your email address."
+PATIENT_ON_CLINIC_PAGE = "This email is registered as a patient. Please sign in on the patient portal, or use a different email for your physiotherapist account."
+CLINIC_ON_PATIENT_PAGE = "This email belongs to a clinic account. Please sign in on the practice console."
 
 
-# ── Phone OTP (patients & staff) ────────────────────────────────────────────
+# ── Phone OTP (clinic staff only) ───────────────────────────────────────────
 
 
 @router.post("/otp/request", response_model=OtpRequestOut)
 def request_otp(body: OtpRequestIn, db: DB) -> OtpRequestOut:
+    if not STAFF_PHONE_SIGN_IN or body.intent != "staff":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, PHONE_SIGN_IN_OFF)
     now = datetime.now(UTC)
     recent = db.scalar(
         select(func.count()).select_from(OtpRequest).where(
@@ -80,10 +85,9 @@ def request_otp(body: OtpRequestIn, db: DB) -> OtpRequestOut:
     if recent >= OTP_MAX_PER_WINDOW:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many codes requested. Try again in a few minutes.")
 
-    if body.intent == "staff":
-        staff = db.scalar(select(User).where(User.phone == body.phone))
-        if staff is None or staff.role != UserRole.STAFF or not staff.is_active:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "This number isn't registered by a clinic. Ask your clinic to add you from Staff management.")
+    staff = db.scalar(select(User).where(User.phone == body.phone))
+    if staff is None or staff.role != UserRole.STAFF or not staff.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "This number isn't registered by a clinic. Ask your clinic to add you from Staff management.")
 
     code = generate_otp(settings.otp_length)
     db.add(
@@ -103,6 +107,8 @@ def request_otp(body: OtpRequestIn, db: DB) -> OtpRequestOut:
 
 @router.post("/otp/verify", response_model=TokenOut)
 def verify_otp(body: OtpVerifyIn, db: DB, request: Request, response: Response) -> TokenOut:
+    if not STAFF_PHONE_SIGN_IN or body.intent != "staff":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, PHONE_SIGN_IN_OFF)
     now = datetime.now(UTC)
     otp = db.scalar(
         select(OtpRequest)
@@ -118,20 +124,10 @@ def verify_otp(body: OtpVerifyIn, db: DB, request: Request, response: Response) 
         db.commit()
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect code")
     user = db.scalar(select(User).where(User.phone == body.phone))
-    if body.intent == "staff" and (user is None or user.role != UserRole.STAFF):
+    if user is None or user.role != UserRole.STAFF:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "This number isn't registered by a clinic. Ask your clinic to add you from Staff management.")
-    if user is None and not body.full_name:
-        # New number: the code stays valid so the client can ask for a name and resubmit it.
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "full_name_required")
     otp.consumed_at = now
-
-    if user is None:
-        user = _create_patient_user(db, full_name=body.full_name, phone=body.phone)
-        audit.record(db, action="register", entity="user", entity_id=user.id, actor_user_id=user.id, summary="Patient signed up with OTP", request=request)
-    elif user.role in PASSWORD_ONLY_ROLES:
-        db.commit()
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Please sign in with your password")
-    elif not user.is_active:
+    if not user.is_active:
         db.commit()
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
 
@@ -144,7 +140,7 @@ def verify_otp(body: OtpVerifyIn, db: DB, request: Request, response: Response) 
 
 @router.post("/register/patient", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
 def register_patient(body: PatientRegisterIn, db: DB, request: Request, response: Response) -> TokenOut:
-    _ensure_unique(db, phone=body.phone, email=body.email)
+    _ensure_unique(db, phone=body.phone, email=body.email, signing_up_as=UserRole.PATIENT)
     user = _create_patient_user(db, full_name=body.full_name, phone=body.phone, email=body.email, password=body.password)
     audit.record(db, action="register", entity="user", entity_id=user.id, actor_user_id=user.id, summary="Patient signed up", request=request)
     return issue_tokens(db, user, request, response)
@@ -157,7 +153,7 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
     The public profile stays hidden until a Super Admin verifies the council registration.
     """
     email = body.email.lower()
-    _ensure_unique(db, phone=body.phone, email=email)
+    _ensure_unique(db, phone=body.phone, email=email, signing_up_as=UserRole.PHYSIO)
     user = User(
         full_name=body.full_name,
         phone=body.phone,
@@ -212,11 +208,18 @@ def register_physio(body: PhysioRegisterIn, db: DB, request: Request, response: 
 
 @router.post("/login", response_model=TokenOut)
 def login(body: LoginIn, db: DB, request: Request, response: Response) -> TokenOut:
+    if "@" not in body.identifier:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, PHONE_SIGN_IN_OFF)
     user = _find_by_identifier(db, body.identifier)
     if user is None or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email/phone or password")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
+    # Checked after the password so the page can't be used to learn which role an email has.
+    if body.intent == "clinic" and user.role == UserRole.PATIENT:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, PATIENT_ON_CLINIC_PAGE)
+    if body.intent == "patient" and user.role != UserRole.PATIENT:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, CLINIC_ON_PATIENT_PAGE)
     if user.totp_enabled:
         if not body.totp_code:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "totp_required")
@@ -387,7 +390,7 @@ def reset_password(body: ResetPasswordIn, db: DB, request: Request) -> Response:
 def google_sign_in(body: GoogleIn, db: DB, request: Request, response: Response) -> TokenOut:
     """Exchange a Google authorization code. Google sign-in is for patients; they're created on first sign-in."""
     if body.intent != "patient":
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Physiotherapists sign in with their email or mobile and password")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Physiotherapists sign in with their email and password")
     try:
         who = google.identity_from_code(body.code, body.redirect_uri)
     except google.GoogleAuthError as exc:
@@ -405,7 +408,7 @@ def google_sign_in(body: GoogleIn, db: DB, request: Request, response: Response)
         if not user.is_active:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
         if user.role != UserRole.PATIENT:
-            raise HTTPException(status.HTTP_409_CONFLICT, "This email belongs to a clinic account — sign in on the practice console with your password")
+            raise HTTPException(status.HTTP_409_CONFLICT, CLINIC_ON_PATIENT_PAGE)
         if user.google_sub is None:
             user.google_sub = who.sub  # link on first Google sign-in (Google has verified the email)
         if user.totp_enabled:
@@ -443,14 +446,20 @@ def _find_by_identifier(db: DB, identifier: str) -> User | None:
     return db.scalar(select(User).where(User.phone == phone))
 
 
-def _ensure_unique(db: DB, *, phone: str | None, email: str | None) -> None:
-    conditions = []
-    if phone:
-        conditions.append(User.phone == phone)
-    if email:
-        conditions.append(func.lower(User.email) == email.lower())
-    if conditions and db.scalar(select(User.id).where(or_(*conditions))):
-        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this phone or email already exists")
+def _ensure_unique(db: DB, *, phone: str | None, email: str | None, signing_up_as: UserRole) -> None:
+    """One email (and one mobile) per account, so a patient's email can't also become a physio login, or vice versa."""
+    if email and (taken := db.scalar(select(User.role).where(func.lower(User.email) == email.lower()))):
+        raise HTTPException(status.HTTP_409_CONFLICT, _taken_message("email", taken, signing_up_as))
+    if phone and (taken := db.scalar(select(User.role).where(User.phone == phone))):
+        raise HTTPException(status.HTTP_409_CONFLICT, _taken_message("mobile number", taken, signing_up_as))
+
+
+def _taken_message(what: str, taken: UserRole, signing_up_as: UserRole) -> str:
+    if signing_up_as == UserRole.PHYSIO and taken == UserRole.PATIENT:
+        return f"This {what} is already registered as a patient. Please use a different {what} for your physiotherapist account."
+    if signing_up_as == UserRole.PATIENT and taken != UserRole.PATIENT:
+        return f"This {what} belongs to a clinic account. Please use a different {what} for your patient account."
+    return f"An account with this {what} already exists. Please sign in instead."
 
 
 def _create_patient_user(

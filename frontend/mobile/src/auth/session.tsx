@@ -4,13 +4,13 @@ import { api, applyTokens, logoutRequest, refreshSession, setSessionListener, ty
 import { unregisterPush } from '@/lib/push'
 
 type Status = 'loading' | 'signed-in' | 'signed-out'
+/** Which sign-in screen is asking: the server refuses accounts that belong on the other one. */
+export type Portal = 'patient' | 'clinic'
 
 interface Session {
   status: Status
   me: Me | null
-  requestOtp: (phone: string) => Promise<void>
-  verifyOtp: (phone: string, code: string, fullName?: string) => Promise<Me>
-  login: (identifier: string, password: string, totpCode?: string) => Promise<Me>
+  login: (email: string, password: string, portal: Portal, totpCode?: string) => Promise<Me>
   registerPatient: (body: { full_name: string; email: string; phone?: string | null; password: string }) => Promise<Me>
   logout: () => Promise<void>
 }
@@ -39,12 +39,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       me,
-      requestOtp: async (phone) => {
-        await api('/auth/otp/request', { method: 'POST', json: { phone } })
-      },
-      verifyOtp: (phone, code, fullName) => signIn('/auth/otp/verify', { phone, code, full_name: fullName || undefined }),
-      login: (identifier, password, totpCode) =>
-        signIn('/auth/login', { identifier, password, totp_code: totpCode || undefined }),
+      login: (email, password, portal, totpCode) =>
+        signIn('/auth/login', { identifier: email, password, intent: portal, totp_code: totpCode || undefined }),
       registerPatient: (body) => signIn('/auth/register/patient', body),
       logout: async () => {
         await unregisterPush()

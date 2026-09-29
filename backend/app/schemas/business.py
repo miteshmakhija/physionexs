@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime, time
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, Field, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.core.phone import normalize_phone
 from app.models.billing import InvoiceStatus
@@ -222,7 +222,9 @@ class CheckoutIn(BaseModel):
 
 class StaffIn(BaseModel):
     full_name: Annotated[str, Field(min_length=2, max_length=120)]
-    phone: Phone
+    email: EmailStr  # they sign in with this email
+    password: Annotated[str, Field(min_length=8, max_length=128)]  # temporary; the owner shares it, they can reset it later
+    phone: Phone | None = None
     role: Literal[MembershipRole.STAFF, MembershipRole.PHYSIO] = MembershipRole.STAFF
     job_title: Annotated[str, Field(max_length=80)] | None = None
     department: Annotated[str, Field(max_length=80)] | None = None
@@ -248,6 +250,7 @@ class StaffOut(BaseModel):
     user_id: uuid.UUID
     full_name: str
     phone: str | None
+    email: str | None = None
     role: MembershipRole
     job_title: str | None
     department: str | None

@@ -3,13 +3,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api, applyTokens, refreshSession, setSessionListener, type Me, type Schemas, type TokenOut } from '@/lib/api'
 
 type Status = 'loading' | 'signed-in' | 'signed-out'
+/** Which sign-in page is asking: the server refuses accounts that belong on the other one. */
+export type Portal = 'patient' | 'clinic'
 
 interface AuthContextValue {
   status: Status
   me: Me | null
-  requestOtp: (phone: string) => Promise<void>
-  verifyOtp: (phone: string, code: string, fullName?: string) => Promise<Me>
-  login: (identifier: string, password: string, totpCode?: string) => Promise<Me>
+  login: (email: string, password: string, portal: Portal, totpCode?: string) => Promise<Me>
   registerPatient: (body: Schemas['PatientRegisterIn']) => Promise<Me>
   registerPhysio: (body: Schemas['PhysioRegisterIn']) => Promise<Me>
   logout: () => Promise<void>
@@ -39,12 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       me,
-      requestOtp: async (phone) => {
-        await api('/auth/otp/request', { method: 'POST', json: { phone } })
-      },
-      verifyOtp: (phone, code, fullName) => signIn('/auth/otp/verify', { phone, code, full_name: fullName || undefined }),
-      login: (identifier, password, totpCode) =>
-        signIn('/auth/login', { identifier, password, totp_code: totpCode || undefined }),
+      login: (email, password, portal, totpCode) =>
+        signIn('/auth/login', { identifier: email, password, intent: portal, totp_code: totpCode || undefined }),
       registerPatient: (body) => signIn('/auth/register/patient', body),
       registerPhysio: (body) => signIn('/auth/register/physio', body),
       logout: async () => {

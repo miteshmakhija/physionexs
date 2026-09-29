@@ -168,12 +168,12 @@ function Team({ clinicId }: { clinicId: string }) {
   const qc = useQueryClient()
   const list = useQuery({ queryKey: ['staff'], queryFn: () => api<Schemas['StaffOut'][]>('/clinic/staff', { clinicId }) })
   const branches = useQuery({ queryKey: ['branches'], queryFn: () => api<Schemas['BranchOut'][]>('/clinic/branches', { clinicId }) })
-  const empty = { full_name: '', phone: '', role: 'staff', job_title: '', department: '', salary: '', branch_id: '', registration_no: '' }
+  const empty = { full_name: '', email: '', password: '', phone: '', role: 'staff', job_title: '', department: '', salary: '', branch_id: '', registration_no: '' }
   const [f, setF] = useState(empty)
   const add = useMutation({
     mutationFn: () => api<Schemas['StaffOut']>('/clinic/staff', {
       method: 'POST', clinicId,
-      json: { full_name: f.full_name, phone: f.phone, role: f.role, job_title: f.job_title || null, department: f.department || null, monthly_salary_paise: f.salary ? Math.round(Number(f.salary) * 100) : null, branch_id: f.branch_id || null, registration_no: f.registration_no || null },
+      json: { full_name: f.full_name, email: f.email, password: f.password, phone: f.phone || null, role: f.role, job_title: f.job_title || null, department: f.department || null, monthly_salary_paise: f.salary ? Math.round(Number(f.salary) * 100) : null, branch_id: f.branch_id || null, registration_no: f.registration_no || null },
     }),
     onSuccess: () => {
       setF(empty)
@@ -191,7 +191,7 @@ function Team({ clinicId }: { clinicId: string }) {
             <Avatar name={m.full_name} />
             <span className="min-w-0 flex-1">
               <span className="block font-semibold">{m.full_name} <span className="eyebrow ml-1">{m.role === 'owner' ? 'Doctor-Admin' : m.role}</span></span>
-              <span className="block text-[12.5px] text-muted">{[m.employee_code, m.job_title, m.department, m.branch_name, m.phone].filter(Boolean).join(' · ')}</span>
+              <span className="block text-[12.5px] text-muted">{[m.employee_code, m.job_title, m.department, m.branch_name, m.email, m.phone].filter(Boolean).join(' · ')}</span>
             </span>
             <span className="tabular-nums text-muted">{m.monthly_salary_paise ? `${rupees(m.monthly_salary_paise)}/mo` : ''}</span>
           </li>
@@ -199,9 +199,11 @@ function Team({ clinicId }: { clinicId: string }) {
       </ul>
       <form className="h-fit space-y-3 border border-line p-5" onSubmit={(e) => { e.preventDefault(); add.mutate() }}>
         <h2 className="text-[16px] font-semibold">Add team member</h2>
-        <p className="text-[12.5px] text-muted">They sign in to Physionexs with a one-time code sent to this mobile number.</p>
+        <p className="text-[12.5px] text-muted">They sign in on the practice console (Staff tab) with this email and the temporary password. Share it with them; they can change it with “Forgot password”.</p>
         <Field label="Full name"><Input value={f.full_name} onChange={set('full_name')} required minLength={2} /></Field>
-        <Field label="Mobile"><Input type="tel" value={f.phone} onChange={set('phone')} required /></Field>
+        <Field label="Email"><Input type="email" value={f.email} onChange={set('email')} autoComplete="off" required /></Field>
+        <Field label="Temporary password" hint="At least 8 characters."><Input value={f.password} onChange={set('password')} autoComplete="new-password" minLength={8} required /></Field>
+        <Field label="Mobile (optional)"><Input type="tel" value={f.phone} onChange={set('phone')} /></Field>
         <Field label="Access">
           <Select value={f.role} onChange={set('role')}>
             <option value="staff">Staff — no billing or analytics, no clinical notes</option>

@@ -1,5 +1,9 @@
 import type { Schemas } from '@/lib/api'
 
+/** Subscription "Pay" buttons stay disabled until the Razorpay account is activated. Flip to true to turn them on. */
+export const SUBSCRIPTION_PAYMENTS_LIVE = false
+export const PAYMENTS_SOON = 'Online payment opens in a day or two.'
+
 export interface PaymentResult {
   razorpay_order_id: string
   razorpay_payment_id: string

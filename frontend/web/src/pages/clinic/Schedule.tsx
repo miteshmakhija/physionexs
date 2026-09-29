@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { useClinic } from '@/auth/useClinic'
 import { PageHeader } from '@/components/ConsoleLayout'
@@ -8,6 +9,8 @@ import { api, type Schemas } from '@/lib/api'
 import { addDays, dayParts, isoDay, MODE_LABEL, STATUS_LABEL, time } from '@shared/format'
 
 type Appt = Schemas['ClinicAppointmentOut']
+type WalkIn = Schemas['QueueTokenOut']
+const TOKEN_LABEL: Record<WalkIn['status'], string> = { waiting: 'Waiting', serving: 'With physio', done: 'Seen', skipped: 'Skipped' }
 type Status = Appt['status']
 
 const ACTIONS: Partial<Record<Status, { to: Status; label: string; danger?: boolean }[]>> = {
@@ -28,6 +31,11 @@ export default function Schedule() {
     queryFn: () => api<Appt[]>('/clinic/appointments', { clinicId, query: { day } }),
     refetchInterval: 30_000,
   })
+  const walkIns = useQuery({
+    queryKey: ['clinic-walk-ins', day],
+    queryFn: () => api<WalkIn[]>('/clinic/walk-ins', { clinicId, query: { day } }),
+    refetchInterval: 30_000,
+  })
   const move = useMutation({
     mutationFn: ({ id, to }: { id: string; to: Status }) => api<Appt>(`/clinic/appointments/${id}`, { method: 'PATCH', clinicId, json: { status: to } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clinic-appointments', day] }),
@@ -41,7 +49,7 @@ export default function Schedule() {
     <div>
       <PageHeader
         title="Schedule"
-        subtitle="Appointments & tele-consults"
+        subtitle="Appointments, tele-consults & walk-ins"
         actions={
           <div className="flex items-center gap-1 text-[13px]">
             <button onClick={() => shift(-1)} className="h-9 border border-line-strong px-3 hover:border-ink" aria-label="Previous day">←</button>
@@ -53,6 +61,7 @@ export default function Schedule() {
       />
       <p className="eyebrow mb-3">
         {label} · {live.length} appointment{live.length === 1 ? '' : 's'}
+        {!!walkIns.data?.length && ` · ${walkIns.data.length} walk-in${walkIns.data.length === 1 ? '' : 's'}`}
       </p>
       {move.error && <div className="mb-3"><Alert>{(move.error as Error).message}</Alert></div>}
 
@@ -95,6 +104,28 @@ export default function Schedule() {
             </li>
           ))}
         </ul>
+      )}
+
+      {!!walkIns.data?.length && (
+        <section className="mt-10">
+          <p className="eyebrow mb-3">Walk-ins · token queue</p>
+          <ul className="divide-y divide-line border-y border-line">
+            {walkIns.data.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center gap-4 py-4">
+                <span className="w-20 text-[14px] font-semibold tabular-nums">{time(t.created_at)}</span>
+                <Avatar name={t.patient_name} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14.5px] font-semibold">
+                    {t.clinic_patient_id ? <Link to={`/clinic/patients/${t.clinic_patient_id}`} className="hover:underline">{t.patient_name}</Link> : t.patient_name}
+                    <span className="eyebrow ml-2">Token {t.label}</span>
+                  </p>
+                  <p className="text-[13px] text-muted">{['Walk-in', t.reason, t.physio_name].filter(Boolean).join(' · ')}</p>
+                </div>
+                <span className="eyebrow w-28 text-right">{TOKEN_LABEL[t.status]}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )

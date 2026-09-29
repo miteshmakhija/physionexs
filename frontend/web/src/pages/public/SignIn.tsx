@@ -2,8 +2,8 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { homePathFor, useAuth } from '@/auth/AuthProvider'
-import { Alert, Button, Card, cx, Field, Input, Logo, Segmented } from '@/components/ui'
-import { api, ApiError, applyTokens, type Me, type Schemas } from '@/lib/api'
+import { Alert, Button, Card, cx, Field, Input, Logo } from '@/components/ui'
+import { api, ApiError, type Me, type Schemas } from '@/lib/api'
 import { authConfig, startGoogle, type Intent } from '@/lib/google'
 
 /** Patients and physiotherapists get separate sign-in pages; the role comes from ?as= or where they were going. */
@@ -132,72 +132,15 @@ function useRun() {
 // ── Patient ─────────────────────────────────────────────────────────────────
 
 function PatientAuth({ onDone, next }: { onDone: (me: Me) => void; next: string | null }) {
-  const [method, setMethod] = useState<'phone' | 'email'>('phone')
   const [emailMode, setEmailMode] = useState<'signin' | 'register' | 'forgot'>('signin')
-  if (method === 'email' && emailMode === 'forgot') return <ForgotPassword onBack={() => setEmailMode('signin')} />
+  if (emailMode === 'forgot') return <ForgotPassword onBack={() => setEmailMode('signin')} />
   return (
     <div className="space-y-5">
-      <Heading title={method === 'email' && emailMode === 'register' ? 'Create your account' : 'Welcome to Physionexs'} sub="Sign in to book physios and follow your recovery plan." />
+      <Heading title={emailMode === 'register' ? 'Create your account' : 'Welcome to Physionexs'} sub="Sign in to book physios and follow your recovery plan." />
       <GoogleButton intent="patient" next={next} />
       <Divider />
-      <Segmented value={method} onChange={setMethod} options={[{ value: 'phone', label: 'Mobile number' }, { value: 'email', label: 'Email' }]} />
-      {method === 'phone' ? <PatientOtp onDone={onDone} /> : <PatientEmail mode={emailMode} setMode={setEmailMode} onDone={onDone} />}
+      <PatientEmail mode={emailMode} setMode={setEmailMode} onDone={onDone} />
     </div>
-  )
-}
-
-function PatientOtp({ onDone }: { onDone: (me: Me) => void }) {
-  const { requestOtp, verifyOtp } = useAuth()
-  const [step, setStep] = useState<'phone' | 'code'>('phone')
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [needsName, setNeedsName] = useState(false)
-  const { busy, error, run } = useRun()
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    void run(
-      async () => {
-        if (step === 'phone') {
-          await requestOtp(phone)
-          setStep('code')
-        } else onDone(await verifyOtp(phone, code, needsName ? fullName : undefined))
-      },
-      (e) => {
-        if (e.detail !== 'full_name_required') return false
-        setNeedsName(true)
-        return true
-      },
-    )
-  }
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <p className="text-[13.5px] text-muted">{step === 'phone' ? 'We’ll text you a one-time code.' : `Enter the code sent to ${phone}.`}</p>
-      {error && <Alert>{error}</Alert>}
-      {step === 'phone' ? (
-        <Field label="Mobile number">
-          <Input type="tel" inputMode="tel" autoComplete="tel" placeholder="98123 45678" value={phone} onChange={(e) => setPhone(e.target.value)} required autoFocus />
-        </Field>
-      ) : (
-        <>
-          <Field label="6-digit code">
-            <Input inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" />
-          </Field>
-          {needsName && (
-            <Field label="Full name" hint="New to Physionexs — tell us what to call you.">
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required minLength={2} autoFocus />
-            </Field>
-          )}
-        </>
-      )}
-      <Button type="submit" loading={busy} className="w-full">{step === 'phone' ? 'Send code' : needsName ? 'Create account' : 'Verify & continue'}</Button>
-      {step === 'code' && (
-        <button type="button" className="w-full text-[13px] font-semibold text-muted hover:text-ink" onClick={() => { setStep('phone'); setCode(''); setNeedsName(false) }}>
-          Use a different number
-        </button>
-      )}
-    </form>
   )
 }
 
@@ -209,7 +152,7 @@ function PatientEmail({ mode, setMode, onDone }: { mode: 'signin' | 'register' |
   const submit = (e: FormEvent) => {
     e.preventDefault()
     void run(async () =>
-      onDone(mode === 'register' ? await registerPatient({ full_name: f.full_name, email: f.email, phone: f.phone || null, password: f.password }) : await login(f.email, f.password)),
+      onDone(mode === 'register' ? await registerPatient({ full_name: f.full_name, email: f.email, phone: f.phone || null, password: f.password }) : await login(f.email, f.password, 'patient')),
     )
   }
   return (
@@ -217,7 +160,7 @@ function PatientEmail({ mode, setMode, onDone }: { mode: 'signin' | 'register' |
       {error && <Alert>{error}</Alert>}
       {mode === 'register' && <Field label="Full name"><Input value={f.full_name} onChange={set('full_name')} autoComplete="name" required minLength={2} /></Field>}
       <Field label="Email"><Input type="email" value={f.email} onChange={set('email')} autoComplete="email" required /></Field>
-      {mode === 'register' && <Field label="Mobile number (optional)" hint="Lets you sign in with a code too."><Input type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" /></Field>}
+      {mode === 'register' && <Field label="Mobile number (optional)" hint="For appointment reminders. You sign in with your email."><Input type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" /></Field>}
       <Field label="Password" hint={mode === 'register' ? 'At least 8 characters.' : undefined}>
         <Input type="password" value={f.password} onChange={set('password')} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} minLength={mode === 'register' ? 8 : 1} required />
       </Field>
@@ -265,11 +208,11 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="space-y-5">
-      <Heading title="Reset your password" sub={step === 'ask' ? 'We’ll send a 6-digit code to your email or mobile.' : undefined} />
+      <Heading title="Reset your password" sub={step === 'ask' ? 'We’ll send a 6-digit code to your email.' : undefined} />
       {error && <Alert>{error}</Alert>}
       {step === 'ask' && (
         <form onSubmit={ask} className="space-y-4">
-          <Field label="Email or mobile number"><Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" required autoFocus /></Field>
+          <Field label="Email"><Input type="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="email" required autoFocus /></Field>
           <Button type="submit" loading={busy} className="w-full">Send code</Button>
         </form>
       )}
@@ -291,7 +234,6 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
 // ── Physiotherapist / clinic team ───────────────────────────────────────────
 
 type Role = 'doctor' | 'staff'
-type Method = 'phone' | 'email'
 
 function RoleTabs({ value, onChange }: { value: Role; onChange: (r: Role) => void }) {
   const tabs: { value: Role; title: string; sub: string }[] = [
@@ -338,12 +280,8 @@ function PhysioAuth({ onDone, initialMode }: { onDone: (me: Me) => void; next: s
   )
 }
 
-function MethodTabs({ value, onChange }: { value: Method; onChange: (m: Method) => void }) {
-  return <Segmented value={value} onChange={onChange} options={[{ value: 'phone', label: 'Mobile number' }, { value: 'email', label: 'Email' }]} />
-}
-
-/** Password sign-in with a mobile number or email (+ authenticator code when 2FA is on). */
-function PasswordSignIn({ method, onDone, onForgot }: { method: Method; onDone: (me: Me) => void; onForgot: () => void }) {
+/** Practice-console password sign-in by email (+ authenticator code when 2FA is on). Patient accounts are refused. */
+function PasswordSignIn({ onDone, onForgot }: { onDone: (me: Me) => void; onForgot: () => void }) {
   const { login } = useAuth()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -353,7 +291,7 @@ function PasswordSignIn({ method, onDone, onForgot }: { method: Method; onDone: 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     void run(
-      async () => onDone(await login(identifier, password, needsTotp ? totp : undefined)),
+      async () => onDone(await login(identifier, password, 'clinic', needsTotp ? totp : undefined)),
       (e) => {
         if (e.detail !== 'totp_required') return false
         setNeedsTotp(true)
@@ -364,11 +302,7 @@ function PasswordSignIn({ method, onDone, onForgot }: { method: Method; onDone: 
   return (
     <form onSubmit={submit} className="space-y-4">
       {error && <Alert>{error}</Alert>}
-      {method === 'phone' ? (
-        <Field label="Mobile number"><Input key="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="98123 45678" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
-      ) : (
-        <Field label="Email"><Input key="email" type="email" autoComplete="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
-      )}
+      <Field label="Email"><Input type="email" autoComplete="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
       <Field label="Password"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></Field>
       <div className="-mt-2 text-right">
         <button type="button" onClick={onForgot} className="text-[13px] font-semibold text-muted hover:text-ink">Forgot password?</button>
@@ -384,11 +318,9 @@ function PasswordSignIn({ method, onDone, onForgot }: { method: Method; onDone: 
 }
 
 function DoctorSignIn({ onDone, onForgot, onRegister }: { onDone: (me: Me) => void; onForgot: () => void; onRegister: () => void }) {
-  const [method, setMethod] = useState<Method>('phone')
   return (
     <div className="space-y-5">
-      <MethodTabs value={method} onChange={setMethod} />
-      <PasswordSignIn key={method} method={method} onDone={onDone} onForgot={onForgot} />
+      <PasswordSignIn onDone={onDone} onForgot={onForgot} />
       <p className="text-center text-[13px] text-muted">
         New to Physionexs? <button type="button" onClick={onRegister} className="font-semibold text-ink underline">Register your clinic</button>
       </p>
@@ -396,48 +328,13 @@ function DoctorSignIn({ onDone, onForgot, onRegister }: { onDone: (me: Me) => vo
   )
 }
 
-/** Clinic team members. They can't register — the Doctor-Admin adds them under Staff management. */
+/** Clinic team members. They can't register — the Doctor-Admin adds them under Staff management with a temporary password. */
 function StaffSignIn({ onDone, onForgot }: { onDone: (me: Me) => void; onForgot: () => void }) {
-  const [method, setMethod] = useState<Method>('phone')
   return (
     <div className="space-y-5">
-      <MethodTabs value={method} onChange={setMethod} />
-      {method === 'phone' ? <StaffOtp onDone={onDone} /> : <PasswordSignIn method="email" onDone={onDone} onForgot={onForgot} />}
-      <p className="text-center text-[12.5px] text-muted">Staff accounts are created by your clinic’s Doctor-Admin. Not added yet? Ask them to add you under Staff management.</p>
+      <PasswordSignIn onDone={onDone} onForgot={onForgot} />
+      <p className="text-center text-[12.5px] text-muted">Use the email and temporary password your clinic’s Doctor-Admin gave you. Not added yet? Ask them to add you under Staff management.</p>
     </div>
-  )
-}
-
-function StaffOtp({ onDone }: { onDone: (me: Me) => void }) {
-  const [step, setStep] = useState<'phone' | 'code'>('phone')
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
-  const { busy, error, run } = useRun()
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    void run(async () => {
-      if (step === 'phone') {
-        await api('/auth/otp/request', { method: 'POST', json: { phone, intent: 'staff' } })
-        setStep('code')
-      } else {
-        const tokens = await api<Schemas['TokenOut']>('/auth/otp/verify', { method: 'POST', json: { phone, code, intent: 'staff' } })
-        applyTokens(tokens)
-        onDone(tokens.user)
-      }
-    })
-  }
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <p className="text-[13.5px] text-muted">{step === 'phone' ? 'We’ll text a one-time code to the number your clinic registered.' : `Enter the code sent to ${phone}.`}</p>
-      {error && <Alert>{error}</Alert>}
-      {step === 'phone' ? (
-        <Field label="Mobile number"><Input type="tel" inputMode="tel" autoComplete="tel" placeholder="98123 45678" value={phone} onChange={(e) => setPhone(e.target.value)} required autoFocus /></Field>
-      ) : (
-        <Field label="6-digit code"><Input inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" /></Field>
-      )}
-      <Button type="submit" loading={busy} className="w-full">{step === 'phone' ? 'Send code' : 'Verify & continue'}</Button>
-      {step === 'code' && <button type="button" className="w-full text-[13px] font-semibold text-muted hover:text-ink" onClick={() => { setStep('phone'); setCode('') }}>Use a different number</button>}
-    </form>
   )
 }
 

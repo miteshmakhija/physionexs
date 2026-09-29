@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import DB, CurrentUser, require_clinic_member
+from app.core.security import hash_password
 from app.models.clinic import Branch, ClinicMember, MembershipRole, PhysioProfile
 from app.models.engagement import Notification
 from app.models.hr import Attendance, AttendanceStatus, LeaveRequest, LeaveStatus, LeaveType, Payslip, PayslipStatus
@@ -45,7 +46,7 @@ def _staff_out(db: Session, m: ClinicMember, day: date | None = None) -> StaffOu
     branch = db.get(Branch, m.branch_id) if m.branch_id else None
     att = db.scalar(select(Attendance).where(Attendance.member_id == m.id, Attendance.day == (day or _today())))
     return StaffOut(
-        id=m.id, user_id=user.id, full_name=user.full_name, phone=user.phone, role=m.role, job_title=m.job_title, department=m.department,
+        id=m.id, user_id=user.id, full_name=user.full_name, phone=user.phone, email=user.email, role=m.role, job_title=m.job_title, department=m.department,
         employee_code=m.employee_code, monthly_salary_paise=m.monthly_salary_paise, branch_id=m.branch_id, branch_name=branch.name if branch else None,
         joined_on=m.joined_on, is_active=m.is_active, today=att.status if att else None, check_in=att.check_in if att else None,
     )
@@ -64,18 +65,21 @@ def list_staff(member: Owner, db: DB, include_inactive: bool = False) -> list[St
 
 @router.post("/staff", response_model=StaffOut, status_code=status.HTTP_201_CREATED)
 def add_staff(body: StaffIn, member: Owner, user: CurrentUser, db: DB, request: Request) -> StaffOut:
-    """Add a team member. They sign in with an OTP to their mobile number."""
+    """Add a team member. They sign in on the practice console with this email and the temporary password."""
     if body.branch_id and db.scalar(select(Branch.clinic_id).where(Branch.id == body.branch_id)) != member.clinic_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unknown branch")
-    person = db.scalar(select(User).where(User.phone == body.phone))
+    email = body.email.lower()
+    person = db.scalar(select(User).where(func.lower(User.email) == email))
+    if person is not None and person.role == UserRole.PATIENT:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This email is registered as a patient. Use a different email for staff.")
+    if person is not None and person.role == UserRole.SUPER_ADMIN:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This email belongs to a platform administrator")
+    if body.phone and (holder := db.scalar(select(User.id).where(User.phone == body.phone))) and (person is None or holder != person.id):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This mobile number is already used by another account")
     if person is None:
-        person = User(full_name=body.full_name, phone=body.phone, role=UserRole.STAFF)
+        person = User(full_name=body.full_name, email=email, phone=body.phone, password_hash=hash_password(body.password), role=UserRole.STAFF)
         db.add(person)
         db.flush()
-    elif person.role == UserRole.PATIENT:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This number already has a patient account. Use a different number for staff.")
-    elif person.role == UserRole.SUPER_ADMIN:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This number belongs to a platform administrator")
     if db.scalar(select(ClinicMember.id).where(ClinicMember.clinic_id == member.clinic_id, ClinicMember.user_id == person.id)):
         raise HTTPException(status.HTTP_409_CONFLICT, "Already on your team")
 

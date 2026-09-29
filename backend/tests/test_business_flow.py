@@ -36,20 +36,13 @@ def env():
 
     c = TestClient(app)
 
-    def otp_login(phone, name=None):
-        c.post("/auth/otp/request", json={"phone": phone})
-        body = {"phone": phone, "code": codes[phone]}
-        if name:
-            body["full_name"] = name
-        return c.post("/auth/otp/verify", json=body).json()
-
-    pt = otp_login(PATIENT_PHONE, "Aarav Shah")
+    pt = c.post("/auth/register/patient", json={"full_name": "Aarav Shah", "email": "aarav-business@demo.physionexs.com", "phone": PATIENT_PHONE, "password": "patient-password-1"}).json()
     doc = c.post("/auth/login", json={"identifier": "iap-demo-1001@demo.physionexs.com", "password": DEMO_PASSWORD}).json()
     clinic_id = doc["user"]["memberships"][0]["clinic_id"]
     h = {"Authorization": f"Bearer {doc['access_token']}", "X-Clinic-Id": clinic_id}
     walkin = c.post("/clinic/patients", headers=h, json={"full_name": "Kavya Rao", "phone": WALKIN_PHONE, "age": 34, "sex": "F"}).json()
 
-    yield {"c": c, "h": h, "clinic_id": clinic_id, "otp_login": otp_login, "walkin_cp": walkin["id"],
+    yield {"c": c, "h": h, "clinic_id": clinic_id, "walkin_cp": walkin["id"],
            "patient": {"Authorization": f"Bearer {pt['access_token']}"}, "state": {}}
 
     msg91.send_otp = original
@@ -166,14 +159,16 @@ def test_new_clinic_plan_sets_booking_fee(env):
 
 def test_staff_attendance_leave_and_payroll(env):
     c, h = env["c"], env["h"]
-    assert c.post("/clinic/staff", headers=h, json={"full_name": "Aarav", "phone": PATIENT_PHONE}).status_code == 409  # patient number
-    added = c.post("/clinic/staff", headers=h, json={"full_name": "Riya Desai", "phone": STAFF_PHONE, "job_title": "Receptionist", "department": "Front desk", "monthly_salary_paise": 3_000_000})
+    patient_email = {"full_name": "Aarav", "email": "aarav-business@demo.physionexs.com", "password": "staff-password-1"}
+    assert c.post("/clinic/staff", headers=h, json=patient_email).status_code == 409  # patient email
+    added = c.post("/clinic/staff", headers=h, json={"full_name": "Riya Desai", "email": "riya-staff@demo.physionexs.com", "password": "staff-password-1",
+                                                      "phone": STAFF_PHONE, "job_title": "Receptionist", "department": "Front desk", "monthly_salary_paise": 3_000_000})
     assert added.status_code == 201, added.text
     member_id = added.json()["id"]
 
-    # The staff tab only accepts numbers a clinic has added; unknown numbers don't become patients.
-    assert c.post("/auth/otp/request", json={"phone": "+919000000959", "intent": "staff"}).status_code == 404
-    staff = env["otp_login"](STAFF_PHONE)
+    # Staff sign in with email; phone codes are off.
+    assert c.post("/auth/otp/request", json={"phone": STAFF_PHONE, "intent": "staff"}).status_code == 403
+    staff = c.post("/auth/login", json={"identifier": "riya-staff@demo.physionexs.com", "password": "staff-password-1", "intent": "clinic"}).json()
     assert staff["user"]["role"] == "staff" and staff["user"]["memberships"][0]["role"] == "staff"
     sh = {"Authorization": f"Bearer {staff['access_token']}", "X-Clinic-Id": env["clinic_id"]}
     assert c.get("/clinic/invoices", headers=sh).status_code == 403

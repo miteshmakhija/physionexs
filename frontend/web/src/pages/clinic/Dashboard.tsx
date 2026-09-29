@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/ConsoleLayout'
 import { FlagList } from '@/components/flags'
 import { Avatar, Button, cx, Loader, Select, Stat } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
-import { payWithRazorpay } from '@/lib/razorpay'
+import { PAYMENTS_SOON, payWithRazorpay, SUBSCRIPTION_PAYMENTS_LIVE } from '@/lib/razorpay'
 import { dayLabel, MODE_LABEL, rupees, STATUS_LABEL, time } from '@shared/format'
 
 function greeting(d = new Date()) {
@@ -157,7 +157,8 @@ function SubscriptionBanner({ sub, clinicId }: { sub: Schemas['SubscriptionOut']
       </p>
       <div className="flex items-center gap-3">
         {pay.error && <span className="text-[13px] text-danger">{(pay.error as Error).message}</span>}
-        <Button onClick={() => pay.mutate()} loading={pay.isPending}>Pay now</Button>
+        {!SUBSCRIPTION_PAYMENTS_LIVE && <span className="text-[13px] text-muted">{PAYMENTS_SOON}</span>}
+        <Button onClick={() => pay.mutate()} loading={pay.isPending} disabled={!SUBSCRIPTION_PAYMENTS_LIVE}>Pay now</Button>
       </div>
     </div>
   )

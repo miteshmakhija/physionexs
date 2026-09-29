@@ -67,12 +67,13 @@ def test_patient_email_signup_and_password_reset(env):
     assert c.post("/auth/login", json={"identifier": EMAIL, "password": "second-password-2"}).status_code == 200
 
 
-def test_reset_by_phone(env):
-    c, sent = env["c"], env["sent"]
-    c.post("/auth/register/patient", json={"full_name": "Ravi Kumar", "phone": PHONE, "password": "phone-password-1"})
-    assert c.post("/auth/password/forgot", json={"identifier": "90000 00991"}).json()["channel"] == "sms"
-    assert c.post("/auth/password/reset", json={"identifier": PHONE, "code": sent[PHONE], "new_password": "phone-password-2"}).status_code == 204
-    assert c.post("/auth/login", json={"identifier": PHONE, "password": "phone-password-2"}).status_code == 200
+def test_no_mobile_sign_in(env):
+    c = env["c"]
+    assert c.post("/auth/register/patient", json={"full_name": "Ravi Kumar", "phone": PHONE, "password": "phone-password-1"}).status_code == 422  # email required
+    c.post("/auth/register/patient", json={"full_name": "Ravi Kumar", "email": "ravi-v2@demo.physionexs.com", "phone": PHONE, "password": "phone-password-1"})
+    assert c.post("/auth/login", json={"identifier": PHONE, "password": "phone-password-1"}).status_code == 400
+    assert c.post("/auth/otp/request", json={"phone": PHONE}).status_code == 403
+    assert c.post("/auth/login", json={"identifier": "ravi-v2@demo.physionexs.com", "password": "phone-password-1", "intent": "patient"}).status_code == 200
 
 
 def test_google_is_for_patients_only(env):

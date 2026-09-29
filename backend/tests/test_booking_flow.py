@@ -40,8 +40,7 @@ def env():
         db.commit()
 
     client = TestClient(app)
-    client.post("/auth/otp/request", json={"phone": PATIENT_PHONE})
-    patient = client.post("/auth/otp/verify", json={"phone": PATIENT_PHONE, "code": codes[PATIENT_PHONE], "full_name": "Aarav Shah"}).json()
+    patient = client.post("/auth/register/patient", json={"full_name": "Aarav Shah", "email": "aarav-booking@demo.physionexs.com", "phone": PATIENT_PHONE, "password": "patient-password-1"}).json()
     physio = client.post("/auth/login", json={"identifier": "iap-demo-1001@demo.physionexs.com", "password": DEMO_PASSWORD}).json()
     admin = client.post("/auth/login", json={"identifier": ADMIN_EMAIL, "password": "demo-admin-123"}).json()
 

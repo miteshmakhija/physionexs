@@ -3,17 +3,15 @@ import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native'
 
 import { useSession } from '@/auth/session'
-import { Button, Card, Chip, ErrorText, Field, Screen, Text } from '@/components/ui'
-import { api, ApiError, applyTokens, type TokenOut } from '@/lib/api'
+import { Button, Card, ErrorText, Field, Screen, Text } from '@/components/ui'
+import { ApiError } from '@/lib/api'
 import { colors, font, radius } from '@shared/tokens'
 
 type Role = 'doctor' | 'staff'
-type Method = 'phone' | 'email'
 
-/** Practice console sign-in: Doctor-Admin (password) or Staff (OTP or password). Staff are added by the clinic. */
+/** Practice console sign-in by email + password for the Doctor-Admin and Staff. Staff are added by the clinic. */
 export default function PhysioSignIn() {
   const [role, setRole] = useState<Role>('doctor')
-  const [method, setMethod] = useState<Method>('phone')
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -29,7 +27,7 @@ export default function PhysioSignIn() {
             ] as const).map(([value, title, sub]) => (
               <Pressable
                 key={value}
-                onPress={() => { setRole(value); setMethod('phone') }}
+                onPress={() => setRole(value)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: role === value }}
                 style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, backgroundColor: role === value ? '#fff' : 'transparent' }}
@@ -39,14 +37,10 @@ export default function PhysioSignIn() {
               </Pressable>
             ))}
           </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Chip label="Mobile number" selected={method === 'phone'} onPress={() => setMethod('phone')} />
-            <Chip label="Email" selected={method === 'email'} onPress={() => setMethod('email')} />
-          </View>
-          {role === 'staff' && method === 'phone' ? <StaffOtp /> : <PasswordForm key={`${role}-${method}`} method={method} />}
+          <PasswordForm key={role} />
           <Button variant="ghost" title="Forgot password?" onPress={() => router.push('/forgot-password')} />
           <Text variant="caption" style={{ textAlign: 'center' }}>
-            {role === 'doctor' ? 'New clinic? Register at physionexs.com' : 'Staff accounts are created by your clinic’s Doctor-Admin.'}
+            {role === 'doctor' ? 'New clinic? Register at physionexs.com' : 'Use the email and temporary password your clinic’s Doctor-Admin gave you.'}
           </Text>
         </Card>
       </Screen>
@@ -54,7 +48,7 @@ export default function PhysioSignIn() {
   )
 }
 
-function PasswordForm({ method }: { method: Method }) {
+function PasswordForm() {
   const { login } = useSession()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -67,7 +61,7 @@ function PasswordForm({ method }: { method: Method }) {
     setBusy(true)
     setError(null)
     try {
-      await login(identifier, password, needsTotp ? totp : undefined)
+      await login(identifier, password, 'clinic', needsTotp ? totp : undefined)
       router.replace('/')
     } catch (e) {
       if (e instanceof ApiError && e.detail === 'totp_required') setNeedsTotp(true)
@@ -80,56 +74,13 @@ function PasswordForm({ method }: { method: Method }) {
   return (
     <View style={{ gap: 16 }}>
       {error && <ErrorText>{error}</ErrorText>}
-      {method === 'phone' ? (
-        <Field label="Mobile number" value={identifier} onChangeText={setIdentifier} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="98123 45678" />
-      ) : (
-        <Field label="Email" value={identifier} onChangeText={setIdentifier} keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" />
-      )}
+      <Field label="Email" value={identifier} onChangeText={setIdentifier} keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" />
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
       {needsTotp && (
         <Field label="Two-factor authentication code" hint="Enter the 6-digit code from your authenticator app." value={totp}
           onChangeText={(t) => setTotp(t.replace(/\D/g, ''))} keyboardType="number-pad" textContentType="oneTimeCode" maxLength={6} autoFocus />
       )}
       <Button title="Sign in" onPress={submit} loading={busy} />
-    </View>
-  )
-}
-
-function StaffOtp() {
-  const [step, setStep] = useState<'phone' | 'code'>('phone')
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const submit = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      if (step === 'phone') {
-        await api('/auth/otp/request', { method: 'POST', json: { phone, intent: 'staff' } })
-        setStep('code')
-      } else {
-        await applyTokens(await api<TokenOut>('/auth/otp/verify', { method: 'POST', json: { phone, code, intent: 'staff' } }))
-        router.replace('/')
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <View style={{ gap: 16 }}>
-      <Text>{step === 'phone' ? 'We’ll text a one-time code to the number your clinic registered.' : `Enter the code sent to ${phone}.`}</Text>
-      {error && <ErrorText>{error}</ErrorText>}
-      {step === 'phone' ? (
-        <Field label="Mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" placeholder="98123 45678" />
-      ) : (
-        <Field label="6-digit code" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, ''))} keyboardType="number-pad" textContentType="oneTimeCode" maxLength={8} autoFocus />
-      )}
-      <Button title={step === 'phone' ? 'Send code' : 'Verify & continue'} onPress={submit} loading={busy} />
     </View>
   )
 }

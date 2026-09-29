@@ -37,8 +37,8 @@ export default function ForgotPassword() {
           {error && <ErrorText>{error}</ErrorText>}
           {step === 'ask' && (
             <>
-              <Text>We’ll send a 6-digit code to your email or mobile.</Text>
-              <Field label="Email or mobile number" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoComplete="username" autoFocus />
+              <Text>We’ll send a 6-digit code to your email.</Text>
+              <Field label="Email" value={identifier} onChangeText={setIdentifier} keyboardType="email-address" autoCapitalize="none" autoComplete="email" autoFocus />
               <Button
                 title="Send code"
                 loading={busy}

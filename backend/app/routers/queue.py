@@ -69,6 +69,17 @@ def get_queue(branch_id: uuid.UUID, member: Member, db: DB) -> QueueOut:
     )
 
 
+@router.get("/clinic/walk-ins", response_model=list[QueueTokenOut])
+def walk_ins(day: date, member: Member, db: DB) -> list[QueueTokenOut]:
+    """Every walk-in token issued on `day` across the clinic's branches, for the Schedule page."""
+    tokens = db.scalars(
+        select(QueueToken).join(Branch, Branch.id == QueueToken.branch_id)
+        .where(Branch.clinic_id == member.clinic_id, QueueToken.service_date == day)
+        .order_by(QueueToken.created_at)
+    )
+    return [_token_out(db, t, member.clinic_id) for t in tokens]
+
+
 @router.post("/clinic/queue", response_model=QueueTokenOut, status_code=status.HTTP_201_CREATED)
 def register_walk_in(body: WalkInIn, member: Member, user: CurrentUser, db: DB, request: Request) -> QueueTokenOut:
     branch = _branch(db, member.clinic_id, body.branch_id)

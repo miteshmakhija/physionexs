@@ -26,6 +26,26 @@ interface RxSnapshot {
   next_review?: string | null
 }
 
+/** The clinic's own mark on its letterhead: the uploaded logo, or its initials until one is uploaded. */
+export function ClinicMark({ name, logoUrl, size = 'lg' }: { name: string; logoUrl?: string | null; size?: 'lg' | 'sm' }) {
+  if (logoUrl) return <img src={logoUrl} alt={name} className={size === 'lg' ? 'mb-3 h-20 w-auto max-w-[240px] object-contain' : 'mb-2 h-12 w-auto max-w-[160px] object-contain'} />
+  const initials = name.split(/[\s']+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || name.slice(0, 1).toUpperCase()
+  return (
+    <span className={cx('mb-3 grid place-items-center bg-ink font-bold tracking-[0.04em] text-white', size === 'lg' ? 'size-16 text-[24px]' : 'size-10 text-[15px]')} aria-hidden>
+      {initials}
+    </span>
+  )
+}
+
+/** Small "Powered by Physionexs" credit for the foot of clinic documents. */
+export function PoweredBy({ className }: { className?: string }) {
+  return (
+    <span className={cx('inline-flex items-center gap-1.5 text-[11px] text-subtle', className)}>
+      Powered by <Logo className="h-4" />
+    </span>
+  )
+}
+
 /** A prescription on the clinic's letterhead. Printable: the page's print CSS hides everything else. */
 export function RxDocument({ rx }: { rx: Schemas['PrescriptionOut'] }) {
   const s = rx.snapshot as unknown as RxSnapshot
@@ -33,8 +53,8 @@ export function RxDocument({ rx }: { rx: Schemas['PrescriptionOut'] }) {
     <article className="rx-document mx-auto max-w-[800px] border border-line bg-white p-8 text-[13.5px] text-ink print:border-0 print:p-0 sm:p-12">
       <header className="flex items-start justify-between gap-6 border-b-2 border-ink pb-5">
         <div>
-          {s.clinic.logo_url ? <img src={s.clinic.logo_url} alt="" className="mb-2 h-12 w-auto" /> : <Logo className="mb-2 h-8" />}
-          <p className="text-[18px] font-bold">{s.clinic.name}</p>
+          <ClinicMark name={s.clinic.name} logoUrl={s.clinic.logo_url} />
+          <p className="text-[20px] font-bold">{s.clinic.name}</p>
           <p className="text-muted">Physiotherapy &amp; Rehabilitation</p>
         </div>
         <div className="text-right">
@@ -112,11 +132,14 @@ export function RxDocument({ rx }: { rx: Schemas['PrescriptionOut'] }) {
         <div>
           {s.clinic.address && <p>{s.clinic.address}</p>}
           <p>{[s.clinic.phone, s.clinic.email, s.clinic.gstin ? `GSTIN ${s.clinic.gstin}` : null].filter(Boolean).join(' · ')}</p>
-          <p className="mt-2">Digitally generated via Physionexs · Synced to the patient's app care plan.</p>
+          <p className="mt-2">Synced to the patient's app care plan.</p>
         </div>
-        <div className="text-right">
-          <p className="font-serif text-[18px] italic text-ink">{s.physio.name.replace(/^Dr\.?\s*/, '')}</p>
-          <p>{s.physio.name}</p>
+        <div className="flex flex-col items-end gap-3 text-right">
+          <div>
+            <p className="font-serif text-[18px] italic text-ink">{s.physio.name.replace(/^Dr\.?\s*/, '')}</p>
+            <p>{s.physio.name}</p>
+          </div>
+          <PoweredBy />
         </div>
       </footer>
     </article>
@@ -141,9 +164,9 @@ export function InvoiceDocument({ inv }: { inv: Schemas['InvoiceOut'] }) {
     <article className="rx-document mx-auto max-w-[800px] border border-line bg-white p-8 text-[13.5px] text-ink print:border-0 print:p-0 sm:p-12">
       <header className="flex items-start justify-between gap-6 border-b-2 border-ink pb-5">
         <div>
-          {c.logo_url ? <img src={c.logo_url} alt="" className="mb-2 h-12 w-auto" /> : <Logo className="mb-2 h-8" />}
-          <p className="text-[18px] font-bold">{c.name}</p>
-          <p className="text-muted">Physiotherapy &amp; Rehabilitation · on Physionexs</p>
+          <ClinicMark name={c.name} logoUrl={c.logo_url} />
+          <p className="text-[20px] font-bold">{c.name}</p>
+          <p className="text-muted">Physiotherapy &amp; Rehabilitation</p>
         </div>
         <div className="text-right">
           <p className="text-[22px] font-bold tracking-[0.12em]">INVOICE</p>
@@ -190,7 +213,10 @@ export function InvoiceDocument({ inv }: { inv: Schemas['InvoiceOut'] }) {
           <p>{[c.phone, c.email].filter(Boolean).join(' · ')}</p>
           <p className="mt-2">Thank you for choosing {c.name}. This is a computer-generated invoice.</p>
         </div>
-        <p className="text-right">Authorised signatory</p>
+        <div className="flex flex-col items-end gap-3 text-right">
+          <p>Authorised signatory</p>
+          <PoweredBy />
+        </div>
       </footer>
     </article>
   )

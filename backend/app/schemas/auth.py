@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, EmailStr, Field, model_validator
+from pydantic import AfterValidator, BaseModel, EmailStr, Field
 
 from app.core.phone import normalize_phone
 from app.models.clinic import MembershipRole, SubscriptionPlan, VerificationStatus
@@ -14,7 +14,7 @@ Name = Annotated[str, Field(min_length=2, max_length=120)]
 
 class OtpRequestIn(BaseModel):
     phone: Phone
-    # "staff": only numbers a clinic has added may sign in (no patient sign-up).
+    # Only clinic staff sign in with a phone code; patients and physios use their email.
     intent: Literal["patient", "staff"] = "patient"
 
 
@@ -31,15 +31,9 @@ class OtpVerifyIn(BaseModel):
 
 class PatientRegisterIn(BaseModel):
     full_name: Name
-    phone: Phone | None = None
-    email: EmailStr | None = None
+    phone: Phone | None = None  # contact only; sign-in is by email
+    email: EmailStr
     password: Password
-
-    @model_validator(mode="after")
-    def phone_or_email(self):
-        if not self.phone and not self.email:
-            raise ValueError("Provide a phone number or email")
-        return self
 
 
 class PhysioRegisterIn(BaseModel):
@@ -56,9 +50,11 @@ class PhysioRegisterIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    identifier: Annotated[str, Field(min_length=3, max_length=254)]  # email or phone
+    identifier: Annotated[str, Field(min_length=3, max_length=254)]  # email
     password: Annotated[str, Field(min_length=1, max_length=128)]
     totp_code: str | None = Field(default=None, pattern=r"^\d{6}$")
+    # Which sign-in page: "patient" admits only patients, "clinic" (practice console) only clinic accounts.
+    intent: Literal["patient", "clinic"] | None = None
 
 
 class RefreshIn(BaseModel):

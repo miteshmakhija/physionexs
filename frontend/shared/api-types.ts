@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/pilot-leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Pilot
+         * @description Home page: "Become a pilot clinic". Saved for the Super Admin (Records → Pilot leads) and emailed to support.
+         */
+        post: operations["request_pilot_platform_pilot_leads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/otp/request": {
         parameters: {
             query?: never;
@@ -806,6 +826,26 @@ export interface paths {
         put?: never;
         /** Register Walk In */
         post: operations["register_walk_in_clinic_queue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinic/walk-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Walk Ins
+         * @description Every walk-in token issued on `day` across the clinic's branches, for the Schedule page.
+         */
+        get: operations["walk_ins_clinic_walk_ins_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2105,7 +2145,7 @@ export interface paths {
         put?: never;
         /**
          * Add Staff
-         * @description Add a team member. They sign in with an OTP to their mobile number.
+         * @description Add a team member. They sign in on the practice console with this email and the temporary password.
          */
         post: operations["add_staff_clinic_staff_post"];
         delete?: never;
@@ -3841,6 +3881,8 @@ export interface components {
             password: string;
             /** Totp Code */
             totp_code?: string | null;
+            /** Intent */
+            intent?: ("patient" | "clinic") | null;
         };
         /** MeOut */
         MeOut: {
@@ -4213,8 +4255,11 @@ export interface components {
             full_name: string;
             /** Phone */
             phone?: string | null;
-            /** Email */
-            email?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
             /** Password */
             password: string;
         };
@@ -4461,6 +4506,25 @@ export interface components {
             city: string;
             /** @default monthly */
             plan: components["schemas"]["SubscriptionPlan"];
+        };
+        /** PilotLeadIn */
+        PilotLeadIn: {
+            /** Clinic Name */
+            clinic_name: string;
+            /** Contact Name */
+            contact_name: string;
+            /** City */
+            city: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email?: string | null;
+            /** Knee Patients Per Month */
+            knee_patients_per_month?: ("<10" | "10-30" | "30+") | null;
+            /** Message */
+            message?: string | null;
+            /** Website */
+            website?: string | null;
         };
         /**
          * PlanChangeIn
@@ -4973,8 +5037,15 @@ export interface components {
         StaffIn: {
             /** Full Name */
             full_name: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
             /** Phone */
-            phone: string;
+            phone?: string | null;
             /**
              * Role
              * @default staff
@@ -5012,6 +5083,8 @@ export interface components {
             full_name: string;
             /** Phone */
             phone: string | null;
+            /** Email */
+            email?: string | null;
             role: components["schemas"]["MembershipRole"];
             /** Job Title */
             job_title: string | null;
@@ -5650,6 +5723,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthConfigOut"];
+                };
+            };
+        };
+    };
+    request_pilot_platform_pilot_leads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PilotLeadIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7089,6 +7197,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QueueTokenOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    walk_ins_clinic_walk_ins_get: {
+        parameters: {
+            query: {
+                day: string;
+            };
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueTokenOut"][];
                 };
             };
             /** @description Validation Error */

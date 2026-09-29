@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 
 import { useClinic } from '@/auth/useClinic'
+import { ClinicMark, PoweredBy } from '@/components/clinical'
 import { PageHeader } from '@/components/ConsoleLayout'
-import { Alert, Button, Field, Input, Loader, Logo, Select } from '@/components/ui'
+import { Alert, Button, Field, Input, Loader, Select } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
-import { payWithRazorpay } from '@/lib/razorpay'
+import { PAYMENTS_SOON, payWithRazorpay, SUBSCRIPTION_PAYMENTS_LIVE } from '@/lib/razorpay'
 import { dayLabel, rupees } from '@shared/format'
 
 type Profile = Schemas['ClinicProfileOut']
@@ -57,7 +58,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
           <h2 className="eyebrow mb-3">Clinic logo</h2>
           <div className="flex items-center gap-4">
             <div className="grid h-20 w-40 shrink-0 place-items-center overflow-hidden border border-line bg-white p-2">
-              {logo ? <img src={logo} alt="Clinic logo" className="h-full w-full object-contain" /> : <Logo className="h-7" />}
+              {logo ? <img src={logo} alt="Clinic logo" className="h-full w-full object-contain" /> : <ClinicMark name={f.name} size="sm" />}
             </div>
             <div className="space-y-2">
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={async (e) => {
@@ -75,7 +76,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
                 <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>Upload logo</Button>
                 {logo && <Button type="button" variant="ghost" onClick={() => setLogo(null)}>Remove</Button>}
               </div>
-              <p className="text-[12.5px] text-muted">{logo ? 'PNG or JPG, transparent background recommended.' : 'Currently using the default Physionexs mark.'}</p>
+              <p className="text-[12.5px] text-muted">{logo ? 'PNG or JPG, transparent background recommended.' : 'No logo yet: your initials are shown on invoices and prescriptions.'}</p>
               {logoError && <p className="text-[12.5px] text-danger">{logoError}</p>}
             </div>
           </div>
@@ -99,7 +100,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
         <div className="border border-line bg-white p-5 text-[12.5px]">
           <div className="flex items-start justify-between gap-3 border-b-2 border-ink pb-3">
             <div>
-              {logo ? <img src={logo} alt="" className="mb-1.5 h-9 w-auto" /> : <Logo className="mb-1.5 h-6" />}
+              <ClinicMark name={f.name} logoUrl={logo} size="sm" />
               <p className="text-[14px] font-bold">{f.name}</p>
               <p className="text-muted">Physiotherapy &amp; Rehabilitation</p>
             </div>
@@ -110,6 +111,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
           </div>
           <p className="mt-3 text-muted">{f.address || 'Clinic address'}</p>
           {f.gstin && <p className="text-muted">GSTIN {f.gstin}</p>}
+          <div className="mt-4 flex justify-end border-t border-line pt-3"><PoweredBy /></div>
         </div>
       </aside>
     </div>
@@ -245,9 +247,12 @@ function SubscriptionPanel({ clinicId }: { clinicId: string }) {
               </Button>
             )
           ) : (
-            <Button className="mt-3 w-full" loading={busy} onClick={() => pay.mutate(chosen)}>
-              {s.plan === chosen ? `Pay ${cards.find((c) => c.value === chosen)!.price}` : `Switch & pay ${cards.find((c) => c.value === chosen)!.price}`}
-            </Button>
+            <>
+              <Button className="mt-3 w-full" loading={busy} disabled={!SUBSCRIPTION_PAYMENTS_LIVE} onClick={() => pay.mutate(chosen)}>
+                {s.plan === chosen ? `Pay ${cards.find((c) => c.value === chosen)!.price}` : `Switch & pay ${cards.find((c) => c.value === chosen)!.price}`}
+              </Button>
+              {!SUBSCRIPTION_PAYMENTS_LIVE && <p className="mt-2 text-[12.5px] text-muted">{PAYMENTS_SOON}</p>}
+            </>
           )}
         </div>
       </div>
