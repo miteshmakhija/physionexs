@@ -258,3 +258,18 @@ def test_password_reset_by_email_link(env, monkeypatch):
     again = c.post("/auth/password/reset-link", json={"token": token, "new_password": "another-pass-2"})
     assert again.status_code == 400 and "already been used" in again.json()["detail"]
     assert c.post("/auth/password/reset-link", json={"token": token[:-4] + "abcd", "new_password": "another-pass-2"}).status_code == 400
+
+
+def test_failed_reset_email_does_not_use_up_the_limit(env, monkeypatch):
+    from app.routers import auth as auth_router
+
+    c, patient, _, _ = env
+
+    def boom(*a, **k):
+        raise auth_router.mailer.EmailError("down")
+
+    monkeypatch.setattr(auth_router.mailer, "send_email", boom)
+    for _ in range(4):
+        assert c.post("/auth/password/forgot", json={"identifier": patient.email}).status_code == 502
+    monkeypatch.setattr(auth_router.mailer, "send_email", lambda *a, **k: None)
+    assert c.post("/auth/password/forgot", json={"identifier": patient.email}).status_code == 200

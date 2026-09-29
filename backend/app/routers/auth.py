@@ -336,7 +336,8 @@ def forgot_password(body: ForgotPasswordIn, db: DB, request: Request) -> ForgotP
         return out  # same answer either way, so this can't be used to discover accounts
 
     code = generate_otp(6)
-    db.add(OtpRequest(destination=destination, purpose=OtpPurpose.PASSWORD_RESET, code_hash=hash_otp(destination, code), expires_at=now + RESET_TTL))
+    otp = OtpRequest(destination=destination, purpose=OtpPurpose.PASSWORD_RESET, code_hash=hash_otp(destination, code), expires_at=now + RESET_TTL)
+    db.add(otp)
     audit.record(db, action="password_reset_requested", entity="user", entity_id=user.id, actor_user_id=user.id, request=request)
     db.commit()
     try:
@@ -345,7 +346,10 @@ def forgot_password(body: ForgotPasswordIn, db: DB, request: Request) -> ForgotP
         else:
             msg91.send_otp(destination, code)
     except (mailer.EmailError, msg91.SmsError):
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not send the code. Please try again.")
+        # Nothing reached the person, so this attempt shouldn't count toward the 3-per-10-minutes limit.
+        db.delete(otp)
+        db.commit()
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "We couldn't send the email just now. Please try again in a minute.")
     return out
 
 
