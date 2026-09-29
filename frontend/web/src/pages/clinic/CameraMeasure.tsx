@@ -6,6 +6,7 @@ import { Link, useParams } from 'react-router'
 import { useClinic } from '@/auth/useClinic'
 import { Alert, Button, Field, Input, Loader, Select, cx } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
+import { isStaleBuildError, reloadForNewBuild } from '@/lib/staleBuild'
 import {
   CaptureWindow, LEG, OneEuroFilter, frameQuality, jointsVisible, kneeFlexion2D, kneeFlexion3D, otherSideClearer,
   type Capture, type FrameProblem, type Joint, type Pt, type Side,
@@ -275,6 +276,7 @@ function Live({ setup, patient, clinicId, onSide, onStop }: {
   }, [])
 
   function fail(e: unknown) {
+    if (isStaleBuildError(e) && reloadForNewBuild()) return // the site was updated since this tab opened
     setStatus('error')
     setError(e instanceof DOMException && e.name === 'NotAllowedError'
       ? 'Camera permission was blocked. Allow camera access for this site and try again.'
