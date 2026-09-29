@@ -26,3 +26,6 @@ desktop.ini
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Claude Code personal settings
+.claude/settings.local.json
