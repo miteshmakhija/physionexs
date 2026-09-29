@@ -38,7 +38,7 @@ def build_me(db: Session, user: User) -> MeOut:
         physio_verification=verification,
         memberships=[
             MembershipOut(clinic_id=m.clinic_id, clinic_name=name, role=m.role, branch_id=m.branch_id, twin_pilot=pilot,
-                          ai_assist=bool(ai and get_settings().anthropic_api_key)) for m, name, pilot, ai in rows
+                          ai_assist=bool(ai and get_settings().openai_api_key)) for m, name, pilot, ai in rows
         ],
     )
 

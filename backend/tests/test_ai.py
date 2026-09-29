@@ -1,6 +1,6 @@
 """AI assist (design: services/ai.py) and the Super Admin flag-threshold setting.
 
-Opt-in (PNX_INTEGRATION=1), rolled back. Claude is never called: the single call site (`ai._create`) is replaced,
+Opt-in (PNX_INTEGRATION=1), rolled back. OpenAI is never called: the single call site (`ai._create`) is replaced,
 so the tests check what would be sent (privacy), gating, caching and error handling.
 """
 
@@ -30,7 +30,7 @@ def env(monkeypatch):
     from app.services import ai
 
     calls: list[tuple[str, str]] = []
-    monkeypatch.setattr(get_settings(), "anthropic_api_key", "test-key")
+    monkeypatch.setattr(get_settings(), "openai_api_key", "test-key")
     monkeypatch.setattr(ai, "_create", lambda system, prompt: calls.append((system, prompt)) or f"AI draft #{len(calls)}")
     conn = engine.connect()
     outer = conn.begin()
@@ -85,7 +85,7 @@ def test_ai_assist(env):
     # Summary and note draft: returned as drafts, recorded in the audit log.
     r = c.post(f"/clinic/ai/patients/{cp_id}/summary", headers=h)
     assert r.status_code == 200, r.text
-    assert r.json() == {"text": "AI draft #1", "model": "claude-opus-5"}
+    assert r.json() == {"text": "AI draft #1", "model": "gpt-5.5"}
     assert c.post(f"/clinic/ai/patients/{cp_id}/objective", headers=h).json()["text"] == "AI draft #2"
 
     # Privacy: no name, phone, email, birth date or free-text notes reach the model; the numbers do.
@@ -135,7 +135,7 @@ def test_ai_needs_a_key(env, monkeypatch):
 
     c, h, ph, ah, cp_id, clinic, calls, db = env
     _setup(c, h, ph, cp_id)
-    monkeypatch.setattr(get_settings(), "anthropic_api_key", None)
+    monkeypatch.setattr(get_settings(), "openai_api_key", None)
     assert c.post(f"/clinic/ai/patients/{cp_id}/summary", headers=h).status_code == 503
     assert c.get("/auth/me", headers=h).json()["memberships"][0]["ai_assist"] is False
     assert calls == []

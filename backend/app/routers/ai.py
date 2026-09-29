@@ -1,11 +1,12 @@
-"""Practice console: AI assist (Claude) for physiotherapists. Drafts only; see services/ai.py for what's sent."""
+"""Practice console: AI assist (OpenAI) for physiotherapists. Drafts only; see services/ai.py for what's sent."""
 
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app.core.config import get_settings
 from app.core.deps import DB, CurrentUser, require_clinic_member
 from app.models.clinic import Clinic, ClinicMember, MembershipRole
 from app.models.patient import ClinicPatient
@@ -31,7 +32,7 @@ Clinician = Annotated[ClinicMember, Depends(_ai_clinician)]
 
 class AIText(BaseModel):
     text: str
-    model: str = ai.MODEL
+    model: str = Field(default_factory=lambda: get_settings().openai_model)
 
 
 def _patient_context(db, member: ClinicMember, cp_id: uuid.UUID):

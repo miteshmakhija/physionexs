@@ -216,7 +216,7 @@ export function RecordsPage() {
       : action === 'pilot_off'
         ? `Switch off the recovery-twin pilot for ${row.name}? Its patients stop getting check-ins; existing data is kept.`
         : action === 'ai_on'
-          ? `Switch on AI assist for ${row.name}? Its physios can ask Claude to explain flags, summarise patients and draft notes. De-identified recovery data is sent to Anthropic.`
+          ? `Switch on AI assist for ${row.name}? Its physios can ask AI to explain flags, summarise patients and draft notes. De-identified recovery data is sent to OpenAI.`
         : `${ACTION_LABEL[action]} this record?`
     if (window.confirm(ask)) act.mutate({ id: String(row.id), action })
   }

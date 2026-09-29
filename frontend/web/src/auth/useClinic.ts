@@ -12,7 +12,7 @@ export function useClinic() {
     isClinician: membership?.role === 'owner' || membership?.role === 'physio',
     // Recovery-twin pilot (knee tracking, check-ins, flags, camera), switched on per clinic by the Super Admin.
     twinPilot: membership?.twin_pilot ?? false,
-    // AI assist (Claude drafts for physios): switched on per clinic and configured on the server.
+    // AI assist (OpenAI drafts for physios): switched on per clinic and configured on the server.
     aiAssist: (membership?.twin_pilot && membership?.ai_assist) ?? false,
   }
 }

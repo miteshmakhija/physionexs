@@ -1,4 +1,4 @@
-"""AI assist for physiotherapists (Claude): explain a flag, summarise the last 7 days, draft a visit note's Objective.
+"""AI assist for physiotherapists (OpenAI): explain a flag, summarise the last 7 days, draft a visit note's Objective.
 
 Privacy: the model receives structured recovery data and the diagnosis text only. No name, phone, email, date of
 birth, clinic name or free-text notes are sent. Outputs are drafts for the physio to check; nothing reaches the
@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import date, timedelta
 
-import anthropic
+import openai
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -22,8 +22,6 @@ from app.services.adherence import adherence_pct, day_stats
 from app.services.twin import twin_out
 
 log = logging.getLogger(__name__)
-
-MODEL = "claude-opus-5"
 
 SYSTEM = """You help physiotherapists review a patient's recovery data between visits. You write for the physiotherapist, not the patient.
 
@@ -57,12 +55,12 @@ class AIUnavailable(Exception):
 
 
 def enabled() -> bool:
-    return bool(get_settings().anthropic_api_key)
+    return bool(get_settings().openai_api_key)
 
 
-def _client() -> anthropic.Anthropic:
+def _client() -> openai.OpenAI:
     # Short timeout for an interactive console action (and Vercel's function limit); the SDK retries 429/5xx.
-    return anthropic.Anthropic(api_key=get_settings().anthropic_api_key, timeout=60.0, max_retries=1)
+    return openai.OpenAI(api_key=get_settings().openai_api_key, timeout=60.0, max_retries=1)
 
 
 def context(db: Session, cp: ClinicPatient, plan: CarePlan, today: date) -> dict:
@@ -104,27 +102,25 @@ def context(db: Session, cp: ClinicPatient, plan: CarePlan, today: date) -> dict
 
 
 def _create(system: str, prompt: str) -> str:
-    """One Claude call. Separate so tests can replace it."""
+    """One OpenAI call. Separate so tests can replace it."""
     try:
-        response = _client().beta.messages.create(
-            model=MODEL,
-            max_tokens=16000,
-            output_config={"effort": "medium"},
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",  # a declined request is retried on Anthropic's recommended fallback model
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
+        response = _client().chat.completions.create(
+            model=get_settings().openai_model,
+            max_completion_tokens=8000,  # includes the model's reasoning, not just the short answer
+            reasoning_effort="medium",
+            messages=[{"role": "developer", "content": system}, {"role": "user", "content": prompt}],
         )
-    except anthropic.APIConnectionError as exc:
+    except openai.APIConnectionError as exc:
         raise AIUnavailable("Couldn't reach the AI service. Try again.") from exc
-    except anthropic.RateLimitError as exc:
+    except openai.RateLimitError as exc:
         raise AIUnavailable("The AI service is busy. Try again in a minute.") from exc
-    except anthropic.APIStatusError as exc:
-        log.error("Claude API error %s (request %s)", exc.status_code, exc.response.headers.get("request-id"))
+    except openai.APIStatusError as exc:
+        log.error("OpenAI API error %s (request %s)", exc.status_code, exc.request_id)
         raise AIUnavailable("The AI service returned an error. Try again later.") from exc
-    if response.stop_reason == "refusal":
+    message = response.choices[0].message
+    if message.refusal:
         raise AIUnavailable("The AI assistant declined this request.")
-    text = "".join(b.text for b in response.content if b.type == "text").strip()
+    text = (message.content or "").strip()
     if not text:
         raise AIUnavailable("The AI assistant didn't return an answer.")
     return text
