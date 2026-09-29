@@ -125,3 +125,11 @@ def test_dashboard_active_patients_follow_the_selected_branch(env):
     assert c.get("/clinic/dashboard", headers=h, params={"branch_id": empty}).json()["active_patients"] == 0
     assert c.get("/clinic/dashboard", headers=h, params={"branch_id": seen}).json()["active_patients"] == 1
     assert c.get("/clinic/dashboard", headers=h).json()["active_patients"] == 1
+
+    # Staff on roll follows the branch too; members with no branch count everywhere.
+    tag = empty[:8]
+    c.post("/clinic/staff", headers=h, json={"full_name": "PNX Seen Staff", "email": f"pnx-seen-{tag}@test.physionexs.com", "password": "staff-pass-1", "branch_id": seen})
+    c.post("/clinic/staff", headers=h, json={"full_name": "PNX Floater", "email": f"pnx-float-{tag}@test.physionexs.com", "password": "staff-pass-1"})
+    by_branch = {b: c.get("/clinic/dashboard", headers=h, params={"branch_id": b}).json()["staff_on_roll"] for b in (seen, empty)}
+    assert by_branch == {seen: 3, empty: 2}  # owner (no branch) + floater everywhere; the assigned one only at `seen`
+    assert c.get("/clinic/dashboard", headers=h).json()["staff_on_roll"] == 3

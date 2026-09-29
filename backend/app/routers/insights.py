@@ -114,7 +114,11 @@ def dashboard(member: Member, db: DB, branch_id: uuid.UUID | None = None) -> Das
                 ClinicPatient.last_visit_on >= today - ACTIVE_WINDOW,
             )
         ) or 0
-    staff = db.scalar(select(func.count()).select_from(ClinicMember).where(ClinicMember.clinic_id == member.clinic_id, ClinicMember.is_active.is_(True))) or 0
+    staff_q = select(func.count()).select_from(ClinicMember).where(ClinicMember.clinic_id == member.clinic_id, ClinicMember.is_active.is_(True))
+    if branch_id:
+        # Team members assigned to that branch, plus those not tied to any branch (they cover every branch).
+        staff_q = staff_q.where((ClinicMember.branch_id == branch_id) | ClinicMember.branch_id.is_(None))
+    staff = db.scalar(staff_q) or 0
 
     return DashboardOut(
         appointments_today=sum(s.today for s in stats),
