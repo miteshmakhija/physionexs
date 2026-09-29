@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { homePathFor, useAuth } from '@/auth/AuthProvider'
-import { Alert, Button, Card, cx, Field, Input, Logo } from '@/components/ui'
+import { Alert, Button, Card, cx, Field, Input, Logo, PasswordInput } from '@/components/ui'
 import { api, ApiError, type Me, type Schemas } from '@/lib/api'
 import { authConfig, startGoogle, type Intent } from '@/lib/google'
 
@@ -162,7 +162,7 @@ function PatientEmail({ mode, setMode, onDone }: { mode: 'signin' | 'register' |
       <Field label="Email"><Input type="email" value={f.email} onChange={set('email')} autoComplete="email" required /></Field>
       {mode === 'register' && <Field label="Mobile number (optional)" hint="For appointment reminders. You sign in with your email."><Input type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" /></Field>}
       <Field label="Password" hint={mode === 'register' ? 'At least 8 characters.' : undefined}>
-        <Input type="password" value={f.password} onChange={set('password')} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} minLength={mode === 'register' ? 8 : 1} required />
+        <PasswordInput value={f.password} onChange={set('password')} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} minLength={mode === 'register' ? 8 : 1} required />
       </Field>
       {mode === 'signin' && (
         <div className="-mt-2 text-right">
@@ -220,7 +220,7 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
         <form onSubmit={reset} className="space-y-4">
           <Alert tone="info">If an account exists for {identifier}, we’ve sent a code by {channel === 'sms' ? 'SMS' : 'email'}. It expires in 15 minutes.</Alert>
           <Field label="6-digit code"><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" /></Field>
-          <Field label="New password" hint="At least 8 characters. You’ll be signed out everywhere else."><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required /></Field>
+          <Field label="New password" hint="At least 8 characters. You’ll be signed out everywhere else."><PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required /></Field>
           <Button type="submit" loading={busy} className="w-full" disabled={code.length !== 6}>Set new password</Button>
           <button type="button" onClick={() => setStep('ask')} className="w-full text-[13px] font-semibold text-muted hover:text-ink">Send a new code</button>
         </form>
@@ -303,7 +303,7 @@ function PasswordSignIn({ onDone, onForgot }: { onDone: (me: Me) => void; onForg
     <form onSubmit={submit} className="space-y-4">
       {error && <Alert>{error}</Alert>}
       <Field label="Email"><Input type="email" autoComplete="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required /></Field>
-      <Field label="Password"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></Field>
+      <Field label="Password"><PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></Field>
       <div className="-mt-2 text-right">
         <button type="button" onClick={onForgot} className="text-[13px] font-semibold text-muted hover:text-ink">Forgot password?</button>
       </div>
@@ -395,7 +395,7 @@ function PhysioRegister({ onDone, onSignIn }: { onDone: (me: Me) => void; onSign
           </p>
         </div>
         <Field label="Password" required hint="At least 8 characters.">
-          <Input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" minLength={8} required />
+          <PasswordInput value={form.password} onChange={set('password')} autoComplete="new-password" minLength={8} required />
         </Field>
         <Button type="submit" loading={busy} className="w-full">{plan === 'commission' ? 'Create clinic account' : 'Start free trial'}</Button>
       </form>

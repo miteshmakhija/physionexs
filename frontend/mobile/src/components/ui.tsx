@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -80,11 +80,31 @@ export function Button({
   )
 }
 
-export function Field({ label, hint, ...props }: TextInputProps & { label: string; hint?: string }) {
+export function Field({ label, hint, secureTextEntry, ...props }: TextInputProps & { label: string; hint?: string }) {
+  // Password fields get a Show/Hide toggle so people can check what they typed.
+  const [shown, setShown] = useState(false)
   return (
     <View style={{ gap: 6 }}>
       <Text variant="label">{label}</Text>
-      <TextInput placeholderTextColor={colors.subtle} {...props} style={[styles.input, props.style]} />
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput
+          placeholderTextColor={colors.subtle}
+          {...props}
+          secureTextEntry={secureTextEntry && !shown}
+          style={[styles.input, secureTextEntry ? { paddingRight: 72 } : null, props.style]}
+        />
+        {secureTextEntry ? (
+          <Pressable
+            onPress={() => setShown(!shown)}
+            accessibilityRole="button"
+            accessibilityLabel={shown ? 'Hide password' : 'Show password'}
+            hitSlop={8}
+            style={{ position: 'absolute', right: 14 }}
+          >
+            <Text style={{ fontFamily: font.semibold, fontSize: 12, letterSpacing: 1, color: colors.muted }}>{shown ? 'HIDE' : 'SHOW'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
       {hint ? <Text variant="caption">{hint}</Text> : null}
     </View>
   )

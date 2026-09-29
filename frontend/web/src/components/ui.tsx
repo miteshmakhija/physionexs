@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { useState } from 'react'
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
@@ -87,6 +88,25 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
         props.className,
       )}
     />
+  )
+}
+
+/** A password box with a Show/Hide toggle, so people can check what they typed. */
+export function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [shown, setShown] = useState(false)
+  return (
+    <span className="relative block">
+      <Input {...props} type={shown ? 'text' : 'password'} className={cx('pr-16', props.className)} />
+      <button
+        type="button"
+        onClick={() => setShown(!shown)}
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        aria-pressed={shown}
+        className="absolute inset-y-0 right-0 px-3.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted hover:text-ink"
+      >
+        {shown ? 'Hide' : 'Show'}
+      </button>
+    </span>
   )
 }
 
