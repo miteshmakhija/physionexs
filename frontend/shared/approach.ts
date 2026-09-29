@@ -1,10 +1,10 @@
 // "Our approach: digital twin" copy, shared by the web landing page and the mobile sign-in screen.
-// This is not built yet — keep the "In development" framing and avoid clinical-accuracy claims
-// until camera angles have been validated against goniometer readings.
+// Built and switched on per clinic (pilot). Avoid clinical-accuracy claims until camera angles have been
+// validated against goniometer readings (see the Camera validation page).
 
 export const approach = {
   eyebrow: 'Our approach · Digital twin',
-  status: 'In development',
+  status: 'Now piloting with partner clinics',
   headline: 'A living model of your recovery.',
   intro:
     'Your phone camera measures how you move, AI spots what’s changing, and your physio decides what happens next — a digital twin of your rehab that updates between visits.',

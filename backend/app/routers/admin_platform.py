@@ -17,7 +17,7 @@ from app.models.clinic import Branch, Clinic, PhysioProfile, Subscription, Subsc
 from app.models.engagement import Review
 from app.models.exercise import Exercise
 from app.models.patient import ClinicPatient, Patient
-from app.models.platform import AuditLog, PlatformSetting
+from app.models.platform import AuditLog, PilotLead, PlatformSetting
 from app.models.scheduling import Appointment, AppointmentStatus
 from app.models.twin import ValidationPair
 from app.models.user import RefreshToken, User, UserRole
@@ -369,6 +369,14 @@ SPECS: dict[str, Spec] = {
         "Invoices", ["number", "clinic", "patient", "total", "status", "issued_on"],
         lambda: select(Invoice).order_by(Invoice.created_at.desc()), lambda q: Invoice.number.ilike(f"%{q}%"), _invoice_row, [], _count(Invoice),
     ),
+    "pilot_leads": Spec(
+        "Pilot leads", ["clinic", "contact", "city", "phone", "email", "knee_patients", "message", "received", "status"],
+        lambda: select(PilotLead).order_by(PilotLead.created_at.desc()),
+        lambda q: or_(PilotLead.clinic_name.ilike(f"%{q}%"), PilotLead.city.ilike(f"%{q}%"), PilotLead.contact_name.ilike(f"%{q}%")),
+        lambda db, x: {"id": str(x.id), "clinic": x.clinic_name, "contact": x.contact_name, "city": x.city, "phone": x.phone, "email": x.email,
+                       "knee_patients": x.knee_patients_per_month, "message": x.message, "received": _fmt_dt(x.created_at), "status": x.status},
+        ["mark_contacted"], _count(PilotLead),
+    ),
     "reviews": Spec(
         "Reviews", ["rating", "physio", "patient", "comment", "tags", "created", "hidden"],
         lambda: select(Review).order_by(Review.created_at.desc()), lambda q: Review.comment.ilike(f"%{q}%"), _review_row, ["hide", "unhide"], _count(Review),
@@ -455,6 +463,12 @@ def record_action(key: str, record_id: uuid.UUID, body: RecordAction, admin: Adm
         db.flush()
         recompute_rating(db, review.physio_user_id)
         summary = f"Review {'hidden' if review.is_hidden else 'restored'}"
+    elif key == "pilot_leads":
+        lead = db.get(PilotLead, record_id)
+        if lead is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Lead not found")
+        lead.status = "contacted"
+        summary = f"Pilot lead {lead.clinic_name} marked contacted"
     else:  # pragma: no cover - guarded by spec.actions
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported")
 

@@ -33,3 +33,19 @@ class PlatformSetting(Base):
     value: Mapped[dict] = mapped_column(JSONB)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class PilotLead(UUIDPk, Base):
+    """A clinic asking to join the recovery-twin pilot, from the home page form."""
+
+    __tablename__ = "pilot_leads"
+
+    clinic_name: Mapped[str] = mapped_column(String(160))
+    contact_name: Mapped[str] = mapped_column(String(120))
+    city: Mapped[str] = mapped_column(String(80))
+    phone: Mapped[str] = mapped_column(String(20))
+    email: Mapped[str | None] = mapped_column(String(254))
+    knee_patients_per_month: Mapped[str | None] = mapped_column(String(20))  # "<10", "10-30", "30+"
+    message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="new")  # new, contacted
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)

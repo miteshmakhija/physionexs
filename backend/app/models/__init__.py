@@ -17,7 +17,7 @@ from app.models.engagement import Conversation, HealthTip, Message, Notification
 from app.models.exercise import Exercise, ExerciseMedia, ExerciseTranslation
 from app.models.hr import Attendance, LeaveRequest, Payslip
 from app.models.patient import ClinicPatient, MedicalBackground, Patient
-from app.models.platform import AuditLog, PlatformSetting
+from app.models.platform import AuditLog, PilotLead, PlatformSetting
 from app.models.scheduling import Appointment, Availability, QueueToken
 from app.models.twin import (
     CarePlanTarget,
