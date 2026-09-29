@@ -115,6 +115,11 @@ class ResetPasswordIn(BaseModel):
     new_password: Password
 
 
+class ResetLinkIn(BaseModel):
+    token: Annotated[str, Field(min_length=20, max_length=2048)]
+    new_password: Password
+
+
 class GoogleIn(BaseModel):
     code: Annotated[str, Field(min_length=10, max_length=2048)]
     redirect_uri: Annotated[str, Field(max_length=300)]

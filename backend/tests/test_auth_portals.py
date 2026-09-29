@@ -238,3 +238,23 @@ def test_patient_picks_a_branch_and_can_pay_at_the_clinic(env):
     assert inv["status"] == "due"
     assert c.post(f"/clinic/invoices/{inv['id']}/pay", headers=sh, json={"method": "cash"}).json()["status"] == "paid"
     assert c.get(f"/me/appointments/{booked['appointment_id']}", headers=ph).json()["paid"] is True
+
+
+def test_password_reset_by_email_link(env, monkeypatch):
+    import re as _re
+
+    from app.routers import auth as auth_router
+
+    c, patient, _, _ = env
+    sent = {}
+    monkeypatch.setattr(auth_router.mailer, "send_email", lambda to, subject, text, html=None: sent.update(to=to, text=text, html=html))
+    assert c.post("/auth/password/forgot", json={"identifier": patient.email}).status_code == 200
+    assert sent["to"] == patient.email and "RESET PASSWORD" in sent["html"]
+    token = _re.search(r"reset-password\?token=([\w\-.]+)", sent["text"]).group(1)
+
+    assert c.post("/auth/password/reset-link", json={"token": token, "new_password": "brand-new-pass-1"}).status_code == 204
+    assert c.post("/auth/login", json={"identifier": patient.email, "password": "patient-pass-1"}).status_code == 401
+    assert c.post("/auth/login", json={"identifier": patient.email, "password": "brand-new-pass-1"}).status_code == 200
+    again = c.post("/auth/password/reset-link", json={"token": token, "new_password": "another-pass-2"})
+    assert again.status_code == 400 and "already been used" in again.json()["detail"]
+    assert c.post("/auth/password/reset-link", json={"token": token[:-4] + "abcd", "new_password": "another-pass-2"}).status_code == 400

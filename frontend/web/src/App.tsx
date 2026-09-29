@@ -41,6 +41,7 @@ import PatientShell from '@/pages/patient/PatientShell'
 import PhysioProfile from '@/pages/patient/PhysioProfile'
 import Landing from '@/pages/public/Landing'
 import GoogleCallback from '@/pages/public/GoogleCallback'
+import ResetPassword from '@/pages/public/ResetPassword'
 import SignIn from '@/pages/public/SignIn'
 
 function PublicOnly({ children }: { children: React.ReactNode }) {
@@ -54,6 +55,7 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
 const router = createBrowserRouter([
   { path: '/', element: <Landing /> },
   { path: '/signin', element: <PublicOnly><SignIn /></PublicOnly> },
+  { path: '/reset-password', element: <ResetPassword /> },
   { path: '/auth/google/callback', element: <GoogleCallback /> },
   {
     path: '/app',

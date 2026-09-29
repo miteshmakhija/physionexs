@@ -619,6 +619,41 @@
         }
       }
     },
+    "/auth/password/reset-link": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Reset Password With Link",
+        "description": "Set a new password from the emailed link.",
+        "operationId": "reset_password_with_link_auth_password_reset_link_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetLinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/google": {
       "post": {
         "tags": [
@@ -16326,6 +16361,28 @@
           "reason"
         ],
         "title": "RejectIn"
+      },
+      "ResetLinkIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 20,
+            "title": "Token"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "ResetLinkIn"
       },
       "ResetPasswordIn": {
         "properties": {

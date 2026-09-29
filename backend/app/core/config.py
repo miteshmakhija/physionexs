@@ -52,9 +52,17 @@ class Settings(BaseSettings):
         "http://localhost:5173/auth/google/callback",
     ]
 
-    # Transactional email via Resend (password reset codes). Without a key, dev logs the code.
+    # Transactional email (password resets). SMTP (e.g. Google Workspace: smtp.gmail.com, the mailbox address and an
+    # app password) is used when set, else Resend. With neither, dev logs the message and production refuses.
+    smtp_host: str | None = None
+    smtp_port: int = 587  # STARTTLS; 465 = implicit TLS
+    smtp_user: str | None = None
+    smtp_password: str | None = None
     resend_api_key: str | None = None
-    email_from: str = "Physionexs <no-reply@physionexs.com>"
+    email_from: str = "Physionexs <no-reply@physionexs.com>"  # with Gmail SMTP, use the mailbox (or one of its aliases)
+
+    # The website, for links in emails (password reset).
+    web_url: str = "https://physionexs.com"
 
     # Vercel Cron authenticates with "Authorization: Bearer <CRON_SECRET>".
     cron_secret: str | None = None

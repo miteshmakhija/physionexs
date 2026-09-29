@@ -183,9 +183,9 @@ function PatientEmail({ mode, setMode, onDone }: { mode: 'signin' | 'register' |
 // ── Forgot password (shared) ────────────────────────────────────────────────
 
 function ForgotPassword({ onBack }: { onBack: () => void }) {
-  const [step, setStep] = useState<'ask' | 'reset' | 'done'>('ask')
+  // 'sent': the email has a link (the main way) and a 6-digit code (for the app, or if the link won't open).
+  const [step, setStep] = useState<'ask' | 'sent' | 'code' | 'done'>('ask')
   const [identifier, setIdentifier] = useState('')
-  const [channel, setChannel] = useState<string>('email')
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const { busy, error, run } = useRun()
@@ -193,9 +193,8 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
   const ask = (e: FormEvent) => {
     e.preventDefault()
     void run(async () => {
-      const r = await api<Schemas['ForgotPasswordOut']>('/auth/password/forgot', { method: 'POST', json: { identifier } })
-      setChannel(r.channel)
-      setStep('reset')
+      await api<Schemas['ForgotPasswordOut']>('/auth/password/forgot', { method: 'POST', json: { identifier } })
+      setStep('sent')
     })
   }
   const reset = (e: FormEvent) => {
@@ -208,21 +207,29 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="space-y-5">
-      <Heading title="Reset your password" sub={step === 'ask' ? 'We’ll send a 6-digit code to your email.' : undefined} />
+      <Heading title="Reset your password" sub={step === 'ask' ? 'Give us the email on your account and we’ll send a link to choose a new password.' : undefined} />
       {error && <Alert>{error}</Alert>}
       {step === 'ask' && (
         <form onSubmit={ask} className="space-y-4">
           <Field label="Email"><Input type="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="email" required autoFocus /></Field>
-          <Button type="submit" loading={busy} className="w-full">Send code</Button>
+          <Button type="submit" loading={busy} className="w-full">Send reset link</Button>
         </form>
       )}
-      {step === 'reset' && (
+      {step === 'sent' && (
+        <div className="space-y-4">
+          <Alert tone="info">If an account exists for {identifier}, we’ve emailed a link to reset your password. It works once and expires in 15 minutes. Check your spam folder if you don’t see it.</Alert>
+          <Button variant="secondary" className="w-full" loading={busy} onClick={() => void run(async () => {
+            await api('/auth/password/forgot', { method: 'POST', json: { identifier } })
+          })}>Send the link again</Button>
+          <button type="button" onClick={() => setStep('code')} className="w-full text-[13px] font-semibold text-muted hover:text-ink">Have the 6-digit code from the email? Enter it instead</button>
+        </div>
+      )}
+      {step === 'code' && (
         <form onSubmit={reset} className="space-y-4">
-          <Alert tone="info">If an account exists for {identifier}, we’ve sent a code by {channel === 'sms' ? 'SMS' : 'email'}. It expires in 15 minutes.</Alert>
           <Field label="6-digit code"><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required autoFocus className="tracking-[0.4em]" /></Field>
           <Field label="New password" hint="At least 8 characters. You’ll be signed out everywhere else."><PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required /></Field>
           <Button type="submit" loading={busy} className="w-full" disabled={code.length !== 6}>Set new password</Button>
-          <button type="button" onClick={() => setStep('ask')} className="w-full text-[13px] font-semibold text-muted hover:text-ink">Send a new code</button>
+          <button type="button" onClick={() => setStep('ask')} className="w-full text-[13px] font-semibold text-muted hover:text-ink">Send a new email</button>
         </form>
       )}
       {step === 'done' && <Alert tone="info">Password updated. Sign in with your new password.</Alert>}

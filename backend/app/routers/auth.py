@@ -1,3 +1,4 @@
+import html
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -46,6 +47,7 @@ from app.schemas.auth import (
     PatientRegisterIn,
     PhysioRegisterIn,
     RefreshIn,
+    ResetLinkIn,
     ResetPasswordIn,
     TokenOut,
     TotpCodeIn,
@@ -339,13 +341,7 @@ def forgot_password(body: ForgotPasswordIn, db: DB, request: Request) -> ForgotP
     db.commit()
     try:
         if channel == "email":
-            first = user.full_name.split()[0]
-            mailer.send_email(
-                destination,
-                "Your Physionexs password reset code",
-                f"Hi {first},\n\nYour Physionexs password reset code is {code}. It expires in 15 minutes.\n\n"
-                "If you did not ask to reset your password, you can ignore this email.",
-            )
+            _send_reset_email(user, destination, code)
         else:
             msg91.send_otp(destination, code)
     except (mailer.EmailError, msg91.SmsError):
@@ -379,6 +375,53 @@ def reset_password(body: ResetPasswordIn, db: DB, request: Request) -> Response:
     for token in db.scalars(select(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))):
         token.revoked_at = now  # sign out every existing session
     audit.record(db, action="password_reset", entity="user", entity_id=user.id, actor_user_id=user.id, request=request)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _password_fingerprint(user: User) -> str:
+    """Changes whenever the password does, so a reset link works once."""
+    return sha256(user.password_hash or f"none:{user.id}")[:16]
+
+
+def _send_reset_email(user: User, to: str, code: str) -> None:
+    token = create_purpose_token("password_reset", {"uid": str(user.id), "pw": _password_fingerprint(user)}, minutes=int(RESET_TTL.total_seconds() // 60))
+    link = f"{settings.web_url.rstrip('/')}/reset-password?token={token}"
+    first = user.full_name.split()[0]
+    text = (
+        f"Hi {first},\n\n"
+        f"Choose a new Physionexs password here:\n{link}\n\n"
+        f"Or enter this code in the app: {code}\n\n"
+        "The link and the code work once and expire in 15 minutes. If you didn't ask to reset your password, ignore this email."
+    )
+    body = f"""<div style="font-family:Arial,sans-serif;font-size:15px;color:#141414;max-width:480px">
+<p>Hi {html.escape(first)},</p>
+<p>Tap the button to choose a new Physionexs password.</p>
+<p><a href="{html.escape(link)}" style="display:inline-block;background:#141414;color:#ffffff;padding:12px 22px;text-decoration:none;font-weight:bold;letter-spacing:1px">RESET PASSWORD</a></p>
+<p style="color:#555">Or enter this code in the app: <b style="color:#141414;letter-spacing:2px">{code}</b></p>
+<p style="color:#555">The link and the code work once and expire in 15 minutes. If you didn't ask to reset your password, you can ignore this email.</p>
+</div>"""
+    mailer.send_email(to, "Reset your Physionexs password", text, body)
+
+
+@router.post("/password/reset-link", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password_with_link(body: ResetLinkIn, db: DB, request: Request) -> Response:
+    """Set a new password from the emailed link."""
+    try:
+        claims = decode_purpose_token(body.token, "password_reset")
+    except jwt.PyJWTError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This reset link has expired. Request a new one.")
+    user = db.get(User, uuid.UUID(claims["uid"]))
+    if user is None or not user.is_active or user.role == UserRole.SUPER_ADMIN or claims.get("pw") != _password_fingerprint(user):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This reset link has already been used or has expired. Request a new one.")
+    now = datetime.now(UTC)
+    user.password_hash = hash_password(body.new_password)
+    for token in db.scalars(select(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))):
+        token.revoked_at = now  # sign out every existing session
+    for otp in db.scalars(select(OtpRequest).where(OtpRequest.purpose == OtpPurpose.PASSWORD_RESET, OtpRequest.consumed_at.is_(None),
+                                                   OtpRequest.destination.in_([d for d in (user.email, user.phone) if d]))):
+        otp.consumed_at = now  # the emailed code dies with the link
+    audit.record(db, action="password_reset", entity="user", entity_id=user.id, actor_user_id=user.id, summary="via email link", request=request)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
