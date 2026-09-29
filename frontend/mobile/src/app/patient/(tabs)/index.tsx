@@ -4,11 +4,12 @@ import { Pressable, View } from 'react-native'
 
 import { useSession } from '@/auth/session'
 import { CheckinCard } from '@/components/CheckinCard'
+import { DailyMotivation, PointsCard } from '@/components/Motivation'
 import { Updates } from '@/components/Updates'
 import { SupportCard } from '@/components/Support'
 import { Avatar, Button, Card, Divider, Screen, Text } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
-import { MODE_LABEL, rupees, when } from '@shared/format'
+import { MODE_LABEL, when } from '@shared/format'
 import { colors, font } from '@shared/tokens'
 
 function greeting(d = new Date()) {
@@ -25,7 +26,6 @@ export default function PatientHome() {
   const points = useQuery({ queryKey: ['points'], queryFn: () => api<Schemas['PointsOut']>('/me/points') })
   const tokens = useQuery({ queryKey: ['my-tokens'], queryFn: () => api<Schemas['MyTokenOut'][]>('/me/tokens'), refetchInterval: 20_000 })
   if (!me) return null
-  const balance = points.data?.balance ?? 0
 
   return (
     <Screen>
@@ -41,6 +41,8 @@ export default function PatientHome() {
 
       <CheckinCard />
 
+      <DailyMotivation />
+
       <Updates />
 
       {tokens.data?.map((t) => (
@@ -54,17 +56,7 @@ export default function PatientHome() {
         </Card>
       ))}
 
-      <Card style={{ backgroundColor: colors.ink, borderColor: colors.ink, padding: 22 }}>
-        <Text variant="eyebrow" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Physionexs Health Points
-        </Text>
-        <Text style={{ color: '#fff', fontFamily: font.bold, fontSize: 36, marginTop: 8 }}>{balance}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.85)' }}>
-          {balance > 0
-            ? `≈ ${rupees(balance * (points.data?.paise_per_point ?? 100))} off your next booking.`
-            : 'Log your exercises daily to build a streak and earn points off your next booking.'}
-        </Text>
-      </Card>
+      <PointsCard points={points.data} />
 
       <View style={{ gap: 10 }}>
         <Text variant="eyebrow">Upcoming appointments</Text>

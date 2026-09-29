@@ -170,6 +170,7 @@ function PatientEmail({ mode, setMode, onDone }: { mode: 'signin' | 'register' |
         </div>
       )}
       <Button type="submit" loading={busy} className="w-full">{mode === 'register' ? 'Create account' : 'Sign in'}</Button>
+      {mode === 'register' && <Agree />}
       <p className="text-center text-[13px] text-muted">
         {mode === 'register' ? 'Already have an account? ' : 'New to Physionexs? '}
         <button type="button" onClick={() => setMode(mode === 'register' ? 'signin' : 'register')} className="font-semibold text-ink underline">
@@ -177,6 +178,15 @@ function PatientEmail({ mode, setMode, onDone }: { mode: 'signin' | 'register' |
         </button>
       </p>
     </form>
+  )
+}
+
+function Agree() {
+  return (
+    <p className="text-center text-[12px] text-muted">
+      By continuing you agree to the <Link to="/terms" target="_blank" className="underline hover:text-ink">Terms &amp; Conditions</Link> and{' '}
+      <Link to="/privacy" target="_blank" className="underline hover:text-ink">Privacy Policy</Link>.
+    </p>
   )
 }
 
@@ -405,6 +415,7 @@ function PhysioRegister({ onDone, onSignIn }: { onDone: (me: Me) => void; onSign
           <PasswordInput value={form.password} onChange={set('password')} autoComplete="new-password" minLength={8} required />
         </Field>
         <Button type="submit" loading={busy} className="w-full">{plan === 'commission' ? 'Create clinic account' : 'Start free trial'}</Button>
+        <Agree />
       </form>
       <p className="text-center text-[13px] text-muted">
         Already registered? <button type="button" onClick={onSignIn} className="font-semibold text-ink underline">Sign in</button>

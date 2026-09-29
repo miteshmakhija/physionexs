@@ -168,6 +168,10 @@ class ReviewIn(BaseModel):
 class PointsOut(BaseModel):
     balance: int
     paise_per_point: int
+    streak_days: int = 0  # consecutive days with exercises logged
+    best_streak_days: int = 0
+    next_reward_days: int | None = None  # the next streak milestone, and the points it earns
+    next_reward_points: int | None = None
 
 
 # ── Clinic side ─────────────────────────────────────────────────────────────

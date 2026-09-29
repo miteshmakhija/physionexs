@@ -4704,6 +4704,20 @@ export interface components {
             balance: number;
             /** Paise Per Point */
             paise_per_point: number;
+            /**
+             * Streak Days
+             * @default 0
+             */
+            streak_days: number;
+            /**
+             * Best Streak Days
+             * @default 0
+             */
+            best_streak_days: number;
+            /** Next Reward Days */
+            next_reward_days?: number | null;
+            /** Next Reward Points */
+            next_reward_points?: number | null;
         };
         /** PrescriptionOut */
         PrescriptionOut: {

@@ -3,11 +3,12 @@ import { Link } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
 import { CheckinCard } from '@/components/CheckinCard'
+import { DailyMotivation, PointsCard } from '@/components/Motivation'
 import { Updates } from '@/components/Updates'
 import { SupportCard } from '@/components/Support'
 import { Avatar, Card } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
-import { MODE_LABEL, rupees, when } from '@shared/format'
+import { MODE_LABEL, when } from '@shared/format'
 
 function greeting(d = new Date()) {
   const h = d.getHours()
@@ -25,7 +26,6 @@ export default function PatientHome() {
   const past = useQuery({ queryKey: ['my-appointments', 'past'], queryFn: () => api<Schemas['AppointmentOut'][]>('/me/appointments', { query: { scope: 'past', limit: 5 } }) })
   const toRate = past.data?.find((a) => a.status === 'completed' && !a.review)
   const tokens = useQuery({ queryKey: ['my-tokens'], queryFn: () => api<Schemas['MyTokenOut'][]>('/me/tokens'), refetchInterval: 20_000 })
-  const balance = points.data?.balance ?? 0
 
   return (
     <div className="space-y-5">
@@ -35,6 +35,8 @@ export default function PatientHome() {
       </div>
 
       <CheckinCard />
+
+      <DailyMotivation />
 
       <Updates />
 
@@ -55,17 +57,7 @@ export default function PatientHome() {
         </Card>
       ))}
 
-      <Card inverse className="p-6">
-        <p className="eyebrow !text-white/60">Physionexs Health Points</p>
-        <p className="mt-3 text-[36px] font-bold">
-          {balance} <span className="text-[14px] font-semibold text-white/70">points</span>
-        </p>
-        <p className="mt-1 text-[13px] text-white/80">
-          {balance > 0
-            ? `≈ ${rupees(balance * (points.data?.paise_per_point ?? 100))} off your next booking.`
-            : 'Log your exercises daily to build a streak and earn points off your next booking.'}
-        </p>
-      </Card>
+      <PointsCard points={points.data} />
 
       {toRate && (
         <Link to={`/app/appointments/${toRate.id}`} className="flex items-center justify-between gap-4 border border-line p-5 hover:border-ink">

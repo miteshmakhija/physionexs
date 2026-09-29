@@ -28,7 +28,7 @@ from app.schemas.booking import (
 from app.models.engagement import Review
 from app.services import audit, booking, razorpay
 from app.services.reviews import REVIEW_TAGS, recompute_rating
-from app.services.settings import paise_per_point
+from app.services.settings import get_setting, paise_per_point
 
 router = APIRouter(tags=["bookings"])
 
@@ -157,7 +157,14 @@ def review(appointment_id: uuid.UUID, body: ReviewIn, user: PatientUser, db: DB)
 
 @router.get("/me/points", response_model=PointsOut)
 def my_points(user: PatientUser, db: DB) -> PointsOut:
-    return PointsOut(balance=_patient(db, user).points_balance, paise_per_point=paise_per_point(db))
+    patient = _patient(db, user)
+    tiers = sorted(get_setting(db, "rewards").get("tiers", []), key=lambda t: t["days"])
+    nxt = next((t for t in tiers if t["days"] > patient.current_streak_days), None)
+    return PointsOut(
+        balance=patient.points_balance, paise_per_point=paise_per_point(db),
+        streak_days=patient.current_streak_days, best_streak_days=patient.best_streak_days,
+        next_reward_days=nxt["days"] if nxt else None, next_reward_points=nxt["points"] if nxt else None,
+    )
 
 
 def appointment_out(db: Session, appt: Appointment) -> AppointmentOut:

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router'
 
 import { Card } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
@@ -53,7 +54,11 @@ export function SupportFooter() {
         <div>
           <p className="eyebrow mb-2">Support hours</p>
           {s && <p className="text-ink-2">{s.hours}</p>}
-          <p className="mt-6 text-[12px] text-muted">© {new Date().getFullYear()} Physionexs</p>
+          <p className="mt-6 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted">
+            <span>© {new Date().getFullYear()} Physionexs</span>
+            <Link to="/terms" className="hover:text-ink hover:underline">Terms &amp; Conditions</Link>
+            <Link to="/privacy" className="hover:text-ink hover:underline">Privacy Policy</Link>
+          </p>
         </div>
       </div>
     </footer>

@@ -15604,6 +15604,38 @@
           "paise_per_point": {
             "type": "integer",
             "title": "Paise Per Point"
+          },
+          "streak_days": {
+            "type": "integer",
+            "title": "Streak Days",
+            "default": 0
+          },
+          "best_streak_days": {
+            "type": "integer",
+            "title": "Best Streak Days",
+            "default": 0
+          },
+          "next_reward_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Reward Days"
+          },
+          "next_reward_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Reward Points"
           }
         },
         "type": "object",

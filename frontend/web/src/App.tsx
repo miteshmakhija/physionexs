@@ -41,6 +41,7 @@ import PatientShell from '@/pages/patient/PatientShell'
 import PhysioProfile from '@/pages/patient/PhysioProfile'
 import Landing from '@/pages/public/Landing'
 import GoogleCallback from '@/pages/public/GoogleCallback'
+import { Privacy, Terms } from '@/pages/public/Legal'
 import ResetPassword from '@/pages/public/ResetPassword'
 import SignIn from '@/pages/public/SignIn'
 
@@ -56,6 +57,8 @@ const router = createBrowserRouter([
   { path: '/', element: <Landing /> },
   { path: '/signin', element: <PublicOnly><SignIn /></PublicOnly> },
   { path: '/reset-password', element: <ResetPassword /> },
+  { path: '/terms', element: <Terms /> },
+  { path: '/privacy', element: <Privacy /> },
   { path: '/auth/google/callback', element: <GoogleCallback /> },
   {
     path: '/app',
