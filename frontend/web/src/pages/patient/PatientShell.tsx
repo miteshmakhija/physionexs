@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
 import { Avatar, cx, Logo } from '@/components/ui'
@@ -17,7 +17,7 @@ export default function PatientShell() {
     <div className="min-h-dvh pb-20 sm:pb-0">
       <header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3 sm:px-6">
-          <Logo className="h-8" />
+          <Link to="/" aria-label="Physionexs home"><Logo className="h-8" /></Link>
           <nav className="hidden flex-1 gap-1 sm:flex">
             {TABS.map((t) => (
               <NavLink

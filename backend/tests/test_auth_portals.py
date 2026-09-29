@@ -114,3 +114,14 @@ def test_walk_ins_are_listed_for_the_schedule(env):
     day = c.get("/clinic/queue", headers=h, params={"branch_id": branch_id}).json()["service_date"]  # the branch's local day
     listed = c.get("/clinic/walk-ins", headers=h, params={"day": day}).json()
     assert [t["patient_name"] for t in listed] == ["PNX Walk In"] and listed[0]["reason"] == "Knee pain"
+
+
+def test_dashboard_active_patients_follow_the_selected_branch(env):
+    c, _, physio, _ = env
+    h = _owner(c, physio)
+    seen = c.get("/clinic/branches", headers=h).json()[0]["id"]
+    empty = c.post("/clinic/branches", headers=h, json={"name": "PNX TEST Empty", "city": "Pune"}).json()["id"]
+    c.post("/clinic/queue", headers=h, json={"branch_id": seen, "full_name": "PNX Walk In", "phone": "+919111122244"})
+    assert c.get("/clinic/dashboard", headers=h, params={"branch_id": empty}).json()["active_patients"] == 0
+    assert c.get("/clinic/dashboard", headers=h, params={"branch_id": seen}).json()["active_patients"] == 1
+    assert c.get("/clinic/dashboard", headers=h).json()["active_patients"] == 1

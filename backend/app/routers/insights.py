@@ -104,12 +104,16 @@ def dashboard(member: Member, db: DB, branch_id: uuid.UUID | None = None) -> Das
         .order_by(Appointment.starts_at)
         .limit(12)
     ).all()
-    active_patients = db.scalar(
-        select(func.count()).select_from(ClinicPatient).where(
-            ClinicPatient.clinic_id == member.clinic_id, ClinicPatient.status == ClinicPatientStatus.ACTIVE,
-            ClinicPatient.last_visit_on >= today - ACTIVE_WINDOW,
-        )
-    ) or 0
+    if branch_id:
+        # One branch picked: patients seen at that branch, like its other tiles (not the whole clinic).
+        active_patients = sum(s.patients for s in stats)
+    else:
+        active_patients = db.scalar(
+            select(func.count()).select_from(ClinicPatient).where(
+                ClinicPatient.clinic_id == member.clinic_id, ClinicPatient.status == ClinicPatientStatus.ACTIVE,
+                ClinicPatient.last_visit_on >= today - ACTIVE_WINDOW,
+            )
+        ) or 0
     staff = db.scalar(select(func.count()).select_from(ClinicMember).where(ClinicMember.clinic_id == member.clinic_id, ClinicMember.is_active.is_(True))) or 0
 
     return DashboardOut(

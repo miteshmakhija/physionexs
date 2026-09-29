@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 
 import { useAuth } from '@/auth/AuthProvider'
 import { Avatar, cx, Logo } from '@/components/ui'
@@ -33,7 +33,7 @@ export function ConsoleLayout({
   const sidebar = (
     <nav className="flex h-full flex-col gap-6 overflow-y-auto p-4">
       <div className="px-2 pt-1">
-        <Logo className="h-8" />
+        <Link to="/" aria-label="Physionexs home" className="inline-block"><Logo className="h-8" /></Link>
         <p className="eyebrow mt-3">{badge}</p>
       </div>
       {sections.map((s, i) => (
@@ -79,7 +79,7 @@ export function ConsoleLayout({
 
       {/* Mobile top bar + drawer */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-surface px-4 py-3 lg:hidden">
-        <Logo className="h-7" />
+        <Link to="/" aria-label="Physionexs home"><Logo className="h-7" /></Link>
         <button
           onClick={() => setOpen(true)}
           className="rounded-md border border-line-strong px-3 py-1.5 text-[13px] font-semibold"
