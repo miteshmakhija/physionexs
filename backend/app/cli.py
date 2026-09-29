@@ -1,6 +1,7 @@
 """Admin commands.
 
     python -m app.cli create-admin --name "Aditya Kulkarni" --email admin@physionexs.com --phone 9800000000
+    python -m app.cli reset-admin-password --email admin@physionexs.com [--reset-2fa]
     python -m app.cli seed-settings
     python -m app.cli seed-demo      # 3 verified demo physios in Pune (dev only)
     python -m app.cli purge-demo
@@ -11,13 +12,15 @@ import argparse
 import getpass
 import sys
 
-from sqlalchemy import select
+from datetime import UTC, datetime
+
+from sqlalchemy import func, select
 
 from app.core.phone import normalize_phone
 from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models.platform import PlatformSetting
-from app.models.user import User, UserRole
+from app.models.user import RefreshToken, User, UserRole
 from app.services.settings import DEFAULT_SETTINGS
 
 
@@ -40,6 +43,26 @@ def create_admin(name: str, email: str, phone: str | None) -> None:
         print(f"Super Admin created: {user.id}. Sign in and enable two-factor authentication.")
 
 
+def reset_admin_password(email: str, reset_2fa: bool) -> None:
+    """Super Admins can't use "Forgot password" (by design), so their password is reset here, by someone with DB access."""
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(func.lower(User.email) == email.lower()))
+        if user is None or user.role != UserRole.SUPER_ADMIN:
+            sys.exit(f"No Super Admin with {email}.")
+        password = getpass.getpass("New password (min 12 chars): ")
+        if len(password) < 12 or password != getpass.getpass("Repeat password: "):
+            sys.exit("Passwords must match and be at least 12 characters. Nothing changed.")
+        user.password_hash = hash_password(password)
+        if reset_2fa:
+            user.totp_enabled = False
+            user.totp_secret = None
+        now = datetime.now(UTC)
+        for token in db.scalars(select(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))):
+            token.revoked_at = now  # sign out every existing session
+        db.commit()
+        print("Password updated; all sessions signed out." + (" Two-factor is off: set it up again after signing in." if reset_2fa else ""))
+
+
 def seed_settings() -> None:
     with SessionLocal() as db:
         for key, value in DEFAULT_SETTINGS.items():
@@ -56,6 +79,9 @@ def main() -> None:
     admin.add_argument("--name", required=True)
     admin.add_argument("--email", required=True)
     admin.add_argument("--phone")
+    reset = sub.add_parser("reset-admin-password")
+    reset.add_argument("--email", required=True)
+    reset.add_argument("--reset-2fa", action="store_true", help="also turn off two-factor (lost authenticator app)")
     sub.add_parser("seed-settings")
     sub.add_parser("seed-demo")
     sub.add_parser("purge-demo")
@@ -65,6 +91,8 @@ def main() -> None:
 
     if args.cmd == "create-admin":
         create_admin(args.name, args.email, args.phone)
+    elif args.cmd == "reset-admin-password":
+        reset_admin_password(args.email, args.reset_2fa)
     elif args.cmd == "seed-settings":
         seed_settings()
     elif args.cmd == "seed-exercises":
