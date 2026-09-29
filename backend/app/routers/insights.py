@@ -20,6 +20,7 @@ from app.models.scheduling import Appointment, AppointmentStatus, ConsultMode, Q
 from app.models.user import User
 from app.schemas.business import AnalyticsOut, AttentionItem, BranchStat, DashboardOut, ScheduleItem, SeriesPoint, Share, SubscriptionOut
 from app.services.adherence import adherence_pct, day_stats
+from app.services.scope import effective_branch, patient_filter
 
 router = APIRouter(prefix="/clinic", tags=["insights"])
 
@@ -56,16 +57,18 @@ def subscription_out(sub: Subscription | None) -> SubscriptionOut | None:
     )
 
 
-def _attention(db: Session, clinic_id: uuid.UUID, limit: int = 6) -> list[AttentionItem]:
-    """Patients on an active plan whose last-7-day exercise adherence is below 50%."""
+def _attention(db: Session, member: ClinicMember, limit: int = 6) -> list[AttentionItem]:
+    """Patients on an active plan whose last-7-day exercise adherence is below 50% (only those the member may see)."""
     today = datetime.now(TZ).date()
-    rows = db.execute(
+    stmt = (
         select(ClinicPatient, Patient, CarePlan)
         .join(Patient, Patient.id == ClinicPatient.patient_id)
         .join(CarePlan, (CarePlan.clinic_patient_id == ClinicPatient.id) & (CarePlan.status == CarePlanStatus.ACTIVE))
-        .where(ClinicPatient.clinic_id == clinic_id)
-        .limit(200)
-    ).all()
+        .where(ClinicPatient.clinic_id == member.clinic_id)
+    )
+    if (visible := patient_filter(member)) is not None:
+        stmt = stmt.where(visible)
+    rows = db.execute(stmt.limit(200)).all()
     out = []
     for cp, p, plan in rows:
         pct = adherence_pct(day_stats(db, p.id, today - timedelta(days=6), today, [plan.id]))
@@ -77,6 +80,7 @@ def _attention(db: Session, clinic_id: uuid.UUID, limit: int = 6) -> list[Attent
 @router.get("/dashboard", response_model=DashboardOut)
 def dashboard(member: Member, db: DB, branch_id: uuid.UUID | None = None) -> DashboardOut:
     owner = member.role == MembershipRole.OWNER
+    branch_id = effective_branch(member, branch_id)
     today = datetime.now(TZ).date()
     start, end = _midnight(today), _midnight(today + timedelta(days=1))
     week_start = _midnight(today - timedelta(days=6))
@@ -128,7 +132,7 @@ def dashboard(member: Member, db: DB, branch_id: uuid.UUID | None = None) -> Das
         revenue_week_paise=_revenue(db, member.clinic_id, week_start, end, branch_id) if owner else None,
         branches=stats,
         schedule=[ScheduleItem(id=a.id, starts_at=a.starts_at, patient_name=p.full_name, reason=a.reason, mode=a.mode.value, status=a.status.value) for a, p in schedule],
-        attention=_attention(db, member.clinic_id),
+        attention=_attention(db, member),
         subscription=subscription_out(db.scalar(select(Subscription).where(Subscription.clinic_id == member.clinic_id))) if owner else None,
     )
 

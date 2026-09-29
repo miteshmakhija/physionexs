@@ -35,7 +35,7 @@ class AIText(BaseModel):
 
 
 def _patient_context(db, member: ClinicMember, cp_id: uuid.UUID):
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     plan = active_plan_for(db, cp.id)
     if plan is None or plan.protocol is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "This patient has no active recovery-tracking plan")

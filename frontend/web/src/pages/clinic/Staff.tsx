@@ -164,65 +164,119 @@ function Leave({ clinicId }: { clinicId: string }) {
   )
 }
 
+type Member = Schemas['StaffOut']
+const EMPTY_MEMBER = { full_name: '', email: '', password: '', phone: '', role: 'staff', job_title: '', department: '', salary: '', branch_id: '', registration_no: '', active: 'yes' }
+
 function Team({ clinicId }: { clinicId: string }) {
   const qc = useQueryClient()
-  const list = useQuery({ queryKey: ['staff'], queryFn: () => api<Schemas['StaffOut'][]>('/clinic/staff', { clinicId }) })
+  const list = useQuery({ queryKey: ['staff', 'all'], queryFn: () => api<Member[]>('/clinic/staff', { clinicId, query: { include_inactive: true } }) })
   const branches = useQuery({ queryKey: ['branches'], queryFn: () => api<Schemas['BranchOut'][]>('/clinic/branches', { clinicId }) })
-  const empty = { full_name: '', email: '', password: '', phone: '', role: 'staff', job_title: '', department: '', salary: '', branch_id: '', registration_no: '' }
-  const [f, setF] = useState(empty)
-  const add = useMutation({
-    mutationFn: () => api<Schemas['StaffOut']>('/clinic/staff', {
-      method: 'POST', clinicId,
-      json: { full_name: f.full_name, email: f.email, password: f.password, phone: f.phone || null, role: f.role, job_title: f.job_title || null, department: f.department || null, monthly_salary_paise: f.salary ? Math.round(Number(f.salary) * 100) : null, branch_id: f.branch_id || null, registration_no: f.registration_no || null },
-    }),
-    onSuccess: () => {
-      setF(empty)
-      void qc.invalidateQueries({ queryKey: ['staff'] })
-      void qc.invalidateQueries({ queryKey: ['attendance'] })
-      void qc.invalidateQueries({ queryKey: ['payroll'] })
-    },
+  const [f, setF] = useState(EMPTY_MEMBER)
+  const [editing, setEditing] = useState<Member | null>(null)
+  const isOwnerRow = editing?.role === 'owner'
+
+  const startEdit = (m: Member) => {
+    setEditing(m)
+    setF({
+      full_name: m.full_name, email: m.email ?? '', password: '', phone: m.phone ?? '', role: m.role === 'physio' ? 'physio' : 'staff',
+      job_title: m.job_title ?? '', department: m.department ?? '', salary: m.monthly_salary_paise ? String(m.monthly_salary_paise / 100) : '',
+      branch_id: m.branch_id ?? '', registration_no: '', active: m.is_active ? 'yes' : 'no',
+    })
+  }
+  const reset = () => {
+    setEditing(null)
+    setF(EMPTY_MEMBER)
+  }
+  const refresh = () => {
+    reset()
+    void qc.invalidateQueries({ queryKey: ['staff'] })
+    void qc.invalidateQueries({ queryKey: ['attendance'] })
+    void qc.invalidateQueries({ queryKey: ['payroll'] })
+  }
+
+  const job = { job_title: f.job_title || null, department: f.department || null, monthly_salary_paise: f.salary ? Math.round(Number(f.salary) * 100) : null, branch_id: f.branch_id || null }
+  const save = useMutation({
+    mutationFn: () => editing
+      ? api<Member>(`/clinic/staff/${editing.id}`, {
+          method: 'PUT', clinicId,
+          json: isOwnerRow ? job : {
+            ...job, full_name: f.full_name, email: f.email, phone: f.phone || null, role: f.role, is_active: f.active === 'yes',
+            ...(f.password ? { password: f.password } : {}),
+          },
+        })
+      : api<Member>('/clinic/staff', {
+          method: 'POST', clinicId,
+          json: { ...job, full_name: f.full_name, email: f.email, password: f.password, phone: f.phone || null, role: f.role, registration_no: f.registration_no || null },
+        }),
+    onSuccess: refresh,
   })
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
+
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <ul className="h-fit divide-y divide-line border-y border-line">
         {list.data?.map((m) => (
-          <li key={m.id} className="flex items-center gap-4 py-3 text-[14px]">
+          <li key={m.id} className={cx('flex items-center gap-4 py-3 text-[14px]', editing?.id === m.id && 'bg-surface-2')}>
             <Avatar name={m.full_name} />
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold">{m.full_name} <span className="eyebrow ml-1">{m.role === 'owner' ? 'Doctor-Admin' : m.role}</span></span>
-              <span className="block text-[12.5px] text-muted">{[m.employee_code, m.job_title, m.department, m.branch_name, m.email, m.phone].filter(Boolean).join(' · ')}</span>
+              <span className="block font-semibold">{m.full_name} <span className="eyebrow ml-1">{m.role === 'owner' ? 'Doctor-Admin' : m.role}{m.is_active ? '' : ' · inactive'}</span></span>
+              <span className="block text-[12.5px] text-muted">{[m.employee_code, m.job_title, m.department, m.branch_name ?? 'All branches', m.email, m.phone].filter(Boolean).join(' · ')}</span>
             </span>
             <span className="tabular-nums text-muted">{m.monthly_salary_paise ? `${rupees(m.monthly_salary_paise)}/mo` : ''}</span>
+            <button type="button" onClick={() => startEdit(m)} className="eyebrow !text-ink underline">Edit</button>
           </li>
         ))}
       </ul>
-      <form className="h-fit space-y-3 border border-line p-5" onSubmit={(e) => { e.preventDefault(); add.mutate() }}>
-        <h2 className="text-[16px] font-semibold">Add team member</h2>
-        <p className="text-[12.5px] text-muted">They sign in on the practice console (Staff tab) with this email and the temporary password. Share it with them; they can change it with “Forgot password”.</p>
-        <Field label="Full name"><Input value={f.full_name} onChange={set('full_name')} required minLength={2} /></Field>
-        <Field label="Email"><Input type="email" value={f.email} onChange={set('email')} autoComplete="off" required /></Field>
-        <Field label="Temporary password" hint="At least 8 characters."><Input value={f.password} onChange={set('password')} autoComplete="new-password" minLength={8} required /></Field>
-        <Field label="Mobile (optional)"><Input type="tel" value={f.phone} onChange={set('phone')} /></Field>
-        <Field label="Access">
-          <Select value={f.role} onChange={set('role')}>
-            <option value="staff">Staff — no billing or analytics, no clinical notes</option>
-            <option value="physio">Physiotherapist — clinical notes & prescribing</option>
-          </Select>
-        </Field>
-        {f.role === 'physio' && <Field label="Council registration no." hint="Printed on their prescriptions."><Input value={f.registration_no} onChange={set('registration_no')} /></Field>}
+      <form className="h-fit space-y-3 border border-line p-5" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
+        <h2 className="text-[16px] font-semibold">{editing ? `Edit ${editing.full_name}` : 'Add team member'}</h2>
+        <p className="text-[12.5px] text-muted">
+          {editing
+            ? isOwnerRow
+              ? 'Your own sign-in details are changed from your account, not here.'
+              : 'Changes apply straight away. A new password signs them out everywhere.'
+            : 'They sign in on the practice console (Staff tab) with this email and the temporary password. Share it with them; they can change it with “Forgot password”.'}
+        </p>
+        {!isOwnerRow && (
+          <>
+            <Field label="Full name"><Input value={f.full_name} onChange={set('full_name')} required minLength={2} /></Field>
+            <Field label="Email"><Input type="email" value={f.email} onChange={set('email')} autoComplete="off" required /></Field>
+            <Field label={editing ? 'New temporary password' : 'Temporary password'} hint={editing ? 'Leave blank to keep their current password.' : 'At least 8 characters.'}>
+              <Input value={f.password} onChange={set('password')} autoComplete="new-password" minLength={8} required={!editing} />
+            </Field>
+            <Field label="Mobile (optional)"><Input type="tel" value={f.phone} onChange={set('phone')} /></Field>
+            <Field label="Access">
+              <Select value={f.role} onChange={set('role')}>
+                <option value="staff">Staff — no billing or analytics, no clinical notes</option>
+                <option value="physio">Physiotherapist — clinical notes & prescribing</option>
+              </Select>
+            </Field>
+            {!editing && f.role === 'physio' && <Field label="Council registration no." hint="Printed on their prescriptions."><Input value={f.registration_no} onChange={set('registration_no')} /></Field>}
+          </>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Job title"><Input value={f.job_title} onChange={set('job_title')} placeholder="Receptionist" /></Field>
           <Field label="Department"><Input value={f.department} onChange={set('department')} placeholder="Front desk" /></Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Monthly salary (₹)"><Input type="number" min={0} step={500} value={f.salary} onChange={set('salary')} /></Field>
-          <Field label="Branch">
-            <Select value={f.branch_id} onChange={set('branch_id')}><option value="">—</option>{branches.data?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</Select>
+          <Field label="Branch" hint="Limits what they see.">
+            <Select value={f.branch_id} onChange={set('branch_id')}>
+              <option value="">All branches</option>
+              {branches.data?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
           </Field>
         </div>
-        {add.error && <Alert>{(add.error as Error).message}</Alert>}
-        <Button type="submit" className="w-full" loading={add.isPending}>Add to team</Button>
+        {editing && !isOwnerRow && (
+          <Field label="Status">
+            <Select value={f.active} onChange={set('active')}>
+              <option value="yes">Active</option>
+              <option value="no">Inactive — can’t sign in to this clinic</option>
+            </Select>
+          </Field>
+        )}
+        {save.error && <Alert>{(save.error as Error).message}</Alert>}
+        <Button type="submit" className="w-full" loading={save.isPending}>{editing ? 'Save changes' : 'Add to team'}</Button>
+        {editing && <Button type="button" variant="ghost" className="w-full" onClick={reset}>Cancel</Button>}
       </form>
     </div>
   )

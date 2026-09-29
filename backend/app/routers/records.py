@@ -43,6 +43,7 @@ from app.schemas.clinical import (
     TWIN_PLAN_FIELDS,
 )
 from app.services import audit
+from app.services.scope import patient_filter
 from app.services.adherence import adherence_pct, day_stats
 from app.services.clinical import (
     age_of,
@@ -87,6 +88,8 @@ def list_patients(
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[PatientListItem]:
     stmt = select(ClinicPatient, Patient).join(Patient, Patient.id == ClinicPatient.patient_id).where(ClinicPatient.clinic_id == member.clinic_id)
+    if (visible := patient_filter(member)) is not None:
+        stmt = stmt.where(visible)
     if q:
         like = f"%{q.strip()}%"
         stmt = stmt.outerjoin(CarePlan, (CarePlan.clinic_patient_id == ClinicPatient.id) & (CarePlan.status == CarePlanStatus.ACTIVE)).where(
@@ -118,7 +121,7 @@ def create_patient(body: PatientIn, member: Member, user: CurrentUser, db: DB, r
 
 @router.get("/patients/{cp_id}", response_model=PatientFileOut)
 def patient_file(cp_id: uuid.UUID, member: Member, db: DB) -> PatientFileOut:
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     p = db.get(Patient, cp.patient_id)
     bg = db.scalar(select(MedicalBackground).where(MedicalBackground.clinic_patient_id == cp.id))
     plan = _active_plan(db, cp.id)
@@ -147,7 +150,7 @@ def _bg_out(bg: MedicalBackground) -> BackgroundOut:
 
 @router.put("/patients/{cp_id}/background", response_model=BackgroundOut)
 def update_background(cp_id: uuid.UUID, body: BackgroundIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> BackgroundOut:
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     bg = db.scalar(select(MedicalBackground).where(MedicalBackground.clinic_patient_id == cp.id))
     if bg is None:
         bg = MedicalBackground(clinic_patient_id=cp.id)
@@ -172,7 +175,7 @@ def _consult_out(db: Session, c: Consultation) -> ConsultationOut:
 
 @router.post("/patients/{cp_id}/consultations", response_model=ConsultationOut, status_code=status.HTTP_201_CREATED)
 def create_consultation(cp_id: uuid.UUID, body: ConsultationIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> ConsultationOut:
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     if body.appointment_id:
         appt = db.get(Appointment, body.appointment_id)
         if appt is None or appt.clinic_id != member.clinic_id or appt.patient_id != cp.patient_id:
@@ -198,8 +201,9 @@ def create_consultation(cp_id: uuid.UUID, body: ConsultationIn, member: Clinicia
 @router.put("/consultations/{consultation_id}", response_model=ConsultationOut)
 def update_consultation(consultation_id: uuid.UUID, body: ConsultationIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> ConsultationOut:
     c = db.get(Consultation, consultation_id)
-    if c is None or db.get(ClinicPatient, c.clinic_patient_id).clinic_id != member.clinic_id:
+    if c is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Consultation not found")
+    clinic_patient_or_404(db, member, c.clinic_patient_id)
     if c.signed_at:
         raise HTTPException(status.HTTP_409_CONFLICT, "Signed notes can't be edited")
     if c.physio_user_id != user.id:
@@ -225,7 +229,7 @@ def _check_protocol(db: Session, clinic_id: uuid.UUID, body: CarePlanIn) -> None
 @router.post("/patients/{cp_id}/care-plans", response_model=CarePlanOut, status_code=status.HTTP_201_CREATED)
 def create_plan(cp_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
     """Start a new plan. Any current plan at this clinic is marked completed."""
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     _check_protocol(db, member.clinic_id, body)
     db.execute(update(CarePlan).where(CarePlan.clinic_patient_id == cp.id, CarePlan.status == CarePlanStatus.ACTIVE).values(status=CarePlanStatus.COMPLETED))
     plan = CarePlan(clinic_patient_id=cp.id, physio_user_id=user.id, **body.model_dump())
@@ -238,7 +242,7 @@ def create_plan(cp_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: Cur
 
 @router.put("/care-plans/{plan_id}", response_model=CarePlanOut)
 def update_plan(plan_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     _check_protocol(db, member.clinic_id, body)
     for k, v in body.model_dump().items():
         if k in TWIN_PLAN_FIELDS and k not in body.model_fields_set:
@@ -251,7 +255,7 @@ def update_plan(plan_id: uuid.UUID, body: CarePlanIn, member: Clinician, user: C
 
 @router.post("/care-plans/{plan_id}/complete", response_model=CarePlanOut)
 def complete_plan(plan_id: uuid.UUID, member: Clinician, user: CurrentUser, db: DB) -> CarePlanOut:
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     plan.status = CarePlanStatus.COMPLETED
     plan.ends_on = plan.ends_on or date.today()
     db.commit()
@@ -261,7 +265,7 @@ def complete_plan(plan_id: uuid.UUID, member: Clinician, user: CurrentUser, db: 
 @router.put("/care-plans/{plan_id}/exercises", response_model=CarePlanOut)
 def set_plan_exercises(plan_id: uuid.UUID, items: list[PlanExerciseIn], member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
     """Replace the exercise program. Removed exercises are deactivated so their logs stay intact."""
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     if len(items) > 30:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "A program can have at most 30 exercises")
     ids = {i.exercise_id for i in items}
@@ -299,7 +303,7 @@ def set_plan_exercises(plan_id: uuid.UUID, items: list[PlanExerciseIn], member: 
 
 @router.put("/care-plans/{plan_id}/medications", response_model=CarePlanOut)
 def set_plan_medications(plan_id: uuid.UUID, items: list[MedicationIn], member: Clinician, user: CurrentUser, db: DB, request: Request) -> CarePlanOut:
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     if len(items) > 20:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "At most 20 medicines")
     db.execute(update(Medication).where(Medication.care_plan_id == plan.id).values(is_active=False))
@@ -313,7 +317,7 @@ def set_plan_medications(plan_id: uuid.UUID, items: list[MedicationIn], member: 
 
 @router.post("/care-plans/{plan_id}/tests", response_model=TestOrderOut, status_code=status.HTTP_201_CREATED)
 def order_test(plan_id: uuid.UUID, body: TestOrderIn, member: Clinician, user: CurrentUser, db: DB) -> TestOrderOut:
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     t = TestOrder(clinic_patient_id=plan.clinic_patient_id, care_plan_id=plan.id, ordered_by=user.id, name=body.name)
     db.add(t)
     db.commit()
@@ -323,8 +327,9 @@ def order_test(plan_id: uuid.UUID, body: TestOrderIn, member: Clinician, user: C
 @router.patch("/tests/{test_id}", response_model=TestOrderOut)
 def update_test(test_id: uuid.UUID, body: TestOrderUpdate, member: Clinician, db: DB) -> TestOrderOut:
     t = db.get(TestOrder, test_id)
-    if t is None or db.get(ClinicPatient, t.clinic_patient_id).clinic_id != member.clinic_id:
+    if t is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Test not found")
+    clinic_patient_or_404(db, member, t.clinic_patient_id)
     t.status = body.status
     t.result_note = body.result_note
     t.result_at = datetime.now(UTC) if body.status == TestOrderStatus.RESULT_READY else None
@@ -342,7 +347,7 @@ def update_test(test_id: uuid.UUID, body: TestOrderUpdate, member: Clinician, db
 @router.post("/care-plans/{plan_id}/prescriptions", response_model=PrescriptionOut, status_code=status.HTTP_201_CREATED)
 def issue_prescription(plan_id: uuid.UUID, member: Clinician, user: CurrentUser, db: DB, request: Request) -> PrescriptionOut:
     """Freeze the current plan into a numbered prescription (what gets printed and shown in the app)."""
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     cp = db.get(ClinicPatient, plan.clinic_patient_id)
     patient = db.get(Patient, cp.patient_id)
     clinic = db.get(Clinic, cp.clinic_id)
@@ -378,7 +383,7 @@ def issue_prescription(plan_id: uuid.UUID, member: Clinician, user: CurrentUser,
 
 @router.get("/patients/{cp_id}/prescriptions", response_model=list[PrescriptionOut])
 def list_prescriptions(cp_id: uuid.UUID, member: Member, db: DB) -> list[PrescriptionOut]:
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     rows = db.scalars(select(Prescription).where(Prescription.clinic_patient_id == cp.id).order_by(Prescription.issued_at.desc()))
     return [PrescriptionOut(id=r.id, rx_no=r.rx_no, issued_at=r.issued_at, snapshot=r.snapshot) for r in rows]
 
@@ -386,6 +391,7 @@ def list_prescriptions(cp_id: uuid.UUID, member: Member, db: DB) -> list[Prescri
 @router.get("/prescriptions/{rx_id}", response_model=PrescriptionOut)
 def get_prescription(rx_id: uuid.UUID, member: Member, db: DB) -> PrescriptionOut:
     rx = db.get(Prescription, rx_id)
-    if rx is None or db.get(ClinicPatient, rx.clinic_patient_id).clinic_id != member.clinic_id:
+    if rx is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Prescription not found")
+    clinic_patient_or_404(db, member, rx.clinic_patient_id)
     return PrescriptionOut(id=rx.id, rx_no=rx.rx_no, issued_at=rx.issued_at, snapshot=rx.snapshot)

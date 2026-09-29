@@ -17,10 +17,13 @@ from app.schemas.business import BillingSummary, InvoiceIn, InvoiceLineOut, Invo
 from app.services import audit
 from app.services.billing import Line, create_invoice, mark_paid
 from app.services.clinical import age_of, clinic_patient_or_404
+from app.services.scope import branch_scope, check_branch
 
 router = APIRouter(prefix="/clinic/invoices", tags=["billing"])
 
 Owner = Annotated[ClinicMember, Depends(require_clinic_member(MembershipRole.OWNER))]
+# Any team member can view and print an invoice (within their branch); creating, collecting and voiding stay with the owner.
+Member = Annotated[ClinicMember, Depends(require_clinic_member())]
 TZ = ZoneInfo("Asia/Kolkata")
 
 
@@ -79,7 +82,7 @@ def list_invoices(
 
 @router.post("", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
 def new_invoice(body: InvoiceIn, member: Owner, user: CurrentUser, db: DB, request: Request) -> InvoiceOut:
-    clinic_patient_or_404(db, member.clinic_id, body.clinic_patient_id)
+    clinic_patient_or_404(db, member, body.clinic_patient_id)
     if body.branch_id and db.scalar(select(Branch.clinic_id).where(Branch.id == body.branch_id)) != member.clinic_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unknown branch")
     # Attribute revenue to a branch: the one given, else the creator's, else the clinic's first.
@@ -95,9 +98,22 @@ def new_invoice(body: InvoiceIn, member: Owner, user: CurrentUser, db: DB, reque
     return invoice_out(db, inv)
 
 
+@router.get("/patient/{cp_id}", response_model=list[InvoiceListItem])
+def patient_invoices(cp_id: uuid.UUID, member: Member, db: DB) -> list[InvoiceListItem]:
+    """A patient's invoices for their file, so the front desk can reprint a slip."""
+    cp = clinic_patient_or_404(db, member, cp_id)
+    stmt = select(Invoice).where(Invoice.clinic_patient_id == cp.id)
+    if scope := branch_scope(member):
+        stmt = stmt.where(Invoice.branch_id == scope)
+    name = db.get(Patient, cp.patient_id).full_name
+    return [_list_item(db, inv, name) for inv in db.scalars(stmt.order_by(Invoice.created_at.desc()))]
+
+
 @router.get("/{invoice_id}", response_model=InvoiceOut)
-def get_invoice(invoice_id: uuid.UUID, member: Owner, db: DB) -> InvoiceOut:
-    return invoice_out(db, _own(db, member.clinic_id, invoice_id))
+def get_invoice(invoice_id: uuid.UUID, member: Member, db: DB) -> InvoiceOut:
+    inv = _own(db, member.clinic_id, invoice_id)
+    check_branch(member, inv.branch_id)
+    return invoice_out(db, inv)
 
 
 @router.post("/{invoice_id}/pay", response_model=InvoiceOut)

@@ -181,7 +181,7 @@ export function NewInvoice() {
 
 export function InvoiceView() {
   const { id } = useParams()
-  const { clinicId } = useClinic()
+  const { clinicId, isOwner } = useClinic()
   const qc = useQueryClient()
   const [method, setMethod] = useState('cash')
   const inv = useQuery({ queryKey: ['invoice', id], queryFn: () => api<Schemas['InvoiceOut']>(`/clinic/invoices/${id}`, { clinicId }) })
@@ -198,9 +198,11 @@ export function InvoiceView() {
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link to="/clinic/billing" className="eyebrow hover:underline">← Billing</Link>
+        {isOwner
+          ? <Link to="/clinic/billing" className="eyebrow hover:underline">← Billing</Link>
+          : <Link to={`/clinic/patients/${v.clinic_patient_id}`} className="eyebrow hover:underline">← Patient file</Link>}
         <div className="flex flex-wrap items-center gap-2">
-          {v.status === 'due' && (
+          {isOwner && v.status === 'due' && (
             <>
               <Select value={method} onChange={(e) => setMethod(e.target.value)} className="!h-11 !w-36" aria-label="Payment method">
                 {METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -208,7 +210,7 @@ export function InvoiceView() {
               <Button onClick={() => act.mutate('pay')} loading={act.isPending && act.variables === 'pay'}>Mark paid</Button>
             </>
           )}
-          {v.status !== 'void' && !v.from_app && (
+          {isOwner && v.status !== 'void' && !v.from_app && (
             <Button variant="ghost" onClick={() => window.confirm(`Void ${v.number}? This can't be undone.`) && act.mutate('void')}>Void</Button>
           )}
           <Button variant="secondary" onClick={() => window.print()}>Print / PDF</Button>

@@ -1887,6 +1887,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/invoices/patient/{cp_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Patient Invoices
+         * @description A patient's invoices for their file, so the front desk can reprint a slip.
+         */
+        get: operations["patient_invoices_clinic_invoices_patient__cp_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/invoices/{invoice_id}": {
         parameters: {
             query?: never;
@@ -5108,6 +5128,14 @@ export interface components {
         };
         /** StaffUpdate */
         StaffUpdate: {
+            /** Full Name */
+            full_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Password */
+            password?: string | null;
             /** Role */
             role?: ("staff" | "physio") | null;
             /** Job Title */
@@ -9359,6 +9387,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvoiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patient_invoices_clinic_invoices_patient__cp_id__get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path: {
+                cp_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceListItem"][];
                 };
             };
             /** @description Validation Error */

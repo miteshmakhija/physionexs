@@ -19,7 +19,7 @@ from app.core.security import hash_password
 from app.models.clinic import Branch, ClinicMember, MembershipRole, PhysioProfile
 from app.models.engagement import Notification
 from app.models.hr import Attendance, AttendanceStatus, LeaveRequest, LeaveStatus, LeaveType, Payslip, PayslipStatus
-from app.models.user import User, UserRole
+from app.models.user import RefreshToken, User, UserRole
 from app.schemas.business import AttendanceDay, AttendanceIn, LeaveIn, LeaveOut, PayrollOut, PayslipOut, StaffIn, StaffOut, StaffUpdate
 from app.services import audit
 
@@ -108,7 +108,32 @@ def update_staff(member_id: uuid.UUID, body: StaffUpdate, member: Owner, user: C
     m = _member(db, member.clinic_id, member_id)
     if m.role == MembershipRole.OWNER and (body.role or body.is_active is False):
         raise HTTPException(status.HTTP_409_CONFLICT, "The clinic owner's role can't be changed here")
-    for k, v in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    if changes.get("branch_id") and db.scalar(select(Branch.clinic_id).where(Branch.id == changes["branch_id"])) != member.clinic_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unknown branch")
+
+    # Name, email, mobile and password live on the person's account: only for staff accounts this clinic created.
+    account = {k: changes.pop(k) for k in ("full_name", "email", "phone", "password") if k in changes}
+    if account:
+        person = db.get(User, m.user_id)
+        if person.role != UserRole.STAFF:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Only staff accounts' sign-in details can be changed here")
+        if account.get("email"):
+            email = account["email"].lower()
+            if db.scalar(select(User.id).where(func.lower(User.email) == email, User.id != person.id)):
+                raise HTTPException(status.HTTP_409_CONFLICT, "This email is already used by another account")
+            person.email = email
+        if "phone" in account:
+            if account["phone"] and db.scalar(select(User.id).where(User.phone == account["phone"], User.id != person.id)):
+                raise HTTPException(status.HTTP_409_CONFLICT, "This mobile number is already used by another account")
+            person.phone = account["phone"]
+        if account.get("full_name"):
+            person.full_name = account["full_name"]
+        if account.get("password"):
+            person.password_hash = hash_password(account["password"])
+            for token in db.scalars(select(RefreshToken).where(RefreshToken.user_id == person.id, RefreshToken.revoked_at.is_(None))):
+                token.revoked_at = datetime.now(UTC)  # new password: sign them out everywhere
+    for k, v in changes.items():
         setattr(m, k, v)
     audit.record(db, action="update", entity="clinic_member", entity_id=m.id, actor_user_id=user.id, clinic_id=member.clinic_id, request=request)
     db.commit()

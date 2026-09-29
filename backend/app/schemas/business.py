@@ -236,11 +236,15 @@ class StaffIn(BaseModel):
 
 
 class StaffUpdate(BaseModel):
+    full_name: Annotated[str, Field(min_length=2, max_length=120)] | None = None
+    email: EmailStr | None = None
+    phone: Phone | None = None
+    password: Annotated[str, Field(min_length=8, max_length=128)] | None = None  # a new temporary password
     role: Literal[MembershipRole.STAFF, MembershipRole.PHYSIO] | None = None
     job_title: Annotated[str, Field(max_length=80)] | None = None
     department: Annotated[str, Field(max_length=80)] | None = None
     monthly_salary_paise: Annotated[int, Field(ge=0, le=100_000_000)] | None = None
-    branch_id: uuid.UUID | None = None
+    branch_id: uuid.UUID | None = None  # sent as null: works at all branches
     employee_code: Annotated[str, Field(max_length=20)] | None = None
     is_active: bool | None = None
 

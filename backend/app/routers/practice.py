@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.booking import RazorpayCheckout, VerifyPaymentIn
 from app.schemas.business import BranchIn, BranchOut, CheckoutIn, ClinicProfileIn, ClinicProfileOut, SubscriptionOut
 from app.services import audit, razorpay
+from app.services.scope import branch_scope
 from app.services.settings import get_setting
 from app.routers.insights import subscription_out
 
@@ -61,6 +62,8 @@ def _branch_out(db: Session, b: Branch) -> BranchOut:
 @router.get("/branches", response_model=list[BranchOut])
 def branches(member: Member, db: DB, include_inactive: bool = False) -> list[BranchOut]:
     stmt = select(Branch).where(Branch.clinic_id == member.clinic_id)
+    if scope := branch_scope(member):
+        stmt = stmt.where(Branch.id == scope)
     if not include_inactive:
         stmt = stmt.where(Branch.is_active.is_(True))
     return [_branch_out(db, b) for b in db.scalars(stmt.order_by(Branch.created_at))]

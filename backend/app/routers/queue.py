@@ -18,6 +18,7 @@ from app.models.user import User, UserRole
 from app.schemas.clinical import MyTokenOut, QueueOut, QueueTokenOut, TokenStatusIn, WalkInIn
 from app.services import audit
 from app.services.clinical import age_of, ensure_clinic_patient
+from app.services.scope import branch_scope, check_branch
 
 router = APIRouter(tags=["queue"])
 
@@ -25,10 +26,11 @@ Member = Annotated[ClinicMember, Depends(require_clinic_member())]
 DEFAULT_CONSULT_MINUTES = 12
 
 
-def _branch(db: Session, clinic_id: uuid.UUID, branch_id: uuid.UUID) -> Branch:
+def _branch(db: Session, member: ClinicMember, branch_id: uuid.UUID) -> Branch:
     branch = db.get(Branch, branch_id)
-    if branch is None or branch.clinic_id != clinic_id:
+    if branch is None or branch.clinic_id != member.clinic_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Branch not found")
+    check_branch(member, branch.id)
     return branch
 
 
@@ -54,7 +56,7 @@ def _avg_consult_minutes(tokens: list[QueueToken]) -> int:
 
 @router.get("/clinic/queue", response_model=QueueOut)
 def get_queue(branch_id: uuid.UUID, member: Member, db: DB) -> QueueOut:
-    branch = _branch(db, member.clinic_id, branch_id)
+    branch = _branch(db, member, branch_id)
     day = _today(branch)
     tokens = list(db.scalars(select(QueueToken).where(QueueToken.branch_id == branch.id, QueueToken.service_date == day).order_by(QueueToken.number)))
     serving = next((t for t in tokens if t.status == TokenStatus.SERVING), None)
@@ -75,6 +77,7 @@ def walk_ins(day: date, member: Member, db: DB) -> list[QueueTokenOut]:
     tokens = db.scalars(
         select(QueueToken).join(Branch, Branch.id == QueueToken.branch_id)
         .where(Branch.clinic_id == member.clinic_id, QueueToken.service_date == day)
+        .where(QueueToken.branch_id == scope if (scope := branch_scope(member)) else True)
         .order_by(QueueToken.created_at)
     )
     return [_token_out(db, t, member.clinic_id) for t in tokens]
@@ -82,7 +85,7 @@ def walk_ins(day: date, member: Member, db: DB) -> list[QueueTokenOut]:
 
 @router.post("/clinic/queue", response_model=QueueTokenOut, status_code=status.HTTP_201_CREATED)
 def register_walk_in(body: WalkInIn, member: Member, user: CurrentUser, db: DB, request: Request) -> QueueTokenOut:
-    branch = _branch(db, member.clinic_id, body.branch_id)
+    branch = _branch(db, member, body.branch_id)
     cp = ensure_clinic_patient(
         db, member.clinic_id, patient_id=body.patient_id, phone=body.phone, full_name=body.full_name,
         age=body.age, sex=body.sex, physio_id=body.physio_id,
@@ -109,7 +112,7 @@ def register_walk_in(body: WalkInIn, member: Member, user: CurrentUser, db: DB, 
 
 @router.post("/clinic/queue/call-next", response_model=QueueOut)
 def call_next(branch_id: uuid.UUID, member: Member, db: DB) -> QueueOut:
-    branch = _branch(db, member.clinic_id, branch_id)
+    branch = _branch(db, member, branch_id)
     day = _today(branch)
     now = datetime.now(UTC)
     tokens = list(
@@ -134,6 +137,7 @@ def update_token(token_id: uuid.UUID, body: TokenStatusIn, member: Member, db: D
     token = db.get(QueueToken, token_id)
     if token is None or db.get(Branch, token.branch_id).clinic_id != member.clinic_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Token not found")
+    check_branch(member, token.branch_id)
     now = datetime.now(UTC)
     if body.status == TokenStatus.SERVING:
         token.called_at = token.called_at or now

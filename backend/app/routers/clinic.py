@@ -23,6 +23,7 @@ from app.schemas.booking import (
     PhysioProfileOut,
 )
 from app.services import audit
+from app.services.scope import check_branch, effective_branch
 from app.services.billing import void_booking_invoice
 
 router = APIRouter(prefix="/clinic", tags=["clinic"])
@@ -125,6 +126,7 @@ def appointments(
     branch_id: uuid.UUID | None = None,
     physio_id: uuid.UUID | None = None,
 ) -> list[ClinicAppointmentOut]:
+    branch_id = effective_branch(member, branch_id)
     branch_q = select(Branch).where(Branch.clinic_id == member.clinic_id)
     if branch_id:
         branch_q = branch_q.where(Branch.id == branch_id)
@@ -157,6 +159,7 @@ def update_appointment(appointment_id: uuid.UUID, body: AppointmentStatusIn, mem
     appt = db.get(Appointment, appointment_id)
     if appt is None or appt.clinic_id != member.clinic_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Appointment not found")
+    check_branch(member, appt.branch_id)
     if body.status not in TRANSITIONS.get(appt.status, set()):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Can't change a {appt.status.value} appointment to {body.status.value}")
     previous = appt.status

@@ -7,7 +7,7 @@ import { Adherence } from '@/components/clinical'
 import { Alert, Avatar, Button, Field, Input, Loader, Select, Stat, Textarea } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
 import { TwinSection } from '@/pages/clinic/TwinSection'
-import { dayLabel } from '@shared/format'
+import { dayLabel, rupees, shortDate } from '@shared/format'
 
 type File = Schemas['PatientFileOut']
 type Plan = Schemas['CarePlanOut']
@@ -18,6 +18,7 @@ export default function PatientFile() {
   const canWrite = isOwner || role === 'physio'
   const q = useQuery({ queryKey: ['patient-file', id], queryFn: () => api<File>(`/clinic/patients/${id}`, { clinicId }) })
   const rx = useQuery({ queryKey: ['patient-rx', id], queryFn: () => api<Schemas['PrescriptionOut'][]>(`/clinic/patients/${id}/prescriptions`, { clinicId }) })
+  const invoices = useQuery({ queryKey: ['patient-invoices', id], queryFn: () => api<Schemas['InvoiceListItem'][]>(`/clinic/invoices/patient/${id}`, { clinicId }) })
 
   if (q.isLoading) return <Loader />
   if (!q.data) return <Alert>{(q.error as Error)?.message ?? 'Patient not found'}</Alert>
@@ -94,6 +95,24 @@ export default function PatientFile() {
               <li key={r.id} className="flex justify-between py-2.5 text-[14px]">
                 <Link to={`/clinic/prescriptions/${r.id}`} className="font-semibold hover:underline">{r.rx_no}</Link>
                 <span className="text-muted">{dayLabel(r.issued_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section title="Invoices">
+        {!invoices.data?.length ? (
+          <p className="text-[14px] text-muted">None issued yet.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {invoices.data.map((i) => (
+              <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-[14px]">
+                <Link to={`/clinic/billing/${i.id}`} className="font-semibold hover:underline">{i.number}</Link>
+                <span className="min-w-0 flex-1 truncate text-muted">{i.service}</span>
+                <span className="tabular-nums">{rupees(i.total_paise)}</span>
+                <span className="eyebrow w-16 text-right">{i.status === 'paid' ? 'Paid' : i.status === 'void' ? 'Void' : 'Due'}</span>
+                <span className="w-24 text-right text-muted">{shortDate(i.issued_on)}</span>
               </li>
             ))}
           </ul>

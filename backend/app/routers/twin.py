@@ -77,7 +77,7 @@ def _measurement_or_404(db: Session, clinic_id: uuid.UUID, measurement_id: uuid.
 
 @router.get("/patients/{cp_id}/twin", response_model=TwinOut)
 def get_twin(cp_id: uuid.UUID, member: Member, db: DB) -> TwinOut:
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     return twin_out(db, cp, active_plan_for(db, cp.id))
 
 
@@ -91,7 +91,7 @@ def record_measurements(
     request: Request,
 ) -> list[MeasurementOut]:
     """Record clinic readings (goniometer, tape, pain). A big jump from the last reading is saved but held for confirmation."""
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     plan = active_plan_for(db, cp.id)
     consult_ids = {i.consultation_id for i in items if i.consultation_id}
     if consult_ids:
@@ -156,7 +156,7 @@ def set_targets(
     request: Request,
 ) -> list[TargetOut]:
     """Replace the plan's targets."""
-    plan = care_plan_or_404(db, member.clinic_id, plan_id)
+    plan = care_plan_or_404(db, member, plan_id)
     if len({(i.code, i.side) for i in items}) != len(items):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Each measure and side can have only one target")
     for item in items:
@@ -275,7 +275,7 @@ def reject_suggestion(suggestion_id: uuid.UUID, body: SuggestionRejectIn, member
 @router.post("/patients/{cp_id}/camera-measurements", response_model=CameraMeasurementOut, status_code=status.HTTP_201_CREATED)
 def record_camera_measurement(cp_id: uuid.UUID, body: CameraMeasurementIn, member: Clinician, user: CurrentUser, db: DB, request: Request) -> CameraMeasurementOut:
     """Save a camera angle and the goniometer reading taken with it. Only the numbers arrive here; no video."""
-    cp = clinic_patient_or_404(db, member.clinic_id, cp_id)
+    cp = clinic_patient_or_404(db, member, cp_id)
     side = Side(body.side)
     spec = check(body.code, side, body.goniometer_value)
     check(body.code, side, body.camera_value)

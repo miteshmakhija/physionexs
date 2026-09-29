@@ -133,3 +133,54 @@ def test_dashboard_active_patients_follow_the_selected_branch(env):
     by_branch = {b: c.get("/clinic/dashboard", headers=h, params={"branch_id": b}).json()["staff_on_roll"] for b in (seen, empty)}
     assert by_branch == {seen: 3, empty: 2}  # owner (no branch) + floater everywhere; the assigned one only at `seen`
     assert c.get("/clinic/dashboard", headers=h).json()["staff_on_roll"] == 3
+
+
+def _login(c, email, password, clinic_id):
+    t = c.post("/auth/login", json={"identifier": email, "password": password, "intent": "clinic"}).json()
+    return {"Authorization": f"Bearer {t['access_token']}", "X-Clinic-Id": clinic_id}
+
+
+def test_branch_staff_see_only_their_branch_and_can_print_invoices(env):
+    c, _, physio, tag = env
+    h = _owner(c, physio)
+    clinic_id = h["X-Clinic-Id"]
+    kharadi = c.get("/clinic/branches", headers=h).json()[0]["id"]
+    karve = c.post("/clinic/branches", headers=h, json={"name": "PNX TEST Karve", "city": "Pune"}).json()["id"]
+
+    # One patient walks in at each branch; each gets an invoice there.
+    at_kharadi = c.post("/clinic/queue", headers=h, json={"branch_id": kharadi, "full_name": "PNX Kharadi Pt", "phone": "+919111122255"}).json()
+    at_karve = c.post("/clinic/queue", headers=h, json={"branch_id": karve, "full_name": "PNX Karve Pt", "phone": "+919111122266"}).json()
+    line = [{"description": "Physiotherapy session", "quantity": 1, "rate_paise": 60000}]
+    inv_kharadi = c.post("/clinic/invoices", headers=h, json={"clinic_patient_id": at_kharadi["clinic_patient_id"], "branch_id": kharadi, "items": line}).json()
+    inv_karve = c.post("/clinic/invoices", headers=h, json={"clinic_patient_id": at_karve["clinic_patient_id"], "branch_id": karve, "items": line}).json()
+
+    email = f"pnx-karve-{tag}@test.physionexs.com"
+    staff = c.post("/clinic/staff", headers=h, json={"full_name": "PNX Karve Staff", "email": email, "password": "staff-pass-1", "branch_id": karve}).json()
+    sh = _login(c, email, "staff-pass-1", clinic_id)
+
+    assert [b["id"] for b in c.get("/clinic/branches", headers=sh).json()] == [karve]
+    assert c.get("/clinic/queue", headers=sh, params={"branch_id": kharadi}).status_code == 404
+    assert c.get("/clinic/queue", headers=sh, params={"branch_id": karve}).status_code == 200
+    assert [t["patient_name"] for t in c.get("/clinic/walk-ins", headers=sh, params={"day": c.get("/clinic/queue", headers=sh, params={"branch_id": karve}).json()["service_date"]}).json()] == ["PNX Karve Pt"]
+    names = {p["full_name"] for p in c.get("/clinic/patients", headers=sh, params={"limit": 200}).json()}
+    assert "PNX Karve Pt" in names and "PNX Kharadi Pt" not in names
+    assert c.get(f"/clinic/patients/{at_kharadi['clinic_patient_id']}", headers=sh).status_code == 404
+    assert c.get("/clinic/dashboard", headers=sh, params={"branch_id": kharadi}).status_code == 404
+
+    # Staff can open and print their branch's invoices, not the other branch's, and can't void.
+    assert c.get(f"/clinic/invoices/{inv_karve['id']}", headers=sh).status_code == 200
+    assert c.get(f"/clinic/invoices/{inv_kharadi['id']}", headers=sh).status_code == 404
+    assert [i["id"] for i in c.get(f"/clinic/invoices/patient/{at_karve['clinic_patient_id']}", headers=sh).json()] == [inv_karve["id"]]
+    assert c.post(f"/clinic/invoices/{inv_karve['id']}/void", headers=sh).status_code == 403
+
+    # The owner moves them to all branches and edits their details; they then see both branches.
+    r = c.put(f"/clinic/staff/{staff['id']}", headers=h, json={"branch_id": None, "full_name": "PNX Floater", "job_title": "Front desk", "password": "staff-pass-2"})
+    assert r.status_code == 200, r.text
+    assert r.json()["full_name"] == "PNX Floater" and r.json()["branch_id"] is None
+    assert c.post("/auth/login", json={"identifier": email, "password": "staff-pass-1", "intent": "clinic"}).status_code == 401
+    sh = _login(c, email, "staff-pass-2", clinic_id)
+    assert {b["id"] for b in c.get("/clinic/branches", headers=sh).json()} == {kharadi, karve}
+    assert c.get(f"/clinic/patients/{at_kharadi['clinic_patient_id']}", headers=sh).status_code == 200
+    # The owner's own sign-in details aren't editable from the team list.
+    owner_row = next(m for m in c.get("/clinic/staff", headers=h).json() if m["role"] == "owner")
+    assert c.put(f"/clinic/staff/{owner_row['id']}", headers=h, json={"email": "x@test.physionexs.com"}).status_code == 409

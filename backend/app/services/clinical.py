@@ -17,6 +17,7 @@ from app.models.twin import CarePlanTarget
 from app.models.user import User
 from app.schemas.clinical import CarePlanOut, MedicationOut, PlanExerciseOut, TestOrderOut
 from app.schemas.twin import TargetOut
+from app.services.scope import check_patient
 
 # Default reminder times for morning / afternoon / night doses (the design's 8:30 AM, 2:00 PM, 9:00 PM).
 DOSE_SLOTS = ("08:30", "14:00", "21:00")
@@ -89,17 +90,25 @@ def ensure_clinic_patient(
     return link
 
 
-def clinic_patient_or_404(db: Session, clinic_id: uuid.UUID, clinic_patient_id: uuid.UUID) -> ClinicPatient:
+def clinic_patient_or_404(db: Session, who: ClinicMember | uuid.UUID, clinic_patient_id: uuid.UUID) -> ClinicPatient:
+    """The clinic's patient file. Given a team member (not just a clinic id), also enforces their branch scope."""
+    clinic_id = who.clinic_id if isinstance(who, ClinicMember) else who
     cp = db.get(ClinicPatient, clinic_patient_id)
     if cp is None or cp.clinic_id != clinic_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Patient not found")
+    if isinstance(who, ClinicMember):
+        check_patient(db, who, cp)
     return cp
 
 
-def care_plan_or_404(db: Session, clinic_id: uuid.UUID, plan_id: uuid.UUID) -> CarePlan:
+def care_plan_or_404(db: Session, who: ClinicMember | uuid.UUID, plan_id: uuid.UUID) -> CarePlan:
+    clinic_id = who.clinic_id if isinstance(who, ClinicMember) else who
     plan = db.get(CarePlan, plan_id)
-    if plan is None or db.get(ClinicPatient, plan.clinic_patient_id).clinic_id != clinic_id:
+    cp = db.get(ClinicPatient, plan.clinic_patient_id) if plan else None
+    if cp is None or cp.clinic_id != clinic_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Care plan not found")
+    if isinstance(who, ClinicMember):
+        check_patient(db, who, cp)
     return plan
 
 
