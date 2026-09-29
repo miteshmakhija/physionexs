@@ -85,7 +85,7 @@ export default function Schedule() {
                   {a.patient_phone && ` · ${a.patient_phone}`}
                 </p>
               </div>
-              <span className="eyebrow w-28 text-right">{STATUS_LABEL[a.status]}{a.paid ? ' · Paid' : ''}</span>
+              <span className="eyebrow w-28 text-right">{STATUS_LABEL[a.status]}{a.paid ? ' · Paid' : a.pay_at_clinic ? ' · Pay at desk' : ''}</span>
               <div className="flex gap-1">
                 {(ACTIONS[a.status] ?? []).map((act) => (
                   <button

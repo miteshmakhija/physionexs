@@ -8,7 +8,7 @@ import { api, type Schemas } from '@/lib/api'
 import { WEEKDAYS } from '@shared/format'
 
 type Profile = Schemas['PhysioProfileOut']
-type Block = { weekday: number; start_time: string; end_time: string }
+type Block = { weekday: number; start_time: string; end_time: string; branch_id?: string }
 
 const DEFAULT_BLOCKS: Block[] = [0, 1, 2, 3, 4, 5].flatMap((d) => [
   { weekday: d, start_time: '09:00', end_time: '13:00' },
@@ -148,18 +148,18 @@ function FeeToggle(props: { label: string; checked: boolean; onToggle: (v: boole
 
 function HoursForm({ initial, branches, clinicId }: { initial: Schemas['AvailabilityItem'][]; branches: Schemas['BranchOut'][]; clinicId: string }) {
   const qc = useQueryClient()
-  const [pickedBranch, setBranchId] = useState(initial[0]?.branch_id ?? '')
-  const branchId = pickedBranch || branches[0]?.id || ''
+  // Each block of hours belongs to a branch, so a physio can work Mon–Wed at one branch and Thu–Sat at another.
+  const defaultBranch = branches[0]?.id ?? ''
   const [slotMinutes, setSlotMinutes] = useState(initial[0]?.slot_minutes ?? 30)
   const [blocks, setBlocks] = useState<Block[]>(
-    initial.length ? initial.map((a) => ({ weekday: a.weekday, start_time: a.start_time.slice(0, 5), end_time: a.end_time.slice(0, 5) })) : [],
+    initial.length ? initial.map((a) => ({ weekday: a.weekday, start_time: a.start_time.slice(0, 5), end_time: a.end_time.slice(0, 5), branch_id: a.branch_id })) : [],
   )
   const save = useMutation({
     mutationFn: () =>
       api<Schemas['AvailabilityItem'][]>('/clinic/availability', {
         method: 'PUT',
         clinicId,
-        json: { items: blocks.map((b) => ({ ...b, branch_id: branchId, slot_minutes: slotMinutes })) },
+        json: { items: blocks.map((b) => ({ ...b, branch_id: b.branch_id || defaultBranch, slot_minutes: slotMinutes })) },
       }),
     onSuccess: (items) => qc.setQueryData(['availability'], items),
   })
@@ -171,11 +171,6 @@ function HoursForm({ initial, branches, clinicId }: { initial: Schemas['Availabi
       <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="eyebrow">Weekly hours</h2>
         <div className="flex items-center gap-3 text-[13px]">
-          {branches.length > 1 && (
-            <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="h-9 rounded-sm border border-line-strong px-2">
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          )}
           <label className="flex items-center gap-2 text-muted">
             Slot length
             <select value={slotMinutes} onChange={(e) => setSlotMinutes(Number(e.target.value))} className="h-9 rounded-sm border border-line-strong px-2 text-ink">
@@ -207,12 +202,17 @@ function HoursForm({ initial, branches, clinicId }: { initial: Schemas['Availabi
                     <Input type="time" value={b.start_time} onChange={(e) => update(i, { start_time: e.target.value })} className="!h-9 !w-32" aria-label={`${day} start`} />
                     <span className="text-muted">to</span>
                     <Input type="time" value={b.end_time} onChange={(e) => update(i, { end_time: e.target.value })} className="!h-9 !w-32" aria-label={`${day} end`} />
+                    {branches.length > 1 && (
+                      <select value={b.branch_id || defaultBranch} onChange={(e) => update(i, { branch_id: e.target.value })} className="h-9 rounded-sm border border-line-strong px-2" aria-label={`${day} branch`}>
+                        {branches.map((br) => <option key={br.id} value={br.id}>{br.name}</option>)}
+                      </select>
+                    )}
                     <button onClick={() => setBlocks(blocks.filter((_, j) => j !== i))} className="px-2 text-muted hover:text-danger" aria-label="Remove">✕</button>
                   </div>
                 ))}
               </div>
               <button
-                onClick={() => setBlocks([...blocks, { weekday: d, start_time: '09:00', end_time: '13:00' }])}
+                onClick={() => setBlocks([...blocks, { weekday: d, start_time: '09:00', end_time: '13:00', branch_id: rows.at(-1)?.b.branch_id ?? defaultBranch }])}
                 className="eyebrow pt-2 !text-ink hover:underline"
               >
                 + Add hours
@@ -223,7 +223,7 @@ function HoursForm({ initial, branches, clinicId }: { initial: Schemas['Availabi
       </div>
 
       <div className="mt-5 flex items-center gap-4">
-        <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!branchId}>Save hours</Button>
+        <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!defaultBranch}>Save hours</Button>
         {save.isSuccess && <span className="text-[13px] text-leaf-dark">Saved — patients can book these slots</span>}
         {save.error && <span className="text-[13px] text-danger">{(save.error as Error).message}</span>}
       </div>

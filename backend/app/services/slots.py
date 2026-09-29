@@ -65,6 +65,7 @@ def list_slots(
     start: date,
     days: int,
     now: datetime | None = None,
+    branch_id: uuid.UUID | None = None,
 ) -> list[DaySlots]:
     now = now or datetime.now(UTC)
     days = max(1, min(days, MAX_DAYS_AHEAD))
@@ -73,6 +74,7 @@ def list_slots(
         select(Availability, Branch.timezone)
         .join(Branch, Branch.id == Availability.branch_id)
         .where(Availability.physio_user_id == physio_user_id, Branch.is_active.is_(True))
+        .where(Availability.branch_id == branch_id if branch_id else True)
         .order_by(Availability.start_time)
     ).all()
     if not rows:
@@ -119,11 +121,13 @@ def list_slots(
     return result
 
 
-def find_slot(db: Session, physio_user_id: uuid.UUID, starts_at: datetime, now: datetime | None = None) -> Slot | None:
-    """The slot starting at `starts_at` if it exists in the physio's hours (available or not)."""
+def find_slot(
+    db: Session, physio_user_id: uuid.UUID, starts_at: datetime, now: datetime | None = None, branch_id: uuid.UUID | None = None
+) -> Slot | None:
+    """The slot starting at `starts_at` if it exists in the physio's hours (available or not), at `branch_id` when given."""
     starts_at = starts_at.astimezone(UTC)
     local_day = starts_at.astimezone(physio_timezone(db, physio_user_id)).date()
-    for day in list_slots(db, physio_user_id, local_day, 1, now):
+    for day in list_slots(db, physio_user_id, local_day, 1, now, branch_id):
         for slot in day.slots:
             if slot.starts_at == starts_at:
                 return slot

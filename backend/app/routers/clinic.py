@@ -169,6 +169,10 @@ def update_appointment(appointment_id: uuid.UUID, body: AppointmentStatusIn, mem
         if payment and payment.status == PaymentStatus.PAID and payment.amount_paise > 0:
             payment.meta = {**payment.meta, "refund_required": True, "refund_reason": "cancelled by clinic"}
         void_booking_invoice(db, appt.id, "cancelled by clinic")
+    if body.status == AppointmentStatus.NO_SHOW and appt.payment_id:
+        payment = db.get(Payment, appt.payment_id)
+        if payment and payment.status != PaymentStatus.PAID:
+            void_booking_invoice(db, appt.id, "no-show, not paid")  # a pay-at-clinic booking that never came
     audit.record(db, action="update", entity="appointment", entity_id=appt.id, actor_user_id=user.id, clinic_id=member.clinic_id, changes={"status": [previous.value, body.status.value]}, request=request)
     db.commit()
     patient = db.get(Patient, appt.patient_id)
@@ -192,4 +196,5 @@ def _clinic_appt(db: DB, a: Appointment, p: Patient, physio: User, b: Branch) ->
         reason=a.reason,
         fee_paise=a.fee_paise,
         paid=payment is not None and payment.status == PaymentStatus.PAID,
+        pay_at_clinic=bool(payment and (payment.meta or {}).get("pay_at_clinic")),
     )

@@ -46,7 +46,7 @@ export default function AppointmentDetail() {
         <Row label="Date & time" value={when(a.starts_at)} />
         <Row label="Mode" value={MODE_LABEL[a.mode]} />
         <Row label="Where" value={a.mode === 'online' ? 'Video link shared before the session' : `${a.clinic_name}, ${[a.branch.area, a.branch.city].filter(Boolean).join(', ')}`} />
-        <Row label={a.paid ? 'Paid' : 'Fee'} value={a.paid ? rupees(a.amount_paid_paise) + (a.points_redeemed ? ` + ${a.points_redeemed} pts` : '') : rupees(a.fee_paise)} />
+        <Row label={a.paid ? 'Paid' : a.pay_at_clinic ? 'Pay at the clinic' : 'Fee'} value={a.paid ? rupees(a.amount_paid_paise) + (a.points_redeemed ? ` + ${a.points_redeemed} pts` : '') : rupees(a.fee_paise)} />
       </Card>
       {a.status === 'completed' && <RateVisit appointment={a} />}
       {cancel.error && <ErrorText>{(cancel.error as Error).message}</ErrorText>}

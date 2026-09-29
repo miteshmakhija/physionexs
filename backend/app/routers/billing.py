@@ -10,7 +10,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import DB, CurrentUser, require_clinic_member
-from app.models.billing import Invoice, InvoiceItem, InvoiceStatus
+from app.models.billing import Invoice, InvoiceItem, InvoiceStatus, Payment, PaymentStatus
 from app.models.clinic import Branch, Clinic, ClinicMember, MembershipRole
 from app.models.patient import ClinicPatient, Patient
 from app.schemas.business import BillingSummary, InvoiceIn, InvoiceLineOut, InvoiceListItem, InvoiceOut, InvoicePage, PayIn
@@ -117,11 +117,17 @@ def get_invoice(invoice_id: uuid.UUID, member: Member, db: DB) -> InvoiceOut:
 
 
 @router.post("/{invoice_id}/pay", response_model=InvoiceOut)
-def pay_invoice(invoice_id: uuid.UUID, body: PayIn, member: Owner, user: CurrentUser, db: DB, request: Request) -> InvoiceOut:
+def pay_invoice(invoice_id: uuid.UUID, body: PayIn, member: Member, user: CurrentUser, db: DB, request: Request) -> InvoiceOut:
+    """Record payment at the desk. Any team member can collect for their branch (e.g. pay-at-clinic bookings)."""
     inv = _own(db, member.clinic_id, invoice_id)
+    check_branch(member, inv.branch_id)
     if inv.status != InvoiceStatus.DUE:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Invoice is {inv.status.value}")
     mark_paid(inv, body.method)
+    payment = db.get(Payment, inv.payment_id) if inv.payment_id else None
+    if payment and payment.status != PaymentStatus.PAID:
+        # A pay-at-clinic booking: its payment is now settled too, so the schedule shows it as paid.
+        payment.status, payment.paid_at, payment.method = PaymentStatus.PAID, inv.paid_at, body.method
     audit.record(db, action="payment", entity="invoice", entity_id=inv.id, actor_user_id=user.id, clinic_id=member.clinic_id, summary=f"{inv.number} paid via {body.method}", request=request)
     db.commit()
     return invoice_out(db, inv)

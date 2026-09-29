@@ -3,12 +3,14 @@
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.billing import Invoice, InvoiceItem, InvoiceStatus, Payment
+from app.models.clinic import Branch
 from app.models.patient import ClinicPatient
 from app.models.scheduling import Appointment, ConsultMode
 
@@ -89,17 +91,35 @@ def mark_paid(inv: Invoice, method: str) -> None:
     inv.paid_at = datetime.now(UTC)
 
 
-def invoice_for_paid_booking(db: Session, appt: Appointment, payment: Payment) -> Invoice | None:
-    """Every paid app booking gets a paid invoice, so billing and analytics see all revenue."""
-    if db.scalar(select(Invoice.id).where(Invoice.appointment_id == appt.id)):
-        return None
+def _booking_patient(db: Session, appt: Appointment) -> ClinicPatient:
     cp = db.scalar(select(ClinicPatient).where(ClinicPatient.clinic_id == appt.clinic_id, ClinicPatient.patient_id == appt.patient_id))
     if cp is None:
         cp = ClinicPatient(clinic_id=appt.clinic_id, patient_id=appt.patient_id, primary_physio_id=appt.physio_user_id)
         db.add(cp)
         db.flush()
+    return cp
+
+
+def _booking_line(appt: Appointment) -> Line:
     mode = "Online consultation" if appt.mode == ConsultMode.ONLINE else "In-clinic consultation"
-    lines = [Line(description=mode, detail=f"{appt.kind.value.replace('_', '-').capitalize()} · booked on Physionexs", rate_paise=appt.fee_paise)]
+    return Line(description=mode, detail=f"{appt.kind.value.replace('_', '-').capitalize()} · booked on Physionexs", rate_paise=appt.fee_paise)
+
+
+def invoice_for_clinic_booking(db: Session, appt: Appointment) -> Invoice:
+    """A pay-at-clinic booking: a due invoice that reception marks paid when the patient pays at the desk."""
+    return create_invoice(
+        db, clinic_id=appt.clinic_id, branch_id=appt.branch_id, clinic_patient_id=_booking_patient(db, appt).id,
+        lines=[_booking_line(appt)], due_on=appt.starts_at.astimezone(ZoneInfo(db.get(Branch, appt.branch_id).timezone)).date(), notes="Booked on Physionexs · pay at the clinic",
+        payment_id=appt.payment_id, appointment_id=appt.id,
+    )
+
+
+def invoice_for_paid_booking(db: Session, appt: Appointment, payment: Payment) -> Invoice | None:
+    """Every paid app booking gets a paid invoice, so billing and analytics see all revenue."""
+    if db.scalar(select(Invoice.id).where(Invoice.appointment_id == appt.id)):
+        return None
+    cp = _booking_patient(db, appt)
+    lines = [_booking_line(appt)]
     discount = (payment.meta or {}).get("discount_paise", 0)
     if discount:
         lines.append(Line(description="Health Points redeemed", detail=f"{payment.points_redeemed} points", rate_paise=-discount))

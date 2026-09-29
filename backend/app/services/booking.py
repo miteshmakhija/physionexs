@@ -1,4 +1,4 @@
-"""Patient app bookings: hold a slot, take payment through Razorpay, confirm."""
+"""Patient app bookings: hold a slot, take payment through Razorpay (or at the clinic), confirm."""
 
 import logging
 import uuid
@@ -15,6 +15,7 @@ from app.models.engagement import Notification, PointsLedger
 from app.models.patient import ClinicPatient, Patient
 from app.models.scheduling import (
     Appointment,
+    Availability,
     AppointmentKind,
     AppointmentSource,
     AppointmentStatus,
@@ -22,7 +23,7 @@ from app.models.scheduling import (
 )
 from app.models.user import User
 from app.services import audit, razorpay
-from app.services.billing import invoice_for_paid_booking, void_booking_invoice
+from app.services.billing import invoice_for_clinic_booking, invoice_for_paid_booking, void_booking_invoice
 from app.services.settings import paise_per_point
 from app.services.slots import find_slot
 
@@ -42,8 +43,14 @@ def create_booking(
     mode: ConsultMode,
     referral_source: str | None,
     redeem_points: bool,
+    branch_id: uuid.UUID | None = None,
+    pay_at_clinic: bool = False,
 ) -> tuple[Appointment, Payment]:
     now = datetime.now(UTC)
+    if pay_at_clinic and mode == ConsultMode.ONLINE:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Online consultations are paid in advance. Choose an in-clinic visit to pay at the clinic.")
+    if pay_at_clinic and redeem_points:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Health Points can be redeemed only when paying online")
     profile = db.scalar(select(PhysioProfile).where(PhysioProfile.user_id == physio_user_id))
     if profile is None or profile.verification_status != VerificationStatus.APPROVED:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Physiotherapist not found")
@@ -55,7 +62,13 @@ def create_booking(
     if not fee or fee <= 0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Consultation fee not set for this mode")
 
-    slot = find_slot(db, physio_user_id, starts_at, now)
+    if branch_id is None:
+        # The physio's branches that have hours: with more than one, the patient must say which.
+        branches = set(db.scalars(select(Availability.branch_id).join(Branch, Branch.id == Availability.branch_id).where(
+            Availability.physio_user_id == physio_user_id, Branch.is_active.is_(True))))
+        if len(branches) > 1:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Choose which clinic branch you'd like to visit")
+    slot = find_slot(db, physio_user_id, starts_at, now, branch_id)
     if slot is None or not slot.available:
         raise HTTPException(status.HTTP_409_CONFLICT, "That slot is no longer available")
     branch = db.get(Branch, slot.branch_id)
@@ -120,7 +133,14 @@ def create_booking(
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "That slot was just taken. Please pick another time.")
 
-    if payable == 0:
+    if pay_at_clinic:
+        # No gateway: confirm straight away; reception collects the fee against a due invoice.
+        payment.method = "clinic"
+        payment.meta = {**payment.meta, "pay_at_clinic": True}
+        appt.status = AppointmentStatus.CONFIRMED
+        appt.hold_expires_at = None
+        invoice_for_clinic_booking(db, appt)
+    elif payable == 0:
         finalize_payment(db, payment, razorpay_payment_id=None, method="points")
     else:
         try:
@@ -203,7 +223,7 @@ def cancel_by_patient(db: Session, appt: Appointment, user: User) -> Appointment
         if payment.amount_paise > 0:
             # Refunds are issued by ops from the Razorpay dashboard for now; flagged here.
             payment.meta = {**payment.meta, "refund_required": True, "refund_reason": "cancelled by patient"}
-        void_booking_invoice(db, appt.id, "cancelled by patient")
+    void_booking_invoice(db, appt.id, "cancelled by patient")  # paid or still due at the clinic
     audit.record(db, action="cancel", entity="appointment", entity_id=appt.id, actor_user_id=user.id, clinic_id=appt.clinic_id, summary="Cancelled by patient")
     db.commit()
     return appt

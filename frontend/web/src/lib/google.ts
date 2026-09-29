@@ -9,7 +9,7 @@ export function googleRedirectUri() {
 
 let config: Promise<Schemas['AuthConfigOut']> | null = null
 export function authConfig() {
-  config ??= api<Schemas['AuthConfigOut']>('/platform/auth-config').catch(() => ({ google_client_id: null }))
+  config ??= api<Schemas['AuthConfigOut']>('/platform/auth-config').catch(() => ({ google_client_id: null, online_payments: false }))
   return config
 }
 

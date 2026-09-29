@@ -39,13 +39,20 @@ def support(db: DB) -> SupportOut:
 
 class AuthConfigOut(BaseModel):
     google_client_id: str | None  # public OAuth client id; null when Google sign-in is off
+    online_payments: bool = False  # Razorpay is set up; otherwise bookings are paid at the clinic
 
 
 @router.get("/auth-config", response_model=AuthConfigOut)
 def auth_config() -> AuthConfigOut:
     from app.services import google
 
-    return AuthConfigOut(google_client_id=google.settings.google_client_id if google.is_configured() else None)
+    from app.core.config import get_settings
+    from app.services import razorpay
+
+    return AuthConfigOut(
+        google_client_id=google.settings.google_client_id if google.is_configured() else None,
+        online_payments=razorpay.is_configured() or get_settings().is_dev,  # dev simulates orders
+    )
 
 
 

@@ -1933,7 +1933,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pay Invoice */
+        /**
+         * Pay Invoice
+         * @description Record payment at the desk. Any team member can collect for their branch (e.g. pay-at-clinic bookings).
+         */
         post: operations["pay_invoice_clinic_invoices__invoice_id__pay_post"];
         delete?: never;
         options?: never;
@@ -2567,6 +2570,11 @@ export interface components {
             points_redeemed: number;
             /** Paid */
             paid: boolean;
+            /**
+             * Pay At Clinic
+             * @default false
+             */
+            pay_at_clinic: boolean;
             /** Hold Expires At */
             hold_expires_at: string | null;
             review?: components["schemas"]["VisitReview"] | null;
@@ -2675,6 +2683,11 @@ export interface components {
         AuthConfigOut: {
             /** Google Client Id */
             google_client_id: string | null;
+            /**
+             * Online Payments
+             * @default false
+             */
+            online_payments: boolean;
         };
         /** AvailabilityIn */
         AvailabilityIn: {
@@ -2768,6 +2781,8 @@ export interface components {
              */
             starts_at: string;
             mode: components["schemas"]["ConsultMode"];
+            /** Branch Id */
+            branch_id?: string | null;
             /** Referral Source */
             referral_source?: string | null;
             /**
@@ -2775,6 +2790,11 @@ export interface components {
              * @default false
              */
             redeem_points: boolean;
+            /**
+             * Pay At Clinic
+             * @default false
+             */
+            pay_at_clinic: boolean;
         };
         /** BranchBrief */
         BranchBrief: {
@@ -3167,6 +3187,11 @@ export interface components {
             fee_paise: number;
             /** Paid */
             paid: boolean;
+            /**
+             * Pay At Clinic
+             * @default false
+             */
+            pay_at_clinic: boolean;
         };
         /**
          * ClinicPatientStatus
@@ -6301,6 +6326,7 @@ export interface operations {
             query?: {
                 start?: string | null;
                 days?: number;
+                branch_id?: string | null;
             };
             header?: never;
             path: {

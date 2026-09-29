@@ -146,6 +146,7 @@ def slots(
     db: DB,
     start: date | None = None,
     days: Annotated[int, Query(ge=1, le=14)] = 7,
+    branch_id: uuid.UUID | None = None,  # only this clinic branch's hours
 ) -> list[DayOut]:
     approved = db.scalar(
         select(PhysioProfile.id).where(PhysioProfile.user_id == physio_id, PhysioProfile.verification_status == VerificationStatus.APPROVED)
@@ -157,7 +158,7 @@ def slots(
     start = max(start or today, today)
     return [
         DayOut(date=d.day, slots=[SlotOut(starts_at=s.starts_at, ends_at=s.ends_at, branch_id=s.branch_id, available=s.available) for s in d.slots])
-        for d in list_slots(db, physio_id, start, days, now)
+        for d in list_slots(db, physio_id, start, days, now, branch_id)
     ]
 
 

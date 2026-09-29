@@ -44,7 +44,9 @@ def env():
 
     app.dependency_overrides[get_db] = lambda: db
     try:
-        yield TestClient(app), patient, physio, tag
+        client = TestClient(app)
+        client.db = db  # for tests that need to set up rows the API has no endpoint for
+        yield client, patient, physio, tag
     finally:
         app.dependency_overrides.pop(get_db, None)
         db.close()
@@ -184,3 +186,55 @@ def test_branch_staff_see_only_their_branch_and_can_print_invoices(env):
     # The owner's own sign-in details aren't editable from the team list.
     owner_row = next(m for m in c.get("/clinic/staff", headers=h).json() if m["role"] == "owner")
     assert c.put(f"/clinic/staff/{owner_row['id']}", headers=h, json={"email": "x@test.physionexs.com"}).status_code == 409
+
+
+def test_patient_picks_a_branch_and_can_pay_at_the_clinic(env):
+    from datetime import time as clock
+
+    from app.models import Availability, PhysioProfile
+    from app.models.clinic import VerificationStatus
+
+    c, patient, physio, tag = env
+    db = c.db
+    h = _owner(c, physio)
+    kharadi = c.get("/clinic/branches", headers=h).json()[0]["id"]
+    karve = c.post("/clinic/branches", headers=h, json={"name": "PNX TEST Karve", "city": "Pune"}).json()["id"]
+    db.add(PhysioProfile(user_id=physio.id, registration_no="IAP-PNX-B", verification_status=VerificationStatus.APPROVED,
+                         offers_in_clinic=True, fee_in_clinic_paise=50000, offers_online=True, fee_online_paise=40000))
+    for b in (kharadi, karve):
+        for wd in range(7):
+            db.add(Availability(physio_user_id=physio.id, branch_id=b, weekday=wd, start_time=clock(0, 0), end_time=clock(23, 30), slot_minutes=30))
+    db.flush()
+
+    days = c.get(f"/physios/{physio.id}/slots", params={"branch_id": karve, "days": 2}).json()
+    slots = [s for d in days for s in d["slots"] if s["available"]]
+    assert slots and {s["branch_id"] for s in slots} == {karve}
+    starts = slots[0]["starts_at"]
+
+    pt = c.post("/auth/login", json={"identifier": patient.email, "password": "patient-pass-1", "intent": "patient"}).json()
+    ph = {"Authorization": f"Bearer {pt['access_token']}"}
+    base = {"physio_id": str(physio.id), "starts_at": starts, "mode": "in_clinic"}
+    r = c.post("/bookings", headers=ph, json={**base, "pay_at_clinic": True})
+    assert r.status_code == 400 and "branch" in r.json()["detail"]  # works at two branches: must choose
+    assert c.post("/bookings", headers=ph, json={**base, "mode": "online", "branch_id": karve, "pay_at_clinic": True}).status_code == 400
+
+    r = c.post("/bookings", headers=ph, json={**base, "branch_id": karve, "pay_at_clinic": True})
+    assert r.status_code == 201, r.text
+    booked = r.json()
+    assert booked["status"] == "confirmed" and booked["razorpay"] is None
+    mine = c.get(f"/me/appointments/{booked['appointment_id']}", headers=ph).json()
+    assert mine["pay_at_clinic"] is True and mine["paid"] is False
+
+    # Karve reception sees it, collects the fee, and the booking shows as paid.
+    email = f"pnx-desk-{tag}@test.physionexs.com"
+    c.post("/clinic/staff", headers=h, json={"full_name": "PNX Desk", "email": email, "password": "staff-pass-1", "branch_id": karve})
+    sh = _login(c, email, "staff-pass-1", h["X-Clinic-Id"])
+    appts = c.get("/clinic/appointments", headers=sh, params={"day": c.get("/clinic/queue", headers=sh, params={"branch_id": karve}).json()["service_date"]}).json()
+    appts += c.get("/clinic/appointments", headers=sh, params={"day": days[1]["date"]}).json()
+    appt = next(a for a in appts if a["id"] == booked["appointment_id"])
+    assert appt["pay_at_clinic"] is True and appt["paid"] is False and appt["branch_name"] == "PNX TEST Karve"
+    cp_id = next(p["id"] for p in c.get("/clinic/patients", headers=sh, params={"limit": 200}).json() if p["full_name"] == patient.full_name)
+    inv = c.get(f"/clinic/invoices/patient/{cp_id}", headers=sh).json()[0]
+    assert inv["status"] == "due"
+    assert c.post(f"/clinic/invoices/{inv['id']}/pay", headers=sh, json={"method": "cash"}).json()["status"] == "paid"
+    assert c.get(f"/me/appointments/{booked['appointment_id']}", headers=ph).json()["paid"] is True

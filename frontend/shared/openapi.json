@@ -968,6 +968,23 @@
               "default": 7,
               "title": "Days"
             }
+          },
+          {
+            "name": "branch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch Id"
+            }
           }
         ],
         "responses": {
@@ -6641,6 +6658,7 @@
           "billing"
         ],
         "summary": "Pay Invoice",
+        "description": "Record payment at the desk. Any team member can collect for their branch (e.g. pay-at-clinic bookings).",
         "operationId": "pay_invoice_clinic_invoices__invoice_id__pay_post",
         "security": [
           {
@@ -8979,6 +8997,11 @@
             "type": "boolean",
             "title": "Paid"
           },
+          "pay_at_clinic": {
+            "type": "boolean",
+            "title": "Pay At Clinic",
+            "default": false
+          },
           "hold_expires_at": {
             "anyOf": [
               {
@@ -9302,6 +9325,11 @@
               }
             ],
             "title": "Google Client Id"
+          },
+          "online_payments": {
+            "type": "boolean",
+            "title": "Online Payments",
+            "default": false
           }
         },
         "type": "object",
@@ -9574,6 +9602,18 @@
           "mode": {
             "$ref": "#/components/schemas/ConsultMode"
           },
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Id"
+          },
           "referral_source": {
             "anyOf": [
               {
@@ -9588,6 +9628,11 @@
           "redeem_points": {
             "type": "boolean",
             "title": "Redeem Points",
+            "default": false
+          },
+          "pay_at_clinic": {
+            "type": "boolean",
+            "title": "Pay At Clinic",
             "default": false
           }
         },
@@ -10893,6 +10938,11 @@
           "paid": {
             "type": "boolean",
             "title": "Paid"
+          },
+          "pay_at_clinic": {
+            "type": "boolean",
+            "title": "Pay At Clinic",
+            "default": false
           }
         },
         "type": "object",

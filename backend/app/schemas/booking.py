@@ -78,8 +78,10 @@ class BookingIn(BaseModel):
     physio_id: uuid.UUID
     starts_at: datetime
     mode: ConsultMode
+    branch_id: uuid.UUID | None = None  # the clinic branch the patient chose (required when the physio works at several)
     referral_source: str | None = None
     redeem_points: bool = False
+    pay_at_clinic: bool = False  # confirm now, pay at the reception desk
 
     @field_validator("starts_at")
     @classmethod
@@ -143,6 +145,7 @@ class AppointmentOut(BaseModel):
     amount_paid_paise: int
     points_redeemed: int
     paid: bool
+    pay_at_clinic: bool = False  # booked to pay at the reception desk
     hold_expires_at: datetime | None
     review: "VisitReview | None" = None  # set once the patient has rated the visit
 
@@ -222,6 +225,7 @@ class ClinicAppointmentOut(BaseModel):
     reason: str | None
     fee_paise: int
     paid: bool
+    pay_at_clinic: bool = False  # booked to pay at the reception desk
 
 
 class AppointmentStatusIn(BaseModel):

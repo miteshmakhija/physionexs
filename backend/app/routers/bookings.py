@@ -61,10 +61,12 @@ def create_booking(body: BookingIn, user: PatientUser, db: DB) -> CheckoutOut:
         mode=body.mode,
         referral_source=body.referral_source,
         redeem_points=body.redeem_points,
+        branch_id=body.branch_id,
+        pay_at_clinic=body.pay_at_clinic,
     )
     physio = db.get(User, appt.physio_user_id)
     checkout = None
-    if payment.status != PaymentStatus.PAID:
+    if payment.status != PaymentStatus.PAID and not body.pay_at_clinic:
         checkout = RazorpayCheckout(
             key_id=razorpay.public_key_id(),
             order_id=payment.razorpay_order_id,
@@ -179,6 +181,7 @@ def appointment_out(db: Session, appt: Appointment) -> AppointmentOut:
         amount_paid_paise=payment.amount_paise if paid else 0,
         points_redeemed=payment.points_redeemed if payment else 0,
         paid=paid,
+        pay_at_clinic=bool(payment and (payment.meta or {}).get("pay_at_clinic")),
         hold_expires_at=appt.hold_expires_at if appt.status == AppointmentStatus.PENDING else None,
         review=({"rating": rv.rating, "tags": rv.tags or [], "comment": rv.comment} if (rv := db.scalar(select(Review).where(Review.appointment_id == appt.id))) else None),
     )

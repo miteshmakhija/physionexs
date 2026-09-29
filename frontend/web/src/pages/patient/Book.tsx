@@ -4,32 +4,45 @@ import { Link, useNavigate, useParams } from 'react-router'
 
 import { Alert, Avatar, Button, cx, Spinner } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
+import { authConfig } from '@/lib/google'
 import { payWithRazorpay } from '@/lib/razorpay'
 import { dayParts, hourIn, MODE_LABEL, REFERRAL_OPTIONS, rupees, time, when } from '@shared/format'
 
 type Mode = 'in_clinic' | 'online'
+type Pay = 'clinic' | 'online'
 
 export default function Book() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const physio = useQuery({ queryKey: ['physio', id], queryFn: () => api<Schemas['PhysioDetail']>(`/physios/${id}`) })
+  const branches = physio.data?.branches ?? []
+  const [branchId, setBranchId] = useState<string | null>(null)
+  // One branch: it's chosen for them. Several: the patient picks before seeing that branch's slots.
+  const branch = branches.length === 1 ? branches[0].id : branchId
   const days = useQuery({
-    queryKey: ['slots', id],
-    queryFn: () => api<Schemas['DayOut'][]>(`/physios/${id}/slots`, { query: { days: 7 } }),
+    queryKey: ['slots', id, branch],
+    queryFn: () => api<Schemas['DayOut'][]>(`/physios/${id}/slots`, { query: { days: 7, branch_id: branch ?? undefined } }),
+    enabled: !!physio.data && (branches.length <= 1 || !!branch),
   })
   const points = useQuery({ queryKey: ['points'], queryFn: () => api<Schemas['PointsOut']>('/me/points') })
+  const config = useQuery({ queryKey: ['auth-config'], queryFn: authConfig })
+  const onlinePayments = config.data?.online_payments ?? false
 
   const [dayIdx, setDayIdx] = useState<number | null>(null)
   const [slot, setSlot] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode | null>(null)
   const [referral, setReferral] = useState<string | null>(null)
   const [redeem, setRedeem] = useState(false)
+  const [pay, setPay] = useState<Pay | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const p = physio.data
   const effectiveMode: Mode = mode ?? (p?.offers_in_clinic ? 'in_clinic' : 'online')
+  // Online consults are paid in advance; in-clinic visits can be paid at the desk (the only way until Razorpay is live).
+  const effectivePay: Pay = effectiveMode === 'online' ? 'online' : pay ?? (onlinePayments ? 'online' : 'clinic')
+  const payAtClinic = effectivePay === 'clinic'
   const firstOpenDay = days.data?.findIndex((d) => d.slots.some((s) => s.available)) ?? -1
   const activeDay = dayIdx ?? (firstOpenDay >= 0 ? firstOpenDay : 0)
 
@@ -37,7 +50,7 @@ export default function Book() {
   // Same rule as the API: whole points only, never more than the fee.
   const ppp = points.data?.paise_per_point ?? 100
   const pointsValue = Math.min(points.data?.balance ?? 0, Math.floor(fee / ppp)) * ppp
-  const payable = fee - (redeem ? pointsValue : 0)
+  const payable = fee - (redeem && !payAtClinic ? pointsValue : 0)
 
   const groups = useMemo(() => {
     const g: Record<string, Schemas['SlotOut'][]> = { Morning: [], Afternoon: [], Evening: [] }
@@ -48,8 +61,10 @@ export default function Book() {
     return Object.entries(g).filter(([, v]) => v.length)
   }, [days.data, activeDay])
 
-  if (physio.isLoading || days.isLoading) return <div className="grid place-items-center py-20 text-muted"><Spinner /></div>
+  if (physio.isLoading || (days.isLoading && days.fetchStatus !== 'idle')) return <div className="grid place-items-center py-20 text-muted"><Spinner /></div>
   if (!p) return <p className="py-10 text-danger">Physiotherapist not found.</p>
+
+  const step = (n: number) => (branches.length > 1 ? n + 1 : n)
 
   const confirm = async () => {
     if (!slot) return
@@ -58,7 +73,10 @@ export default function Book() {
     try {
       const checkout = await api<Schemas['CheckoutOut']>('/bookings', {
         method: 'POST',
-        json: { physio_id: p.id, starts_at: slot, mode: effectiveMode, referral_source: referral, redeem_points: redeem },
+        json: {
+          physio_id: p.id, starts_at: slot, mode: effectiveMode, branch_id: branch, referral_source: referral,
+          redeem_points: redeem && !payAtClinic, pay_at_clinic: payAtClinic,
+        },
       })
       if (checkout.razorpay) {
         const result = await payWithRazorpay(checkout.razorpay)
@@ -84,9 +102,31 @@ export default function Book() {
         <Link to={`/app/physios/${p.id}`} className="eyebrow hover:underline">← {p.full_name}</Link>
         <h1 className="mt-4 text-[28px] font-bold tracking-[-0.02em]">Book appointment</h1>
 
-        <Step n={1} title="Select date">
+        {branches.length > 1 && (
+          <Step n={1} title="Choose the clinic branch">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {branches.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => {
+                    setBranchId(b.id)
+                    setDayIdx(null)
+                    setSlot(null)
+                  }}
+                  className={cx('border p-4 text-left transition', branch === b.id ? 'border-ink' : 'border-line-strong hover:border-ink')}
+                >
+                  <span className="block text-[14px] font-semibold">{b.name}</span>
+                  <span className="block text-[12.5px] text-muted">{[b.area, b.city].filter(Boolean).join(', ')}</span>
+                </button>
+              ))}
+            </div>
+          </Step>
+        )}
+
+        {branches.length > 1 && !branch ? null : (<>
+        <Step n={step(1)} title="Select date">
           <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
-            {days.data!.map((d, i) => {
+            {(days.data ?? []).map((d, i) => {
               const open = d.slots.some((s) => s.available)
               const parts = dayParts(d.date)
               return (
@@ -111,7 +151,7 @@ export default function Book() {
           </div>
         </Step>
 
-        <Step n={2} title="Available slots">
+        <Step n={step(2)} title="Available slots">
           {groups.length === 0 ? (
             <p className="text-[14px] text-muted">No slots on this day.</p>
           ) : (
@@ -139,11 +179,12 @@ export default function Book() {
           )}
         </Step>
 
-        <Step n={3} title="How would you like to consult?">
+        <Step n={step(3)} title="How would you like to consult?">
           <p className="mb-3 text-[13px] text-muted">Same slot — visit the clinic in person or meet online over video.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {(['in_clinic', 'online'] as const).map((m) => {
-              const offered = m === 'online' ? p.offers_online : p.offers_in_clinic
+              // Online consults need online payment, which isn't live yet.
+              const offered = m === 'online' ? p.offers_online && onlinePayments : p.offers_in_clinic
               const price = m === 'online' ? p.fee_online_paise : p.fee_in_clinic_paise
               return (
                 <button
@@ -157,14 +198,41 @@ export default function Book() {
                   )}
                 >
                   <span className="text-[14px] font-semibold">{MODE_LABEL[m]}</span>
-                  <span className="text-[13px] text-muted">{offered ? rupees(price) : 'Not offered'}</span>
+                  <span className="text-[13px] text-muted">{offered ? rupees(price) : m === 'online' && p.offers_online ? 'Coming soon' : 'Not offered'}</span>
                 </button>
               )
             })}
           </div>
         </Step>
 
-        <Step n={4} title={`How did you find ${p.full_name}?`}>
+        <Step n={step(4)} title="How would you like to pay?">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(['clinic', 'online'] as const).map((opt) => {
+              const available = opt === 'clinic' ? effectiveMode === 'in_clinic' : onlinePayments
+              return (
+                <button
+                  key={opt}
+                  disabled={!available}
+                  onClick={() => setPay(opt)}
+                  className={cx(
+                    'border p-4 text-left transition',
+                    effectivePay === opt ? 'border-ink' : 'border-line-strong hover:border-ink',
+                    !available && 'cursor-not-allowed opacity-40',
+                  )}
+                >
+                  <span className="block text-[14px] font-semibold">{opt === 'clinic' ? 'Pay at the clinic' : 'Pay online now'}</span>
+                  <span className="block text-[12.5px] text-muted">
+                    {opt === 'clinic'
+                      ? effectiveMode === 'online' ? 'Only for in-clinic visits' : 'Cash, UPI or card at reception'
+                      : onlinePayments ? 'UPI, cards, net banking' : 'Coming soon'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </Step>
+
+        <Step n={step(5)} title={`How did you find ${p.full_name}?`}>
           <p className="mb-3 text-[13px] text-muted">Helps your physio and clinic understand what's working.</p>
           <div className="flex flex-wrap gap-2">
             {REFERRAL_OPTIONS.map((o) => (
@@ -182,6 +250,8 @@ export default function Book() {
           </div>
         </Step>
 
+        </>)}
+
         <p className="mt-8 text-[13px] text-muted">
           Prefer to walk in? You can also visit the clinic directly and collect a live token from reception.
         </p>
@@ -197,12 +267,13 @@ export default function Book() {
             </div>
           </div>
           <dl className="mt-5 space-y-3 border-t border-line pt-5 text-[14px]">
+            {branch && <Row label="Branch" value={branches.find((b) => b.id === branch)?.name ?? '—'} />}
             <Row label="Date & time" value={slot ? when(slot) : '—'} />
             <Row label="Mode" value={MODE_LABEL[effectiveMode]} />
             <Row label="Consultation fee" value={rupees(fee)} />
             {redeem && pointsValue > 0 && <Row label="Points redeemed" value={`− ${rupees(fee - payable)}`} />}
           </dl>
-          {points.data && points.data.balance > 0 && (
+          {points.data && points.data.balance > 0 && !payAtClinic && (
             <label className="mt-4 flex cursor-pointer items-start gap-3 border-t border-line pt-4 text-[13px]">
               <input type="checkbox" checked={redeem} onChange={(e) => setRedeem(e.target.checked)} className="mt-0.5 accent-ink" />
               <span>
@@ -212,14 +283,16 @@ export default function Book() {
             </label>
           )}
           <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
-            <span className="eyebrow">Total payable</span>
+            <span className="eyebrow">{payAtClinic ? 'Pay at the clinic' : 'Total payable'}</span>
             <span className="text-[22px] font-bold">{rupees(payable)}</span>
           </div>
           {error && <div className="mt-4"><Alert>{error}</Alert></div>}
           <Button className="mt-5 w-full" disabled={!slot} loading={busy} onClick={confirm}>
-            {payable === 0 ? 'Confirm booking' : `Confirm & pay ${rupees(payable)}`}
+            {payAtClinic || payable === 0 ? 'Confirm booking' : `Confirm & pay ${rupees(payable)}`}
           </Button>
-          <p className="mt-3 text-center text-[11.5px] text-muted">Secure payments by Razorpay · UPI, cards, net banking</p>
+          <p className="mt-3 text-center text-[11.5px] text-muted">
+            {payAtClinic ? 'Your slot is confirmed now. Pay at reception when you visit.' : 'Secure payments by Razorpay · UPI, cards, net banking'}
+          </p>
         </div>
       </aside>
     </div>
