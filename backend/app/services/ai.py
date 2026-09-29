@@ -107,7 +107,7 @@ def _create(system: str, prompt: str) -> str:
         response = _client().chat.completions.create(
             model=get_settings().openai_model,
             max_completion_tokens=8000,  # includes the model's reasoning, not just the short answer
-            reasoning_effort="medium",
+            reasoning_effort="low",  # short drafts from structured data; keeps cost and latency down
             messages=[{"role": "developer", "content": system}, {"role": "user", "content": prompt}],
         )
     except openai.APIConnectionError as exc:

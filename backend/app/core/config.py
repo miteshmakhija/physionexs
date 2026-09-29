@@ -79,7 +79,7 @@ class Settings(BaseSettings):
 
     # AI assist for physios (OpenAI). Off unless set; clinics are also switched on individually by the Super Admin.
     openai_api_key: str | None = None
-    openai_model: str = "gpt-5.5"
+    openai_model: str = "gpt-5.4-mini"  # low cost; set OPENAI_MODEL=gpt-5.4-nano for cheaper still
 
     # Expo push (mobile). Works without a token; set one if "enhanced push security" is on in the Expo project.
     expo_access_token: str | None = None
