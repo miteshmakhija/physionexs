@@ -195,15 +195,15 @@ function HoursForm({ initial, branches, clinicId }: { initial: Schemas['Availabi
           return (
             <div key={day} className="flex flex-wrap items-start gap-4 py-3">
               <span className="w-28 pt-2 text-[14px] font-medium">{day}</span>
-              <div className="flex flex-1 flex-col gap-2">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
                 {rows.length === 0 && <span className="pt-2 text-[13px] text-subtle">Closed</span>}
                 {rows.map(({ b, i }) => (
-                  <div key={i} className="flex items-center gap-2 text-[13px]">
+                  <div key={i} className="flex flex-wrap items-center gap-2 text-[13px]">
                     <Input type="time" value={b.start_time} onChange={(e) => update(i, { start_time: e.target.value })} className="!h-9 !w-32" aria-label={`${day} start`} />
                     <span className="text-muted">to</span>
                     <Input type="time" value={b.end_time} onChange={(e) => update(i, { end_time: e.target.value })} className="!h-9 !w-32" aria-label={`${day} end`} />
                     {branches.length > 1 && (
-                      <select value={b.branch_id || defaultBranch} onChange={(e) => update(i, { branch_id: e.target.value })} className="h-9 rounded-sm border border-line-strong px-2" aria-label={`${day} branch`}>
+                      <select value={b.branch_id || defaultBranch} onChange={(e) => update(i, { branch_id: e.target.value })} className="h-9 min-w-0 max-w-full rounded-sm border border-line-strong px-2" aria-label={`${day} branch`}>
                         {branches.map((br) => <option key={br.id} value={br.id}>{br.name}</option>)}
                       </select>
                     )}

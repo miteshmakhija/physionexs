@@ -36,7 +36,7 @@ export function Recovery() {
       {bends.map((m) => {
         const pts = readings.filter((x) => x.code === 'knee_flexion' && x.side === m.side)
         return pts.length > 1 ? (
-          <div key={m.side}>
+          <div key={m.side} className="min-w-0">
             <h3 className="mb-2 text-[15px] font-semibold">{SIDE[m.side]} knee bend <span className="font-normal text-muted">· measured at your visits</span></h3>
             <MeasureTrend title={`${SIDE[m.side]} knee bend over time`} unit="deg" lo={0} hi={160} target={m.target}
               points={pts.map((x) => ({ at: `${x.measured_on}T12:00:00`, value: x.value, trusted: true }))} />
@@ -46,7 +46,7 @@ export function Recovery() {
       {checkins.length > 1 && (
         <div className="grid gap-6 lg:grid-cols-2">
           {(['pain', 'stiffness'] as const).map((k) => (
-            <div key={k}>
+            <div key={k} className="min-w-0">
               <h3 className="mb-2 text-[15px] font-semibold">{k === 'pain' ? 'Pain' : 'Stiffness'} <span className="font-normal text-muted">· your daily check-ins, 0–10</span></h3>
               <MeasureTrend title={`${k} from your daily check-ins`} unit="score" lo={0} hi={10} target={null}
                 points={checkins.map((c) => ({ at: `${c.day}T12:00:00`, value: c[k], trusted: true }))} />

@@ -41,7 +41,7 @@ export function FlagList({ flags, clinicId, canWrite, showPatient = true }: { fl
             <span className={cx('mt-0.5 w-14 shrink-0 rounded-sm px-1.5 py-0.5 text-center text-[11px] font-semibold uppercase tracking-[0.06em]', open ? SEVERITY[f.severity].cls : 'bg-surface-2 text-subtle')}>
               {SEVERITY[f.severity].label}
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-48">
               <p>
                 {showPatient && <Link to={`/clinic/patients/${f.clinic_patient_id}`} className="font-semibold text-ink hover:underline">{f.patient_name}</Link>}
                 {showPatient && ' · '}

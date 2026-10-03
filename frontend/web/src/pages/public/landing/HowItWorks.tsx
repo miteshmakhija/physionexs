@@ -61,7 +61,7 @@ export function Gap() {
       </h2>
       <div className="mt-8 grid border-t border-line sm:grid-cols-3">
         {GAPS.map((g) => (
-          <div key={g.title} className="border-b border-line py-6 sm:border-b-0 sm:px-6 sm:[&:not(:last-child)]:border-r sm:first:pl-0">
+          <div key={g.title} className="border-b border-line py-6 last:border-b-0 sm:border-b-0 sm:px-6 sm:[&:not(:last-child)]:border-r sm:first:pl-0">
             <h3 className="text-[17px] font-bold tracking-[-0.01em]">{g.title}</h3>
             <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{g.body}</p>
           </div>

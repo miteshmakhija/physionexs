@@ -64,7 +64,7 @@ export function TwinSection({ cpId, canWrite, clinicId }: { cpId: string; canWri
           {trends.map((m) => {
             const code = t.codes.find((c) => c.code === m.code)!
             return (
-              <div key={`${m.code}-${m.side}`}>
+              <div key={`${m.code}-${m.side}`} className="min-w-0">
                 <h3 className="mb-2 text-[14px] font-semibold">{measureName(m)}</h3>
                 <MeasureTrend
                   title={`${measureName(m)} over time`}
@@ -245,7 +245,7 @@ function Checkins({ twin }: { twin: Twin }) {
           {c.length > 1 && (
             <div className="mt-6 grid gap-8 lg:grid-cols-2">
               {(['pain', 'stiffness'] as const).map((k) => (
-                <div key={k}>
+                <div key={k} className="min-w-0">
                   <h4 className="mb-2 text-[13.5px] font-semibold">{k === 'pain' ? 'Pain' : 'Stiffness'} · check-ins</h4>
                   <MeasureTrend title={`${k} from daily check-ins, 0 to 10`} unit="score" lo={0} hi={10} target={null}
                     points={c.map((x) => ({ at: `${x.day}T12:00:00`, value: x[k], trusted: true }))} />

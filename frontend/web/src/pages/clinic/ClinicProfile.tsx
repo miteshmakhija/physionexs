@@ -53,14 +53,14 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-      <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
+      <form className="min-w-0 space-y-6" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
         <section>
           <h2 className="eyebrow mb-3">Clinic logo</h2>
           <div className="flex items-center gap-4">
-            <div className="grid h-20 w-40 shrink-0 place-items-center overflow-hidden border border-line bg-white p-2">
+            <div className="grid h-20 w-28 shrink-0 sm:w-40 place-items-center overflow-hidden border border-line bg-white p-2">
               {logo ? <img src={logo} alt="Clinic logo" className="h-full w-full object-contain" /> : <ClinicMark name={f.name} size="sm" />}
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0]
                 e.target.value = ''
@@ -72,7 +72,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
                   setLogoError('Could not read that image.')
                 }
               }} />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>Upload logo</Button>
                 {logo && <Button type="button" variant="ghost" onClick={() => setLogo(null)}>Remove</Button>}
               </div>
@@ -95,7 +95,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
         </div>
       </form>
 
-      <aside>
+      <aside className="min-w-0">
         <h2 className="eyebrow mb-3">Letterhead preview</h2>
         <div className="border border-line bg-white p-5 text-[12.5px]">
           <div className="flex items-start justify-between gap-3 border-b-2 border-ink pb-3">
@@ -104,7 +104,7 @@ function ProfileForm({ initial, clinicId }: { initial: Profile; clinicId: string
               <p className="text-[14px] font-bold">{f.name}</p>
               <p className="text-muted">Physiotherapy &amp; Rehabilitation</p>
             </div>
-            <div className="text-right text-muted">
+            <div className="min-w-0 text-right text-muted [overflow-wrap:anywhere]">
               <p>{f.phone}</p>
               <p>{f.email}</p>
             </div>
