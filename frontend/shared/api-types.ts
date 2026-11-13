@@ -978,6 +978,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinic/assessment-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Assessment Form
+         * @description The backend-owned parts of the structured assessment: visit types and red-flag screening.
+         */
+        get: operations["get_assessment_form_clinic_assessment_form_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinic/patients/{cp_id}/consultations": {
         parameters: {
             query?: never;
@@ -2410,11 +2430,8 @@ export interface components {
         AIText: {
             /** Text */
             text: string;
-            /**
-             * Model
-             * @default claude-opus-5
-             */
-            model: string;
+            /** Model */
+            model?: string;
         };
         /** ActivityItem */
         ActivityItem: {
@@ -2607,6 +2624,46 @@ export interface components {
         /** AppointmentStatusIn */
         AppointmentStatusIn: {
             status: components["schemas"]["AppointmentStatus"];
+        };
+        /**
+         * AssessmentFormIn
+         * @description Structured assessment. Red flags are validated here; other sections come from frontend/shared/assessment.ts.
+         */
+        AssessmentFormIn: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /**
+             * Visit Type
+             * @enum {string}
+             */
+            visit_type: "initial" | "follow_up" | "reassessment";
+            /** Red Flags */
+            red_flags?: {
+                [key: string]: "yes" | "no";
+            };
+            /** Red Flag Action */
+            red_flag_action?: ("referred" | "medical_review") | null;
+            /** Red Flag Note */
+            red_flag_note?: string | null;
+            /** Sections */
+            sections?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AssessmentFormOut */
+        AssessmentFormOut: {
+            /** Version */
+            version: number;
+            /** Visit Types */
+            visit_types: components["schemas"]["OptionOut"][];
+            /** Red Flags */
+            red_flags: components["schemas"]["OptionOut"][];
+            /** Red Flag Actions */
+            red_flag_actions: components["schemas"]["OptionOut"][];
         };
         /** AttendanceDay */
         AttendanceDay: {
@@ -3335,6 +3392,7 @@ export interface components {
             };
             /** Pain Vas */
             pain_vas?: number | null;
+            assessment_form?: components["schemas"]["AssessmentFormIn"] | null;
             /**
              * Sign
              * @default false
@@ -3366,6 +3424,12 @@ export interface components {
             };
             /** Pain Vas */
             pain_vas: number | null;
+            /** Assessment Form */
+            assessment_form: {
+                [key: string]: unknown;
+            } | null;
+            /** Red Flags */
+            red_flags: string[];
             /** Signed At */
             signed_at: string | null;
             /**
@@ -7589,6 +7653,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackgroundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_assessment_form_clinic_assessment_form_get: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Clinic-Id": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentFormOut"];
                 };
             };
             /** @description Validation Error */

@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { useClinic } from '@/auth/useClinic'
 import { Alert, Button, Field, Input, Loader, Select, Textarea } from '@/components/ui'
 import { api, type Schemas } from '@/lib/api'
+import { planFromAssessment, type FormValues, type PlanDraft } from '@shared/assessment'
 
 type Plan = Schemas['CarePlanOut']
 
@@ -21,26 +22,32 @@ function sidesOf(affected: string): ('left' | 'right')[] {
 export default function CarePlanForm() {
   const { id } = useParams()
   const { clinicId, twinPilot } = useClinic()
+  const [params] = useSearchParams()
   const file = useQuery({ queryKey: ['patient-file', id], queryFn: () => api<Schemas['PatientFileOut']>(`/clinic/patients/${id}`, { clinicId }) })
   if (file.isLoading) return <Loader />
   if (!file.data) return <Alert>Patient not found.</Alert>
-  return <Form key={file.data.active_plan?.id ?? 'new'} patient={file.data} clinicId={clinicId} twinPilot={twinPilot} />
+  // ?from=<consultation id>: a new plan starts from that assessment's goals, frequency × duration, region and side.
+  const source = file.data.active_plan ? undefined : file.data.consultations.find((c) => c.id === params.get('from') && c.assessment_form)
+  const sections = (source?.assessment_form as { sections?: FormValues } | undefined)?.sections
+  const suggested = sections ? planFromAssessment(sections) : undefined
+  return <Form key={file.data.active_plan?.id ?? source?.id ?? 'new'} patient={file.data} clinicId={clinicId} twinPilot={twinPilot} suggested={suggested} />
 }
 
-function Form({ patient, clinicId, twinPilot }: { patient: Schemas['PatientFileOut']; clinicId: string; twinPilot: boolean }) {
+function Form({ patient, clinicId, twinPilot, suggested }: { patient: Schemas['PatientFileOut']; clinicId: string; twinPilot: boolean; suggested?: PlanDraft }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const plan = patient.active_plan
   const [f, setF] = useState({
-    condition: plan?.condition ?? '',
-    condition_detail: plan?.condition_detail ?? '',
-    goal: plan?.goal ?? '',
-    stage: plan?.stage ?? '',
-    sessions_planned: plan?.sessions_planned?.toString() ?? '',
+    condition: plan?.condition ?? suggested?.condition ?? '',
+    condition_detail: plan?.condition_detail ?? suggested?.condition_detail ?? '',
+    goal: plan?.goal ?? suggested?.goal ?? '',
+    stage: plan?.stage ?? suggested?.stage ?? '',
+    sessions_planned: plan?.sessions_planned?.toString() ?? suggested?.sessions_planned?.toString() ?? '',
+    ends_on: plan?.ends_on ?? suggested?.ends_on ?? '',
     notes: plan?.notes ?? '',
     protocol: plan?.protocol ?? '',
-    surgery_date: plan?.surgery_date ?? '',
-    affected_side: plan?.affected_side ?? '',
+    surgery_date: plan?.surgery_date ?? suggested?.surgery_date ?? '',
+    affected_side: plan?.affected_side ?? suggested?.affected_side ?? '',
   })
   const [targets, setTargets] = useState<Record<string, { value: string; by_week: string }>>(
     Object.fromEntries((plan?.targets ?? []).map((t) => [`${t.code}:${t.side}`, { value: String(t.target_value), by_week: t.by_week?.toString() ?? '' }])),
@@ -55,6 +62,7 @@ function Form({ patient, clinicId, twinPilot }: { patient: Schemas['PatientFileO
         goal: f.goal || null,
         stage: f.stage || null,
         sessions_planned: f.sessions_planned ? Number(f.sessions_planned) : null,
+        ends_on: f.ends_on || null,
         notes: f.notes || null,
         ...(twinPilot ? { protocol: f.protocol || null, surgery_date: f.surgery_date || null, affected_side: f.affected_side || null } : {}),
       }
@@ -87,12 +95,14 @@ function Form({ patient, clinicId, twinPilot }: { patient: Schemas['PatientFileO
       <Link to={`/clinic/patients/${patient.id}`} className="eyebrow hover:underline">← {patient.full_name}</Link>
       <h1 className="mt-4 text-[26px] font-bold tracking-[-0.02em]">{plan ? 'Edit care plan' : 'Start care plan'}</h1>
       <p className="text-[13.5px] text-muted">The patient sees the diagnosis, goal, stage and your advice in their app.</p>
+      {suggested && !plan && <div className="mt-4"><Alert tone="info">Filled from the assessment — goals, sessions (frequency × duration) and end date. Check each field before saving.</Alert></div>}
       <form className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
         <Field label="Diagnosis"><Input value={f.condition} onChange={set('condition')} required minLength={2} placeholder="Grade II MCL sprain" /></Field>
         <Field label="Detail"><Input value={f.condition_detail} onChange={set('condition_detail')} placeholder="Right knee" /></Field>
         <Field label="Goal"><Input value={f.goal} onChange={set('goal')} placeholder="Pain-free stairs in 6 weeks" /></Field>
         <Field label="Stage"><Input value={f.stage} onChange={set('stage')} placeholder="Week 2 of 6" /></Field>
         <Field label="Sessions planned"><Input type="number" min={1} max={200} value={f.sessions_planned} onChange={set('sessions_planned')} /></Field>
+        <Field label="Planned end"><Input type="date" value={f.ends_on} onChange={set('ends_on')} /></Field>
         <div className="sm:col-span-2">
           <Field label="Advice to patient" hint="Shown on the care plan and printed on the prescription.">
             <Textarea rows={4} value={f.notes} onChange={set('notes')} placeholder="Avoid deep squats and pivoting for 2 weeks. Ice after exercises." />

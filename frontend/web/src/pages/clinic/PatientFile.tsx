@@ -49,6 +49,8 @@ export default function PatientFile() {
         )}
       </div>
 
+      <RedFlagBanner file={p} clinicId={clinicId} />
+
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Stat label="Exercise adherence" value={<Adherence pct={p.adherence_7d} />} sub="last 7 days" />
         <Stat label="Pain level" value={p.latest_pain != null ? `${p.latest_pain}/10` : '—'} sub={p.first_pain != null && p.first_pain !== p.latest_pain ? `from ${p.first_pain}/10 at first visit` : 'VAS, from consultation notes'} />
@@ -58,6 +60,14 @@ export default function PatientFile() {
       {plan ? <PlanSection plan={plan} cpId={p.id} canWrite={canWrite} clinicId={clinicId} /> : (
         <Section title="Current plan">
           <p className="text-[14px] text-muted">No active care plan. {canWrite && 'Start one to prescribe exercises and medicines to the patient app.'}</p>
+          {canWrite && (() => {
+            const source = p.consultations.find((c) => c.signed_at && c.assessment_form)
+            return source && (
+              <Link to={`/clinic/patients/${p.id}/plan?from=${source.id}`} className="mt-3 inline-flex h-10 items-center border border-ink px-4 text-[12px] font-semibold uppercase tracking-[0.09em] hover:bg-surface-2">
+                Create care plan from {source.title?.toLowerCase() ?? 'assessment'} · {dayLabel(source.created_at)}
+              </Link>
+            )
+          })()}
         </Section>
       )}
 
@@ -74,10 +84,14 @@ export default function PatientFile() {
                   {c.title} · {dayLabel(c.created_at)}
                   <span className="ml-2 font-normal text-muted">{c.physio_name}{c.signed_at ? ' · Signed' : ' · Draft'}</span>
                   {c.pain_vas != null && <span className="ml-2 font-normal text-muted">· Pain {c.pain_vas}/10</span>}
+                  {c.red_flags.length > 0 && <span className="ml-2 text-[11px] font-semibold uppercase tracking-[0.09em] text-danger">Red flag</span>}
                 </p>
                 {c.assessment && <p className="mt-1 text-ink-2"><span className="text-muted">A:</span> {c.assessment}</p>}
                 {c.plan && <p className="text-ink-2"><span className="text-muted">P:</span> {c.plan}</p>}
                 {!c.signed_at && canWrite && <Link to={`/clinic/patients/${p.id}/consult?note=${c.id}`} className="eyebrow mt-1 inline-block !text-ink underline">Continue draft</Link>}
+                {c.signed_at && c.assessment_form && !plan && canWrite && (
+                  <Link to={`/clinic/patients/${p.id}/plan?from=${c.id}`} className="eyebrow mt-1 inline-block !text-ink underline">Create care plan from this assessment</Link>
+                )}
               </li>
             ))}
           </ul>
@@ -273,6 +287,27 @@ function BackgroundSection({ file, canWrite, clinicId }: { file: File; canWrite:
         </dl>
       )}
     </Section>
+  )
+}
+
+/** Red flags from the latest signed screening (initial assessment or reassessment), if it found any. */
+function RedFlagBanner({ file, clinicId }: { file: File; clinicId: string }) {
+  const form = useQuery({ queryKey: ['assessment-form'], queryFn: () => api<Schemas['AssessmentFormOut']>('/clinic/assessment-form', { clinicId }), staleTime: Infinity })
+  const latest = file.consultations.find((c) => {
+    const visit = (c.assessment_form as { visit_type?: string } | null)?.visit_type
+    return c.signed_at && (visit === 'initial' || visit === 'reassessment')
+  })
+  if (!latest?.red_flags.length || !form.data) return null
+  const f = latest.assessment_form as { red_flag_action?: string | null; red_flag_note?: string | null }
+  const label = (list: Schemas['OptionOut'][], code?: string | null) => list.find((o) => o.code === code)?.label ?? code
+  return (
+    <div className="mt-6 border border-danger bg-danger-tint px-4 py-3 text-[13.5px] text-danger">
+      <p className="font-semibold">Red flag at {latest.title?.toLowerCase() ?? 'assessment'} · {dayLabel(latest.created_at)}</p>
+      <p className="mt-0.5">
+        {latest.red_flags.map((c) => label(form.data.red_flags, c)).join(', ')}
+        {f.red_flag_action && ` — ${label(form.data.red_flag_actions, f.red_flag_action)}${f.red_flag_note ? `: ${f.red_flag_note}` : ''}`}
+      </p>
+    </div>
   )
 }
 

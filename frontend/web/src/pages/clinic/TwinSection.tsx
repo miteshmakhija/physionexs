@@ -20,7 +20,7 @@ const SIDE: Record<string, string> = { left: 'Left', right: 'Right', none: '' }
 const isCamera = (r: Reading) => r.method === 'camera_v1' // unvalidated estimates (design B1)
 
 function fmtValue(v: number, unit: string) {
-  return unit === 'deg' ? `${v}°` : unit === 'score' ? `${v}/10` : `${v} ${unit}`
+  return unit === 'deg' ? `${v}°` : unit === 'score' ? `${v}/10` : unit === 'mrc' ? `${v}/5` : `${v} ${unit}`
 }
 
 function measureName(m: { label: string; side: string }) {
@@ -161,7 +161,7 @@ function AddReading({ twin, cpId, clinicId }: { twin: Twin; cpId: string; clinic
           </Select>
         </Field>
       )}
-      <Field label={`Value (${code.unit === 'deg' ? '°' : code.unit === 'score' ? '0–10' : code.unit})`}>
+      <Field label={`Value (${code.unit === 'deg' ? '°' : code.unit === 'score' ? '0–10' : code.unit === 'mrc' ? 'MRC 0–5' : code.unit})`}>
         <Input type="number" step="0.5" min={code.min} max={code.max} value={f.value} onChange={set('value')} required className="!w-28" />
       </Field>
       <Field label="Date">

@@ -1,6 +1,7 @@
+import json
 import uuid
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 
@@ -9,7 +10,8 @@ from app.models.clinical import AffectedSide, CarePlanStatus, Feel, Frequency, T
 from app.models.exercise import DoseUnit, ExerciseCategory, ExercisePosition, ExerciseStatus
 from app.models.patient import ClinicPatientStatus, CoreGrade, Sex
 from app.models.scheduling import TokenStatus
-from app.schemas.twin import TargetOut
+from app.schemas.twin import OptionOut, TargetOut
+from app.services.assessment import RED_FLAGS
 
 Phone = Annotated[str, AfterValidator(normalize_phone)]
 ShortText = Annotated[str, Field(max_length=200)]
@@ -206,6 +208,33 @@ class CarePlanOut(CarePlanIn):
     targets: list[TargetOut] = Field(default_factory=list)
 
 
+class AssessmentFormIn(BaseModel):
+    """Structured assessment. Red flags are validated here; other sections come from frontend/shared/assessment.ts."""
+
+    version: Literal[1] = 1
+    visit_type: Literal["initial", "follow_up", "reassessment"]
+    red_flags: dict[str, Literal["yes", "no"]] = Field(default_factory=dict)
+    red_flag_action: Literal["referred", "medical_review"] | None = None
+    red_flag_note: Annotated[str, Field(max_length=500)] | None = None
+    sections: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def known_flags_and_size(self):
+        unknown = set(self.red_flags) - set(RED_FLAGS)
+        if unknown:
+            raise ValueError(f"Unknown red flags: {', '.join(sorted(unknown))}")
+        if len(json.dumps(self.sections, default=str)) > 64_000:
+            raise ValueError("Assessment is too large")
+        return self
+
+
+class AssessmentFormOut(BaseModel):
+    version: int
+    visit_types: list[OptionOut]
+    red_flags: list[OptionOut]
+    red_flag_actions: list[OptionOut]
+
+
 class ConsultationIn(BaseModel):
     title: Annotated[str, Field(max_length=120)] | None = None
     appointment_id: uuid.UUID | None = None
@@ -215,6 +244,7 @@ class ConsultationIn(BaseModel):
     plan: LongText | None = None
     vitals: dict[str, str | int | float] = Field(default_factory=dict, max_length=30)
     pain_vas: Annotated[int, Field(ge=0, le=10)] | None = None
+    assessment_form: AssessmentFormIn | None = None
     sign: bool = False
 
 
@@ -228,6 +258,8 @@ class ConsultationOut(BaseModel):
     plan: str | None
     vitals: dict
     pain_vas: int | None
+    assessment_form: dict | None
+    red_flags: list[str]  # codes answered "yes" in the assessment's red-flag screening
     signed_at: datetime | None
     created_at: datetime
 

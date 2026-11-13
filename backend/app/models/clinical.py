@@ -59,6 +59,9 @@ class Consultation(UUIDPk, Timestamps, Base):
     # {"knee_flexion_deg": 120, "quads_mmt": "4/5", "pain_vas": 3, "swelling": "mild"}
     vitals: Mapped[dict] = mapped_column(JSONB, default=dict)
     pain_vas: Mapped[int | None] = mapped_column(SmallInteger)
+    # Structured assessment form (services/assessment.py, frontend/shared/assessment.ts); null for plain SOAP notes.
+    assessment_form: Mapped[dict | None] = mapped_column(JSONB)
+    form_version: Mapped[int | None] = mapped_column(SmallInteger)
     signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 

@@ -250,7 +250,7 @@ export function MeasureTrend({ points, target, unit, lo, hi, title }: { points: 
   const trusted = sorted.map((p, i) => ({ ...p, i })).filter((p) => p.trusted)
   const path = trusted.map((p, k) => `${k ? 'L' : 'M'}${x(times[p.i])},${y(p.value)}`).join(' ')
   const ticks = [yMin, Math.round((yMin + yMax) / 2), yMax]
-  const suffix = unit === 'deg' ? '°' : unit === 'score' ? '/10' : ` ${unit}`
+  const suffix = unit === 'deg' ? '°' : unit === 'score' ? '/10' : unit === 'mrc' ? '/5' : ` ${unit}`
   const fmt = (v: number) => `${v}${suffix}`
 
   const onMove = (e: React.PointerEvent<SVGRectElement>) => {

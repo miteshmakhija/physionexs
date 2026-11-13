@@ -3150,6 +3150,55 @@
         }
       }
     },
+    "/clinic/assessment-form": {
+      "get": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Get Assessment Form",
+        "description": "The backend-owned parts of the structured assessment: visit types and red-flag screening.",
+        "operationId": "get_assessment_form_clinic_assessment_form_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Clinic-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Clinic-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentFormOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clinic/patients/{cp_id}/consultations": {
       "post": {
         "tags": [
@@ -8503,8 +8552,7 @@
           },
           "model": {
             "type": "string",
-            "title": "Model",
-            "default": "claude-opus-5"
+            "title": "Model"
           }
         },
         "type": "object",
@@ -9102,6 +9150,111 @@
           "status"
         ],
         "title": "AppointmentStatusIn"
+      },
+      "AssessmentFormIn": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "default": 1
+          },
+          "visit_type": {
+            "type": "string",
+            "enum": [
+              "initial",
+              "follow_up",
+              "reassessment"
+            ],
+            "title": "Visit Type"
+          },
+          "red_flags": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            },
+            "type": "object",
+            "title": "Red Flags"
+          },
+          "red_flag_action": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "referred",
+                  "medical_review"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Red Flag Action"
+          },
+          "red_flag_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Red Flag Note"
+          },
+          "sections": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Sections"
+          }
+        },
+        "type": "object",
+        "required": [
+          "visit_type"
+        ],
+        "title": "AssessmentFormIn",
+        "description": "Structured assessment. Red flags are validated here; other sections come from frontend/shared/assessment.ts."
+      },
+      "AssessmentFormOut": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "visit_types": {
+            "items": {
+              "$ref": "#/components/schemas/OptionOut"
+            },
+            "type": "array",
+            "title": "Visit Types"
+          },
+          "red_flags": {
+            "items": {
+              "$ref": "#/components/schemas/OptionOut"
+            },
+            "type": "array",
+            "title": "Red Flags"
+          },
+          "red_flag_actions": {
+            "items": {
+              "$ref": "#/components/schemas/OptionOut"
+            },
+            "type": "array",
+            "title": "Red Flag Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "visit_types",
+          "red_flags",
+          "red_flag_actions"
+        ],
+        "title": "AssessmentFormOut"
       },
       "AttendanceDay": {
         "properties": {
@@ -11425,6 +11578,16 @@
             ],
             "title": "Pain Vas"
           },
+          "assessment_form": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentFormIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sign": {
             "type": "boolean",
             "title": "Sign",
@@ -11516,6 +11679,25 @@
             ],
             "title": "Pain Vas"
           },
+          "assessment_form": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Form"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Flags"
+          },
           "signed_at": {
             "anyOf": [
               {
@@ -11545,6 +11727,8 @@
           "plan",
           "vitals",
           "pain_vas",
+          "assessment_form",
+          "red_flags",
           "signed_at",
           "created_at"
         ],

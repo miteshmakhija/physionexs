@@ -38,6 +38,9 @@ CODES: dict[str, Code] = {
     "knee_extension_lag": Code("Knee extension lag", "deg", 0, 60, sided=True, higher_is_better=False, max_jump=30),
     "knee_girth": Code("Knee girth", "cm", 20, 80, sided=True, higher_is_better=False),
     "pain_nprs": Code("Pain (NPRS)", "score", 0, 10, sided=False, higher_is_better=False),
+    # MRC grades from the structured assessment's strength section (services/assessment.py twin_readings).
+    "knee_extension_mrc": Code("Knee extension strength (MRC)", "mrc", 0, 5, sided=True, higher_is_better=True, max_jump=2),
+    "knee_flexion_mrc": Code("Knee flexion strength (MRC)", "mrc", 0, 5, sided=True, higher_is_better=True, max_jump=2),
 }
 
 PROTOCOLS = {"tka": "Knee replacement (TKA)"}

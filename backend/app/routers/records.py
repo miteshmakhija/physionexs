@@ -25,6 +25,7 @@ from app.models.patient import ClinicPatient, MedicalBackground, Patient
 from app.models.scheduling import Appointment, AppointmentStatus
 from app.models.user import User
 from app.schemas.clinical import (
+    AssessmentFormOut,
     BackgroundIn,
     BackgroundOut,
     CarePlanIn,
@@ -42,7 +43,11 @@ from app.schemas.clinical import (
     TestOrderUpdate,
     TWIN_PLAN_FIELDS,
 )
-from app.services import audit
+from app.schemas.twin import OptionOut
+from app.services import assessment as assessment_form
+from app.models.twin import Measurement, MeasurementSource, Side
+from app.services import audit, twin
+from app.services.twin_rules import active_plan_for, evaluate_plan
 from app.services.scope import patient_filter
 from app.services.adherence import adherence_pct, day_stats
 from app.services.clinical import (
@@ -169,8 +174,46 @@ def update_background(cp_id: uuid.UUID, body: BackgroundIn, member: Clinician, u
 def _consult_out(db: Session, c: Consultation) -> ConsultationOut:
     return ConsultationOut(
         id=c.id, title=c.title, physio_name=db.get(User, c.physio_user_id).full_name, subjective=c.subjective, objective=c.objective,
-        assessment=c.assessment, plan=c.plan, vitals=c.vitals or {}, pain_vas=c.pain_vas, signed_at=c.signed_at, created_at=c.created_at,
+        assessment=c.assessment, plan=c.plan, vitals=c.vitals or {}, pain_vas=c.pain_vas, assessment_form=c.assessment_form,
+        red_flags=assessment_form.positive_flags(c.assessment_form), signed_at=c.signed_at, created_at=c.created_at,
     )
+
+
+def _check_signable(form: dict | None) -> None:
+    problems = assessment_form.sign_problems(form)
+    if problems:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "; ".join(problems))
+
+
+def _record_twin_readings(db: Session, clinic_id: uuid.UUID, cp: ClinicPatient, c: Consultation, user_id: uuid.UUID) -> None:
+    """On sign, a knee assessment's ROM degrees and MRC grades become recovery-twin measurements (pilot clinics only).
+
+    Runs in the signing transaction, so an out-of-range value blocks the sign (422) instead of being lost.
+    """
+    readings = assessment_form.twin_readings(c.assessment_form)
+    if not readings or not db.get(Clinic, clinic_id).twin_pilot:
+        return
+    plan = active_plan_for(db, cp.id)
+    at = datetime.now(UTC)
+    for code, side_value, value in readings:
+        side = Side(side_value)
+        spec = twin.check(code, side, value)
+        prev = twin.last_trusted(db, cp.id, code, side, at)
+        db.add(Measurement(
+            patient_id=cp.patient_id, clinic_patient_id=cp.id, care_plan_id=plan.id if plan else None, code=code, side=side, value=value,
+            unit=spec.unit, source=MeasurementSource.CLINIC, method="mrc" if spec.unit == "mrc" else "goniometer", measured_at=at,
+            recorded_by=user_id, consultation_id=c.id, trusted=twin.is_plausible(spec, value, float(prev.value) if prev else None),
+        ))
+    db.flush()
+    evaluate_plan(db, plan)
+
+
+@router.get("/assessment-form", response_model=AssessmentFormOut)
+def get_assessment_form(member: Clinician) -> AssessmentFormOut:
+    """The backend-owned parts of the structured assessment: visit types and red-flag screening."""
+    opts = lambda d: [OptionOut(code=k, label=v) for k, v in d.items()]  # noqa: E731
+    return AssessmentFormOut(version=assessment_form.FORM_VERSION, visit_types=opts(assessment_form.VISIT_TYPES),
+                             red_flags=opts(assessment_form.RED_FLAGS), red_flag_actions=opts(assessment_form.RED_FLAG_ACTIONS))
 
 
 @router.post("/patients/{cp_id}/consultations", response_model=ConsultationOut, status_code=status.HTTP_201_CREATED)
@@ -180,16 +223,23 @@ def create_consultation(cp_id: uuid.UUID, body: ConsultationIn, member: Clinicia
         appt = db.get(Appointment, body.appointment_id)
         if appt is None or appt.clinic_id != member.clinic_id or appt.patient_id != cp.patient_id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Appointment doesn't belong to this patient")
+    form = body.assessment_form.model_dump() if body.assessment_form else None
+    if body.sign:
+        _check_signable(form)
     plan = _active_plan(db, cp.id)
     first = db.scalar(select(Consultation.id).where(Consultation.clinic_patient_id == cp.id).limit(1)) is None
     c = Consultation(
         clinic_patient_id=cp.id, appointment_id=body.appointment_id, care_plan_id=plan.id if plan else None, physio_user_id=user.id,
-        title=body.title or ("Initial assessment" if first else "Follow-up"),
+        title=body.title or (assessment_form.VISIT_TYPES[form["visit_type"]] if form else ("Initial assessment" if first else "Follow-up")),
         **body.model_dump(include={"subjective", "objective", "assessment", "plan", "vitals", "pain_vas"}),
+        assessment_form=form, form_version=form["version"] if form else None,
         signed_at=datetime.now(UTC) if body.sign else None,
     )
     db.add(c)
     cp.last_visit_on = date.today()
+    if body.sign:
+        db.flush()
+        _record_twin_readings(db, member.clinic_id, cp, c, user.id)
     if body.sign and body.appointment_id:
         db.execute(update(Appointment).where(Appointment.id == body.appointment_id, Appointment.status.in_([AppointmentStatus.CONFIRMED, AppointmentStatus.CHECKED_IN])).values(status=AppointmentStatus.COMPLETED))
     db.flush()
@@ -211,8 +261,15 @@ def update_consultation(consultation_id: uuid.UUID, body: ConsultationIn, member
     for k, v in body.model_dump(include={"title", "subjective", "objective", "assessment", "plan", "vitals", "pain_vas"}).items():
         if v is not None:
             setattr(c, k, v)
+    if body.assessment_form:
+        c.assessment_form = body.assessment_form.model_dump()
+        c.form_version = body.assessment_form.version
+        if not body.title:
+            c.title = assessment_form.VISIT_TYPES[body.assessment_form.visit_type]
     if body.sign:
+        _check_signable(c.assessment_form)
         c.signed_at = datetime.now(UTC)
+        _record_twin_readings(db, member.clinic_id, db.get(ClinicPatient, c.clinic_patient_id), c, user.id)
     audit.record(db, action="sign" if body.sign else "update", entity="consultation", entity_id=c.id, actor_user_id=user.id, clinic_id=member.clinic_id, request=request)
     db.commit()
     return _consult_out(db, c)
